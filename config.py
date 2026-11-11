@@ -63,6 +63,22 @@ class UtilityWeightsDefaults:
     ENERGY_COST_OFF: float = 0.0
 
 
+@dataclass(frozen=True)
+class ReflexThermostatDefaults:
+    """Default configurable thresholds and energy costs for the Simple Reflex Thermostat."""
+
+    MIN_THRESHOLD: float = 10.0
+    MAX_THRESHOLD: float = 35.0
+    DEFAULT_LOWER_THRESHOLD: float = 20.0
+    DEFAULT_UPPER_THRESHOLD: float = 26.0
+    THRESHOLD_STEP: float = 0.5
+
+    # Energy consumption costs per action
+    ENERGY_COST_HEAT: float = 1.0
+    ENERGY_COST_COOL: float = 1.0
+    ENERGY_COST_OFF: float = 0.0
+
+
 # Insulation levels mapped to heat transfer coefficients (k)
 # Higher k means faster heat transfer through walls/windows
 INSULATION_FACTORS: Dict[str, float] = {

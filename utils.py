@@ -1,6 +1,6 @@
 """
 Helper functions and visualization utilities for the Environment Classifier
-and Demonstrator application (Phase 2: Utility-Based Intelligent Agent).
+and Demonstrator application (Environment, Utility Agent, and Reflex Thermostat).
 """
 
 import textwrap
@@ -402,5 +402,322 @@ def create_comparison_bar_chart(
         plot_bgcolor="rgba(248, 250, 252, 0.6)",
     )
     fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+
+    return fig
+
+
+def get_reflex_rules_html(
+    current_temp: float,
+    lower_threshold: float,
+    upper_threshold: float,
+    selected_action: str,
+) -> str:
+    """
+    Generate visual HTML condition-action rule cards using the actual configured
+    lower and upper thresholds, highlighting the currently active rule.
+    """
+    rules = [
+        {
+            "action": ACTION_HEAT,
+            "condition": f"&lt; {lower_threshold:.1f}°C",
+            "arrow_label": "🔥 HEAT",
+            "desc": "Room is below lower threshold — turn on heating.",
+            "accent": "#ea580c",
+            "bg_active": "#fff7ed",
+            "border_active": "#fb923c",
+        },
+        {
+            "action": ACTION_OFF,
+            "condition": f"{lower_threshold:.1f}°C – {upper_threshold:.1f}°C",
+            "arrow_label": "⏸️ OFF",
+            "desc": "Room is between thresholds — turn off both systems.",
+            "accent": "#16a34a",
+            "bg_active": "#f0fdf4",
+            "border_active": "#4ade80",
+        },
+        {
+            "action": ACTION_COOL,
+            "condition": f"&gt; {upper_threshold:.1f}°C",
+            "arrow_label": "❄️ COOL",
+            "desc": "Room is above upper threshold — turn on cooling.",
+            "accent": "#0284c7",
+            "bg_active": "#f0f9ff",
+            "border_active": "#38bdf8",
+        },
+    ]
+
+    cards_html = []
+    for rule in rules:
+        is_active = rule["action"] == selected_action
+        bg = rule["bg_active"] if is_active else "#f8fafc"
+        border = f"2px solid {rule['border_active']}" if is_active else "1px solid #e2e8f0"
+        opacity = "1.0" if is_active else "0.72"
+        shadow = "0 4px 10px rgba(15, 23, 42, 0.08)" if is_active else "none"
+        badge_bg = rule["accent"] if is_active else "#94a3b8"
+        badge_text = "ACTIVE RULE" if is_active else "INACTIVE"
+
+        cards_html.append(
+            f"""<div style="flex: 1; min-width: 210px; background-color: {bg}; border: {border}; border-radius: 10px; padding: 14px 16px; opacity: {opacity}; box-shadow: {shadow};">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: white; background-color: {badge_bg}; padding: 2px 8px; border-radius: 999px;">{badge_text}</span>
+<span style="font-size: 12px; font-weight: 600; color: #64748b;">Current: {current_temp:.2f}°C</span>
+</div>
+<div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
+{rule['condition']} <span style="color: #64748b; margin: 0 4px;">→</span> <span style="color: {rule['accent']};">{rule['arrow_label']}</span>
+</div>
+<div style="font-size: 12.5px; color: #475569; line-height: 1.4;">{rule['desc']}</div>
+</div>"""
+        )
+
+    return (
+        '<div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">'
+        + "".join(cards_html)
+        + "</div>"
+    )
+
+
+def get_reflex_decision_card_html(
+    current_temp: float,
+    lower_threshold: float,
+    upper_threshold: float,
+    selected_action: str,
+    classification: str,
+    step_energy: float,
+    total_energy: float,
+    rule_triggered: str,
+    reason: str,
+    last_step_action: Optional[str] = None,
+    last_step_num: int = 0,
+) -> str:
+    """
+    Generate a styled status and decision card for the Simple Reflex Thermostat.
+    """
+    meta = ACTION_METADATA.get(selected_action, ACTION_METADATA[ACTION_OFF])
+    class_info = STATUS_COLORS.get(classification, STATUS_COLORS[CLASS_COMFORTABLE])
+
+    last_step_note = ""
+    if last_step_num > 0 and last_step_action:
+        last_meta = ACTION_METADATA.get(last_step_action, ACTION_METADATA[ACTION_OFF])
+        last_step_note = (
+            f'<div style="margin-top: 8px; font-size: 12.5px; color: #475569;">'
+            f'<b>Last Executed Step (Step {last_step_num}):</b> '
+            f'<span style="color: {last_meta["color"]}; font-weight: 700;">{last_meta["label"]}</span> '
+            f'(Step energy: {step_energy:.1f} units)'
+            f"</div>"
+        )
+
+    html = f"""<div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-left: 6px solid {meta['color']}; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+<div>
+<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Simple Reflex Thermostat Decision (Current Percept)</div>
+<div style="font-size: 22px; font-weight: 800; color: #0f172a;">Selected Action: <span style="color: {meta['color']};">{meta['label']}</span></div>
+</div>
+<div style="text-align: right;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Triggered Rule</div>
+<div style="font-size: 16px; font-weight: 800; color: #0f172a;">{rule_triggered}</div>
+</div>
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap; background: white; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 14px;">
+<div style="flex: 1; min-width: 110px;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Room Temp</div>
+<div style="font-size: 17px; font-weight: 700; color: #1e293b;">{current_temp:.2f}°C</div>
+</div>
+<div style="flex: 1; min-width: 110px;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Lower Threshold</div>
+<div style="font-size: 17px; font-weight: 700; color: #ea580c;">{lower_threshold:.1f}°C</div>
+</div>
+<div style="flex: 1; min-width: 110px;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Upper Threshold</div>
+<div style="font-size: 17px; font-weight: 700; color: #0284c7;">{upper_threshold:.1f}°C</div>
+</div>
+<div style="flex: 1; min-width: 110px;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Classification</div>
+<div style="font-size: 17px; font-weight: 700; color: {class_info['color']};">{class_info['icon']} {classification}</div>
+</div>
+<div style="flex: 1; min-width: 110px;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Energy Used</div>
+<div style="font-size: 17px; font-weight: 700; color: #0f172a;">{total_energy:.1f} units</div>
+</div>
+</div>
+<div style="font-size: 14px; color: #334155; line-height: 1.5; padding: 8px 12px; background: #f1f5f9; border-radius: 6px;">
+<b>⚡ Condition-Action Rule Match:</b> {reason}
+{last_step_note}
+</div>
+</div>"""
+    return html
+
+
+def create_reflex_temperature_history_chart(
+    df: pd.DataFrame,
+    lower_threshold: float,
+    upper_threshold: float,
+    desired_temp: float,
+) -> go.Figure:
+    """
+    Generate an interactive line chart tracking room temperature against the
+    configured lower and upper reflex thresholds and outside ambient temperature.
+    """
+    fig = go.Figure()
+
+    if df.empty:
+        fig.update_layout(title="No simulation steps executed yet.", height=380)
+        return fig
+
+    steps = df["step"]
+    temp_col = "actual_temp" if "actual_temp" in df.columns else "room_temp"
+    action_colors = {
+        ACTION_HEAT: ACTION_METADATA[ACTION_HEAT]["color"],
+        ACTION_COOL: ACTION_METADATA[ACTION_COOL]["color"],
+        ACTION_OFF: "#16a34a",
+    }
+    marker_colors = [
+        action_colors.get(a, "#64748b")
+        for a in (df["action"] if "action" in df.columns else [ACTION_OFF] * len(df))
+    ]
+
+    # 1. Shaded OFF Deadband Zone between lower and upper thresholds
+    fig.add_trace(
+        go.Scatter(
+            x=list(steps) + list(steps[::-1]),
+            y=[upper_threshold] * len(steps) + [lower_threshold] * len(steps),
+            fill="toself",
+            fillcolor="rgba(34, 197, 94, 0.10)",
+            line=dict(color="rgba(34, 197, 94, 0)"),
+            hoverinfo="skip",
+            showlegend=True,
+            name=f"OFF Band ({lower_threshold:.1f}–{upper_threshold:.1f}°C)",
+        )
+    )
+
+    # 2. Upper Threshold Line (> COOL)
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=[upper_threshold] * len(steps),
+            mode="lines",
+            line=dict(color="#0284c7", width=1.8, dash="dash"),
+            name=f"Upper Threshold ({upper_threshold:.1f}°C → COOL)",
+            hovertemplate="Upper Threshold: %{y:.1f}°C<extra></extra>",
+        )
+    )
+
+    # 3. Lower Threshold Line (< HEAT)
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=[lower_threshold] * len(steps),
+            mode="lines",
+            line=dict(color="#ea580c", width=1.8, dash="dash"),
+            name=f"Lower Threshold ({lower_threshold:.1f}°C → HEAT)",
+            hovertemplate="Lower Threshold: %{y:.1f}°C<extra></extra>",
+        )
+    )
+
+    # 4. Desired Target Temperature (Reference)
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=[desired_temp] * len(steps),
+            mode="lines",
+            line=dict(color="#16a34a", width=1.3, dash="dot"),
+            name=f"Desired Target ({desired_temp:.1f}°C)",
+            hovertemplate="Target: %{y:.1f}°C<extra></extra>",
+        )
+    )
+
+    # 5. Outside Ambient Temperature
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=df["outside_temp"],
+            mode="lines",
+            line=dict(color="#94a3b8", width=1.6, dash="dot"),
+            name="Outside Ambient",
+            hovertemplate="Step %{x}: Outside %{y:.1f}°C<extra></extra>",
+        )
+    )
+
+    # 6. Actual Room Temperature colored by action selected
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=df[temp_col],
+            mode="lines+markers",
+            line=dict(color="#0f172a", width=2.5),
+            marker=dict(size=7, color=marker_colors, line=dict(width=1, color="white")),
+            name="Room Temperature",
+            text=df["action"] if "action" in df.columns else None,
+            hovertemplate="Step %{x}: Room %{y:.2f}°C (Action: %{text})<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="<b>Simple Reflex Thermostat Temperature Trajectory</b>",
+        title_font=dict(size=16, color="#1e293b"),
+        xaxis_title="Simulation Time Step",
+        yaxis_title="Temperature (°C)",
+        template="plotly_white",
+        height=390,
+        margin=dict(l=30, r=20, t=55, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.7)",
+        ),
+        hovermode="x unified",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+
+    return fig
+
+
+def create_reflex_action_summary_chart(df: pd.DataFrame) -> go.Figure:
+    """
+    Generate a bar chart showing the count of HEAT, COOL, and OFF actions
+    taken by the Simple Reflex Thermostat during the simulation.
+    """
+    active_df = df[df["step"] > 0] if "step" in df.columns and len(df) > 1 else pd.DataFrame()
+    actions = [ACTION_HEAT, ACTION_OFF, ACTION_COOL]
+    labels = ["🔥 HEAT", "⏸️ OFF", "❄️ COOL"]
+    colors = [
+        ACTION_METADATA[ACTION_HEAT]["color"],
+        ACTION_METADATA[ACTION_OFF]["color"],
+        ACTION_METADATA[ACTION_COOL]["color"],
+    ]
+
+    if active_df.empty or "action" not in active_df.columns:
+        counts = [0, 0, 0]
+    else:
+        counts = [int((active_df["action"] == a).sum()) for a in actions]
+
+    fig = go.Figure(
+        go.Bar(
+            x=labels,
+            y=counts,
+            marker_color=colors,
+            text=[f"{c} steps" for c in counts],
+            textposition="auto",
+            textfont=dict(size=13, color="white", weight="bold"),
+            width=0.45,
+        )
+    )
+
+    fig.update_layout(
+        title="<b>Reflex Action Distribution</b>",
+        title_font=dict(size=15, color="#1e293b"),
+        yaxis_title="Number of Steps",
+        template="plotly_white",
+        height=250,
+        margin=dict(l=25, r=20, t=45, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", dtick=1 if max(counts, default=0) <= 10 else None)
 
     return fig
