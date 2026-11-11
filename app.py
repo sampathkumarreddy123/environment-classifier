@@ -12,11 +12,15 @@ Sections:
 7. About the Project
 """
 
+import importlib
 import io
 import time
 from typing import Any, Dict, List, Optional
 import pandas as pd
 import streamlit as st
+
+import config
+importlib.reload(config)
 
 from config import (
     ACTION_COOL,
