@@ -1,6 +1,17 @@
+[theme]
+base = "light"
+primaryColor = "#2E7D52"
+backgroundColor = "#F5F7F0"
+secondaryBackgroundColor = "#EAF0E5"
+textColor = "#26382D"
+borderColor = "#DCE5D8"
+dataframeBorderColor = "#DCE5D8"
+dataframeHeaderBackgroundColor = "#EAF0E5"
+dataframeHeaderTextColor = "#26382D"
+font = "sans serif"
+
 [client]
 toolbarMode = "minimal"
 
 [browser]
 gatherUsageStats = false
-

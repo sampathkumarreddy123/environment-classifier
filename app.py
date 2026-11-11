@@ -12,14 +12,8 @@ Sections:
 6. Results
 """
 
-import importlib
 import pandas as pd
 import streamlit as st
-
-import config
-importlib.reload(config)
-import utils
-importlib.reload(utils)
 
 from config import (
     ACTION_COOL,
@@ -252,23 +246,23 @@ dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 # Dynamic Light/Dark Theme & Fixed Header Styling (Biophilic Eco-Tech)
 # ---------------------------------------------------------
 if dark_mode:
-    app_bg = "#101B17"
-    card_bg = "#192720"
-    card_sub_bg = "#22352A"
-    text_primary = "#E7F0E8"
-    text_secondary = "#B4C4B5"
-    text_muted = "#A1B5A5"
-    forest_green = "#75B58A"
-    primary_green = "#75B58A"
+    app_bg = "#101A16"
+    card_bg = "#1B2922"
+    card_sub_bg = "#15221B"
+    text_primary = "#E8F0E8"
+    text_secondary = "#A7B8AA"
+    text_muted = "#8CA08E"
+    forest_green = "#70C98A"
+    primary_green = "#70C98A"
     muted_teal = "#5BB5B5"
     sage_green = "#9DBA91"
     mint_accent = "#8FD0A8"
-    border_color = "#304438"
-    header_bg = "#192720"
-    header_border = "#304438"
-    header_text = "#E7F0E8"
-    sidebar_bg = "#101B17"
-    sidebar_border = "#304438"
+    border_color = "#34483B"
+    header_bg = "#1B2922"
+    header_border = "#34483B"
+    header_text = "#E8F0E8"
+    sidebar_bg = "#101A16"
+    sidebar_border = "#34483B"
     button_hover_bg = "#5A9E6F"
 else:
     app_bg = "#F5F7F0"
@@ -277,8 +271,8 @@ else:
     text_primary = "#26382D"
     text_secondary = "#5F7162"
     text_muted = "#718174"
-    forest_green = "#245C43"
-    primary_green = "#245C43"
+    forest_green = "#2E7D52"
+    primary_green = "#2E7D52"
     muted_teal = "#4D9285"
     sage_green = "#829B78"
     mint_accent = "#B9D7C1"
@@ -288,7 +282,7 @@ else:
     header_text = "#26382D"
     sidebar_bg = "#FFFFFF"
     sidebar_border = "#DCE5D8"
-    button_hover_bg = "#1D4A36"
+    button_hover_bg = "#236341"
 
 theme_css = f"""
 <style>
@@ -390,7 +384,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-right: 125px; /* Leaves room for docked toggle */
+    margin-right: 140px; /* Leaves clean room for the theme toggle pill */
 }}
 
 .header-status-badge {{
@@ -407,22 +401,59 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 }}
 
 /* Dock Theme Toggle switch directly into top right header */
-div[data-testid="stToggle"] {{
+.st-key-header_theme_toggle,
+div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle),
+div[data-testid="stCheckbox"]:has(input[aria-label*="Light"]),
+div[data-testid="stCheckbox"]:has(input[aria-label*="Dark"]) {{
     position: fixed !important;
-    top: 20px !important;
-    right: 22px !important;
+    top: 17px !important;
+    right: 1.5rem !important;
     z-index: 1000000 !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: 36px !important;
     display: flex !important;
     align-items: center !important;
 }}
 
-div[data-testid="stToggle"] label {{
+.st-key-header_theme_toggle label,
+div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label {{
     margin: 0 !important;
+    padding: 5px 12px !important;
+    background-color: {card_sub_bg} !important;
+    border: 1.5px solid {border_color} !important;
+    border-radius: 9999px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"}) !important;
+}}
+
+.st-key-header_theme_toggle label:hover,
+div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label:hover {{
+    border-color: {primary_green} !important;
+    background-color: {card_bg} !important;
+}}
+
+.st-key-header_theme_toggle label p,
+.st-key-header_theme_toggle label span,
+.st-key-header_theme_toggle [data-testid="stMarkdownContainer"] p,
+div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label p {{
+    margin: 0 !important;
+    padding: 0 !important;
     color: {header_text} !important;
-    font-weight: 600 !important;
-    font-size: 0.88rem !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}}
+
+.st-key-header_theme_toggle input[role="switch"]:checked + div,
+.st-key-header_theme_toggle div[role="switch"][aria-checked="true"] {{
+    background-color: {primary_green} !important;
 }}
 
 /* 4. Page Content Layout & Vertical Spacing */
@@ -446,7 +477,134 @@ section[data-testid="stSidebar"] * {{
     color: {text_primary} !important;
 }}
 
-/* 6. Biophilic Typography and Card styling */
+/* 6. Biophilic Modern Sidebar Navigation Pills */
+div[data-testid="stRadio"] [role="radiogroup"] {{
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+    padding: 2px 0 !important;
+}}
+
+/* Completely hide raw browser radio dots */
+div[data-testid="stRadio"] [role="radiogroup"] label div:first-of-type,
+div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"],
+div[data-testid="stRadio"] input[type="radio"],
+div[data-testid="stRadio"] svg {{
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+}}
+
+/* Clean clickable navigation cards */
+div[data-testid="stRadio"] [role="radiogroup"] > label {{
+    background-color: {"#18261F" if dark_mode else "#FFFFFF"} !important;
+    border: 1.5px solid {"#2E4234" if dark_mode else "#E0E8DC"} !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, {"0.15" if dark_mode else "0.03"}) !important;
+}}
+
+div[data-testid="stRadio"] [role="radiogroup"] > label:hover {{
+    background-color: {"#22382B" if dark_mode else "#F0F5EC"} !important;
+    border-color: {"#70C98A" if dark_mode else "#2E7D52"} !important;
+    transform: translateX(3px) !important;
+}}
+
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked),
+div[data-testid="stRadio"] [role="radiogroup"] > label[aria-checked="true"] {{
+    background-color: {"#243C2E" if dark_mode else "#E4EFE3"} !important;
+    border: 1.5px solid {"#70C98A" if dark_mode else "#2E7D52"} !important;
+    border-left: 4.5px solid {"#70C98A" if dark_mode else "#2E7D52"} !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.25" if dark_mode else "0.06"}) !important;
+}}
+
+div[data-testid="stRadio"] [role="radiogroup"] > label p,
+div[data-testid="stRadio"] [role="radiogroup"] > label span,
+div[data-testid="stRadio"] [role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {{
+    color: {text_primary} !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.35 !important;
+}}
+
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) p,
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) span,
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {{
+    color: {"#8FD0A8" if dark_mode else "#2E7D52"} !important;
+    font-weight: 700 !important;
+}}
+
+/* 7. BaseWeb Selectbox (Fixing dark container background) */
+div[data-testid="stSelectbox"] label,
+div[data-testid="stSelectbox"] label * {{
+    color: {text_primary} !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+}}
+
+div[data-baseweb="select"],
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] [role="combobox"],
+div[data-baseweb="select"] [aria-haspopup="listbox"],
+div[data-baseweb="select"] div {{
+    background-color: {card_bg} !important;
+    border-color: {border_color} !important;
+    color: {text_primary} !important;
+}}
+
+div[data-baseweb="select"] > div {{
+    border: 1.5px solid {border_color} !important;
+    border-radius: 8px !important;
+}}
+
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] p,
+div[data-baseweb="select"] [role="combobox"] * {{
+    color: {text_primary} !important;
+    background-color: transparent !important;
+    font-size: 14px !important;
+}}
+
+div[data-baseweb="select"] svg {{
+    fill: {text_primary} !important;
+    color: {text_primary} !important;
+}}
+
+/* Selectbox Dropdown Menu Popover */
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+ul[data-baseweb="menu"] {{
+    background-color: {card_bg} !important;
+    border: 1.5px solid {border_color} !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, {"0.35" if dark_mode else "0.08"}) !important;
+}}
+
+li[data-baseweb="menu-item"],
+li[data-baseweb="menu-item"] * {{
+    background-color: transparent !important;
+    color: {text_primary} !important;
+    font-size: 14px !important;
+}}
+
+li[data-baseweb="menu-item"]:hover,
+li[data-baseweb="menu-item"][aria-selected="true"] {{
+    background-color: {card_sub_bg} !important;
+    color: {primary_green if not dark_mode else "#8FD0A8"} !important;
+}}
+
+/* 8. Biophilic Typography and Card styling */
 .main-title {{
     font-size: 32px !important;
     font-weight: 800 !important;
@@ -512,43 +670,74 @@ small {{
     line-height: 1.5 !important;
 }}
 
-/* Metric Cards */
+/* 9. Metric Cards with Deep Targeting for Crystal Readability */
 div[data-testid="stMetric"] {{
     background-color: {card_bg} !important;
     border: 1.5px solid {border_color} !important;
     border-radius: 10px !important;
     padding: 14px 18px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.03"}) !important;
 }}
 
-div[data-testid="stMetricValue"] {{
-    font-size: 28px !important;
-    font-weight: 700 !important;
-    color: {text_primary} !important;
-    font-feature-settings: "tnum" 1;
-}}
-
-div[data-testid="stMetricLabel"] {{
+/* Deep targeting of Metric Labels to eliminate washed-out text */
+div[data-testid="stMetricLabel"],
+div[data-testid="stMetricLabel"] *,
+div[data-testid="stMetricLabel"] p,
+div[data-testid="stMetricLabel"] label,
+div[data-testid="stMetricLabel"] span,
+div[data-testid="stMetric"] label,
+div[data-testid="stMetric"] label * {{
     color: {text_secondary} !important;
     font-size: 13px !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.04em !important;
 }}
 
-div[data-testid="stMetricDelta"] {{
-    font-size: 13px !important;
+/* Deep targeting of Metric Values */
+div[data-testid="stMetricValue"],
+div[data-testid="stMetricValue"] *,
+div[data-testid="stMetricValue"] p,
+div[data-testid="stMetricValue"] span,
+div[data-testid="stMetricValue"] div {{
+    color: {text_primary} !important;
+    font-size: 28px !important;
+    font-weight: 800 !important;
+    font-feature-settings: "tnum" 1 !important;
+}}
+
+/* Clean Biophilic Delta Indicators */
+div[data-testid="stMetricDelta"],
+div[data-testid="stMetricDelta"] > div {{
+    background-color: {"#24382C" if dark_mode else "#EAF0E5"} !important;
+    border: 1px solid {"#3A5543" if dark_mode else "#D2E0CC"} !important;
+    border-radius: 6px !important;
+    padding: 3px 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: fit-content !important;
+}}
+
+div[data-testid="stMetricDelta"] *,
+div[data-testid="stMetricDelta"] span,
+div[data-testid="stMetricDelta"] svg {{
+    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+    fill: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+    font-size: 12.5px !important;
     font-weight: 600 !important;
 }}
 
 /* Sliders */
-div[data-testid="stSlider"] label {{
+div[data-testid="stSlider"] label,
+div[data-testid="stSlider"] label * {{
     color: {text_primary} !important;
-    font-size: 14.5px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
 }}
 
-div[data-testid="stSlider"] [data-testid="stThumbValue"] {{
+div[data-testid="stSlider"] [data-testid="stThumbValue"],
+div[data-testid="stSlider"] [data-testid="stThumbValue"] * {{
     color: {text_primary} !important;
     font-size: 13.5px !important;
     font-weight: 700 !important;
@@ -566,33 +755,6 @@ div[data-baseweb="slider"] div[role="slider"] {{
     border-color: {card_bg} !important;
 }}
 
-/* Selectbox */
-div[data-testid="stSelectbox"] label {{
-    color: {text_primary} !important;
-    font-size: 14.5px !important;
-    font-weight: 600 !important;
-}}
-
-div[data-baseweb="select"] > div {{
-    background-color: {card_bg} !important;
-    border: 1.5px solid {border_color} !important;
-    border-radius: 8px !important;
-    color: {text_primary} !important;
-}}
-
-div[data-baseweb="select"] * {{
-    color: {text_primary} !important;
-    font-size: 14.5px !important;
-}}
-
-/* Radio options in sidebar */
-div[data-testid="stRadio"] label,
-div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
-    color: {text_primary} !important;
-    font-size: 14.5px !important;
-    font-weight: 500 !important;
-}}
-
 /* Buttons Styling in Biophilic Forest Green */
 button[kind="primary"],
 .stButton > button[kind="primary"],
@@ -601,7 +763,7 @@ button[data-testid="baseButton-primary"] {{
     color: #ffffff !important;
     border: none !important;
     border-radius: 8px !important;
-    font-size: 15px !important;
+    font-size: 14.5px !important;
     font-weight: 600 !important;
     padding: 0.5rem 1rem !important;
     transition: background-color 0.2s ease !important;
@@ -621,7 +783,7 @@ button[data-testid="baseButton-secondary"] {{
     color: {text_primary} !important;
     border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
-    font-size: 15px !important;
+    font-size: 14.5px !important;
     font-weight: 600 !important;
     padding: 0.5rem 1rem !important;
     transition: all 0.2s ease !important;
@@ -641,7 +803,7 @@ div[data-testid="stDownloadButton"] > button {{
     color: {text_primary} !important;
     border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
-    font-size: 15px !important;
+    font-size: 14.5px !important;
     font-weight: 600 !important;
     padding: 0.5rem 1rem !important;
 }}
@@ -651,14 +813,18 @@ div[data-testid="stDownloadButton"] > button:hover {{
     border-color: {primary_green} !important;
 }}
 
-/* Tables / DataFrames */
-div[data-testid="stDataFrame"] {{
+/* 10. Tables / DataFrames (Follows Active Theme) */
+div[data-testid="stDataFrame"],
+div[data-testid="stTable"] {{
+    background-color: {card_bg} !important;
     border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
+    overflow: hidden !important;
+    {"filter: invert(0.88) hue-rotate(180deg) !important;" if dark_mode else ""}
 }}
 
 /* Responsive Mobile / Tablet adjustments */
-@media (max-width: 860px) {{
+@media (max-width: 900px) {{
     .header-subtitle {{
         display: none !important;
     }}
@@ -666,20 +832,27 @@ div[data-testid="stDataFrame"] {{
         font-size: 0.95rem !important;
     }}
     .header-status-badge {{
-        font-size: 11px !important;
-        padding: 4px 8px !important;
+        font-size: 11.5px !important;
+        padding: 4px 9px !important;
     }}
     .header-right {{
-        margin-right: 110px !important;
+        margin-right: 125px !important;
+    }}
+    .st-key-header_theme_toggle {{
+        right: 1rem !important;
     }}
 }}
 
-@media (max-width: 640px) {{
+@media (max-width: 680px) {{
     .header-title-group {{
         display: none !important;
     }}
     .fixed-top-header {{
-        padding-left: 3.5rem !important;
+        padding-left: 3.6rem !important;
+        padding-right: 1rem !important;
+    }}
+    .header-right {{
+        margin-right: 105px !important;
     }}
 }}
 </style>
@@ -755,11 +928,21 @@ SECTIONS = [
     "Results",
 ]
 
+NAV_ICONS = {
+    "Overview": "🏠",
+    "Environment Setup": "⚙️",
+    "Utility-Based Agent": "🧠",
+    "Reflex Thermostat": "⚡",
+    "Agent Comparison": "⚖️",
+    "Results": "📊",
+}
+
 with st.sidebar:
     st.markdown("### 🧭 Navigation")
     nav_selection = st.radio(
         "Select Section",
         options=SECTIONS,
+        format_func=lambda s: f"{NAV_ICONS.get(s, '')}  {s}",
         key="nav_selection",
         label_visibility="collapsed",
     )
