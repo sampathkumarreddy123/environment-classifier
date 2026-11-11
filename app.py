@@ -18,6 +18,8 @@ import streamlit as st
 
 import config
 importlib.reload(config)
+import utils
+importlib.reload(utils)
 
 from config import (
     ACTION_COOL,
@@ -859,11 +861,10 @@ elif nav_selection == "Comparison":
     st.subheader("1. Synchronized Temperature Trajectory")
     st.plotly_chart(
         create_comparison_temperature_chart(
-            df=combined_df,
+            utility_df=u_df,
+            reflex_df=r_df,
             desired_temp=cfg.desired_temp,
             comfort_tolerance=cfg.comfort_tolerance,
-            lower_threshold=cfg.lower_threshold,
-            upper_threshold=cfg.upper_threshold,
         ),
         use_container_width=True,
         key="chart_sec_c_traj",
@@ -872,7 +873,10 @@ elif nav_selection == "Comparison":
     # 2. Cumulative Energy Consumption Chart
     st.subheader("2. Cumulative Energy Consumption")
     st.plotly_chart(
-        create_comparison_energy_chart(df=combined_df),
+        create_comparison_energy_chart(
+            utility_df=u_df,
+            reflex_df=r_df,
+        ),
         use_container_width=True,
         key="chart_sec_c_energy",
     )

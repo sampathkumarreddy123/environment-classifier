@@ -777,17 +777,34 @@ def get_comparison_summary_html(summary: Dict[str, Any]) -> str:
 
 
 def create_comparison_temperature_chart(
-    utility_df: pd.DataFrame,
-    reflex_df: pd.DataFrame,
-    desired_temp: float,
-    comfort_tolerance: float,
+    utility_df: Optional[pd.DataFrame] = None,
+    reflex_df: Optional[pd.DataFrame] = None,
+    desired_temp: float = 22.0,
+    comfort_tolerance: float = 1.5,
+    df: Optional[pd.DataFrame] = None,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Chart 1: Compare Utility-Based Agent and Simple Reflex Agent room temperatures
     alongside the desired temperature reference line and comfort band.
+    Supports either (utility_df, reflex_df) or (df=combined_df).
     """
+    if utility_df is None and df is not None:
+        utility_df = pd.DataFrame({
+            "step": df["step"],
+            "actual_temp": df.get("utility_temp", df.get("actual_temp", 0.0)),
+            "outside_temp": df.get("outside_temp", df.get("utility_outside_temp", 0.0)),
+            "action": df.get("utility_action", df.get("action", "")),
+        })
+        reflex_df = pd.DataFrame({
+            "step": df["step"],
+            "actual_temp": df.get("reflex_temp", df.get("actual_temp", 0.0)),
+            "outside_temp": df.get("outside_temp", df.get("reflex_outside_temp", 0.0)),
+            "action": df.get("reflex_action", df.get("action", "")),
+        })
+
     fig = go.Figure()
-    if utility_df.empty or reflex_df.empty:
+    if utility_df is None or reflex_df is None or utility_df.empty or reflex_df.empty:
         fig.update_layout(title="No synchronized comparison data yet.", height=380)
         return fig
 
@@ -887,14 +904,29 @@ def create_comparison_temperature_chart(
 
 
 def create_comparison_energy_chart(
-    utility_df: pd.DataFrame,
-    reflex_df: pd.DataFrame,
+    utility_df: Optional[pd.DataFrame] = None,
+    reflex_df: Optional[pd.DataFrame] = None,
+    df: Optional[pd.DataFrame] = None,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Chart 2: Compare cumulative energy consumption over time for both agents.
+    Supports either (utility_df, reflex_df) or (df=combined_df).
     """
+    if utility_df is None and df is not None:
+        utility_df = pd.DataFrame({
+            "step": df["step"],
+            "cumulative_energy": df.get("utility_cumulative_energy", df.get("cumulative_energy", 0.0)),
+            "energy_consumed": df.get("utility_energy", df.get("energy_consumed", 0.0)),
+        })
+        reflex_df = pd.DataFrame({
+            "step": df["step"],
+            "cumulative_energy": df.get("reflex_cumulative_energy", df.get("cumulative_energy", 0.0)),
+            "energy_consumed": df.get("reflex_energy", df.get("energy_consumed", 0.0)),
+        })
+
     fig = go.Figure()
-    if utility_df.empty or reflex_df.empty:
+    if utility_df is None or reflex_df is None or utility_df.empty or reflex_df.empty:
         fig.update_layout(title="No energy data recorded yet.", height=320)
         return fig
 
