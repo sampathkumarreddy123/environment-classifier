@@ -4,7 +4,7 @@ and Demonstrator simulation.
 """
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
 
 
 @dataclass(frozen=True)
@@ -79,6 +79,102 @@ class ReflexThermostatDefaults:
     ENERGY_COST_OFF: float = 0.0
 
 
+@dataclass(frozen=True)
+class DemonstrationScenario:
+    """Preconfigured demonstration scenario for academic evaluation."""
+    id: str
+    name: str
+    tag: str
+    description: str
+    initial_temp: float
+    desired_temp: float
+    outside_temp: float
+    insulation_level: str
+    comfort_tolerance: float
+    heater_power: float
+    cooling_power: float
+    disturbance_level: float
+    max_steps: int
+    random_seed: int
+    lower_threshold: float
+    upper_threshold: float
+    weight_comfort: float
+    weight_energy: float
+    weight_stability: float
+    weight_overshoot: float
+
+
+# Preconfigured academic demonstration scenarios
+DEMO_SCENARIOS: Dict[str, DemonstrationScenario] = {
+    "cold_room": DemonstrationScenario(
+        id="cold_room",
+        name="Scenario 1: Cold Room",
+        tag="Heating Response",
+        description="Initial room temperature (14.0°C) starts well below target (22.0°C) during chilly outdoor conditions (10.0°C). Demonstrates how both agents heat the room, recover comfort, and prevent thermal overshoot.",
+        initial_temp=14.0,
+        desired_temp=22.0,
+        outside_temp=10.0,
+        insulation_level="Medium",
+        comfort_tolerance=1.5,
+        heater_power=1.5,
+        cooling_power=1.5,
+        disturbance_level=0.2,
+        max_steps=50,
+        random_seed=42,
+        lower_threshold=20.5,
+        upper_threshold=23.5,
+        weight_comfort=1.0,
+        weight_energy=0.5,
+        weight_stability=0.2,
+        weight_overshoot=1.0,
+    ),
+    "hot_room": DemonstrationScenario(
+        id="hot_room",
+        name="Scenario 2: Hot Room",
+        tag="Cooling Response",
+        description="Initial room temperature (32.0°C) starts well above target (22.0°C) during a hot summer heatwave (36.0°C). Demonstrates cooling actuation, energy consumption, and settling stability.",
+        initial_temp=32.0,
+        desired_temp=22.0,
+        outside_temp=36.0,
+        insulation_level="Medium",
+        comfort_tolerance=1.5,
+        heater_power=1.5,
+        cooling_power=1.5,
+        disturbance_level=0.2,
+        max_steps=50,
+        random_seed=42,
+        lower_threshold=20.5,
+        upper_threshold=23.5,
+        weight_comfort=1.0,
+        weight_energy=0.5,
+        weight_stability=0.2,
+        weight_overshoot=1.0,
+    ),
+    "comfortable_room": DemonstrationScenario(
+        id="comfortable_room",
+        name="Scenario 3: Comfortable Room",
+        tag="Comfort Maintenance & Efficiency",
+        description="Room starts at 22.0°C (inside the comfort target zone) with mild outdoor conditions (28.0°C) and good insulation. Demonstrates how agents minimize active energy while maintaining thermal stability.",
+        initial_temp=22.0,
+        desired_temp=22.0,
+        outside_temp=28.0,
+        insulation_level="Good",
+        comfort_tolerance=1.5,
+        heater_power=1.5,
+        cooling_power=1.5,
+        disturbance_level=0.15,
+        max_steps=50,
+        random_seed=42,
+        lower_threshold=20.5,
+        upper_threshold=23.5,
+        weight_comfort=1.0,
+        weight_energy=0.5,
+        weight_stability=0.2,
+        weight_overshoot=1.0,
+    ),
+}
+
+
 # Insulation levels mapped to heat transfer coefficients (k)
 # Higher k means faster heat transfer through walls/windows
 INSULATION_FACTORS: Dict[str, float] = {
@@ -98,7 +194,7 @@ ACTION_HEAT = "HEAT"
 ACTION_COOL = "COOL"
 ALL_ACTIONS = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
 
-# Classification Color Scheme (Clean, modern palette)
+# Classification Color Scheme (Clean, modern academic palette)
 STATUS_COLORS = {
     CLASS_COLD: {
         "color": "#0284c7",       # Sky blue
