@@ -485,13 +485,13 @@ with tab_agent:
                 action_evaluations=last_dec.action_evaluations,
                 selected_action=last_dec.selected_action,
             )
-            st.plotly_chart(fig_u_comp, use_container_width=True)
+            st.plotly_chart(fig_u_comp, use_container_width=True, key="chart_agent_utility_comparison")
 
         with u_col2:
             fig_u_factors = create_utility_factors_breakdown_chart(
                 action_evaluations=last_dec.action_evaluations,
             )
-            st.plotly_chart(fig_u_factors, use_container_width=True)
+            st.plotly_chart(fig_u_factors, use_container_width=True, key="chart_agent_utility_factors")
 
     # 5. Temperature Trajectory History Chart
     st.subheader("📈 Temperature Trajectory & Performance History")
@@ -501,7 +501,7 @@ with tab_agent:
         desired_temp=st.session_state.desired_temp,
         comfort_tolerance=st.session_state.comfort_tolerance,
     )
-    st.plotly_chart(fig_history, use_container_width=True)
+    st.plotly_chart(fig_history, use_container_width=True, key="chart_agent_temperature_history")
 
     # Gauges & Ambient Comparison
     g_col1, g_col2 = st.columns(2)
@@ -511,7 +511,7 @@ with tab_agent:
             desired_temp=current_state["desired_temp"],
             comfort_tolerance=env.comfort_tolerance,
         )
-        st.plotly_chart(fig_gauge, use_container_width=True)
+        st.plotly_chart(fig_gauge, use_container_width=True, key="chart_agent_temperature_gauge")
 
     with g_col2:
         fig_bar = create_comparison_bar_chart(
@@ -519,7 +519,7 @@ with tab_agent:
             desired_temp=current_state["desired_temp"],
             outside_temp=current_state["outside_temp"],
         )
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, use_container_width=True, key="chart_agent_temperature_bar")
 
     # 6. Simulation Diagnostics & Data Table
     st.subheader("📋 Step-by-Step Simulation Telemetry")
@@ -601,6 +601,7 @@ with tab_sandbox:
                 comfort_tolerance=s_env.comfort_tolerance,
             ),
             use_container_width=True,
+            key="chart_sandbox_temperature_gauge",
         )
     with sb_g2:
         st.plotly_chart(
@@ -610,6 +611,7 @@ with tab_sandbox:
                 outside_temp=s_state["outside_temp"],
             ),
             use_container_width=True,
+            key="chart_sandbox_temperature_bar",
         )
 
 
