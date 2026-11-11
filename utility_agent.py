@@ -380,3 +380,4 @@ class UtilityBasedAgent:
             "last_action": self.last_decision.selected_action if self.last_decision else ACTION_OFF,
             "last_utility": self.last_decision.utility_score if self.last_decision else 0.0,
         }
+
