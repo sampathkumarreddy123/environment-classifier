@@ -1,0 +1,19 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Streamlit logs and cache
+.streamlit/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
