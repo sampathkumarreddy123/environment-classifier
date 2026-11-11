@@ -28,27 +28,27 @@ def get_status_card_html(classification: str, current_temp: float, desired_temp:
     delta = current_temp - desired_temp
     delta_str = f"{'+' if delta > 0 else ''}{delta:.1f}°C from target ({desired_temp:.1f}°C)"
 
-    card_bg = "#131d33" if dark_mode else info['bg_light']
-    card_border = "#334155" if dark_mode else info['border']
-    text_main = "#f8fafc" if dark_mode else "#1e293b"
-    text_sub = "#94a3b8" if dark_mode else "#64748b"
-    text_desc = "#cbd5e1" if dark_mode else "#475569"
+    card_bg = "#151e2e" if dark_mode else "#ffffff"
+    card_border = "#293548" if dark_mode else "#e5eaf1"
+    text_main = "#f1f5f9" if dark_mode else "#172033"
+    text_sub = "#94a3b8" if dark_mode else "#667085"
+    text_desc = "#94a3b8" if dark_mode else "#667085"
 
-    html = f"""<div style="background-color: {card_bg}; border: 2px solid {card_border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+    html = f"""<div style="background-color: {card_bg}; border: 1px solid {card_border}; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
 <div style="display: flex; align-items: center; justify-content: space-between;">
 <div style="display: flex; align-items: center; gap: 12px;">
-<span style="font-size: 32px;">{info['icon']}</span>
+<span style="font-size: 28px;">{info['icon']}</span>
 <div>
-<div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: {info['color']};">Environment Status</div>
-<div style="font-size: 22px; font-weight: 800; color: {text_main};">{classification.upper()}</div>
+<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: {info['color']};">Environment Status</div>
+<div style="font-size: 20px; font-weight: 800; color: {text_main};">{classification.upper()}</div>
 </div>
 </div>
 <div style="text-align: right;">
-<div style="font-size: 24px; font-weight: 800; color: {info['color']};">{current_temp:.1f}°C</div>
-<div style="font-size: 13px; font-weight: 500; color: {text_sub};">{delta_str}</div>
+<div style="font-size: 22px; font-weight: 800; color: {info['color']};">{current_temp:.1f}°C</div>
+<div style="font-size: 12px; font-weight: 500; color: {text_sub};">{delta_str}</div>
 </div>
 </div>
-<div style="margin-top: 8px; font-size: 13px; color: {text_desc}; border-top: 1px solid {card_border}; padding-top: 8px;">
+<div style="margin-top: 8px; font-size: 12.5px; color: {text_desc}; border-top: 1px solid {card_border}; padding-top: 8px;">
 {info['description']}
 </div>
 </div>"""
@@ -69,41 +69,41 @@ def get_decision_card_html(
     """
     meta = ACTION_METADATA.get(selected_action, ACTION_METADATA[ACTION_OFF])
 
-    card_bg = "#131d33" if dark_mode else "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)"
-    card_border = "#334155" if dark_mode else "#cbd5e1"
-    sub_bg = "#0b1120" if dark_mode else "white"
-    sub_border = "#1e293b" if dark_mode else "#e2e8f0"
-    reason_bg = "#0f172a" if dark_mode else "#f1f5f9"
-    text_main = "#f8fafc" if dark_mode else "#0f172a"
-    text_body = "#cbd5e1" if dark_mode else "#334155"
-    text_sub = "#94a3b8" if dark_mode else "#64748b"
+    card_bg = "#151e2e" if dark_mode else "#ffffff"
+    card_border = "#293548" if dark_mode else "#e5eaf1"
+    sub_bg = "#1c2738" if dark_mode else "#f7f9fc"
+    sub_border = "#293548" if dark_mode else "#e5eaf1"
+    reason_bg = "#1c2738" if dark_mode else "#f7f9fc"
+    text_main = "#f1f5f9" if dark_mode else "#172033"
+    text_body = "#cbd5e1" if dark_mode else "#172033"
+    text_sub = "#94a3b8" if dark_mode else "#667085"
 
-    html = f"""<div style="background: {card_bg}; border: 1px solid {card_border}; border-left: 6px solid {meta['color']}; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+    html = f"""<div style="background: {card_bg}; border: 1px solid {card_border}; border-left: 5px solid {meta['color']}; border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
 <div>
 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: {text_sub};">Utility Agent Decision</div>
-<div style="font-size: 22px; font-weight: 800; color: {text_main};">Selected Action: <span style="color: {meta['color']};">{meta['label']}</span></div>
+<div style="font-size: 20px; font-weight: 800; color: {text_main};">Selected Action: <span style="color: {meta['color']};">{meta['label']}</span></div>
 </div>
 <div style="text-align: right;">
 <div style="font-size: 11px; color: {text_sub}; font-weight: 600; text-transform: uppercase;">Max Utility Score</div>
-<div style="font-size: 24px; font-weight: 800; color: {text_main};">{utility_score:.2f}</div>
+<div style="font-size: 22px; font-weight: 800; color: {text_main};">{utility_score:.2f}</div>
 </div>
 </div>
-<div style="display: flex; gap: 12px; background: {sub_bg}; padding: 12px 16px; border-radius: 8px; border: 1px solid {sub_border}; margin-bottom: 14px;">
+<div style="display: flex; gap: 12px; background: {sub_bg}; padding: 10px 14px; border-radius: 8px; border: 1px solid {sub_border}; margin-bottom: 12px;">
 <div style="flex: 1;">
 <div style="font-size: 11px; color: {text_sub}; font-weight: 600;">Current Temp</div>
-<div style="font-size: 17px; font-weight: 700; color: {text_main};">{current_temp:.2f}°C</div>
+<div style="font-size: 16px; font-weight: 700; color: {text_main};">{current_temp:.2f}°C</div>
 </div>
 <div style="flex: 1;">
 <div style="font-size: 11px; color: {text_sub}; font-weight: 600;">Desired Target</div>
-<div style="font-size: 17px; font-weight: 700; color: #16a34a;">{desired_temp:.1f}°C</div>
+<div style="font-size: 16px; font-weight: 700; color: #16a34a;">{desired_temp:.1f}°C</div>
 </div>
 <div style="flex: 1;">
 <div style="font-size: 11px; color: {text_sub}; font-weight: 600;">Predicted Outcome</div>
-<div style="font-size: 17px; font-weight: 700; color: {meta['color']};">{predicted_temp:.2f}°C</div>
+<div style="font-size: 16px; font-weight: 700; color: {meta['color']};">{predicted_temp:.2f}°C</div>
 </div>
 </div>
-<div style="font-size: 14px; color: {text_body}; line-height: 1.5; padding: 8px 12px; background: {reason_bg}; border-radius: 6px;">
+<div style="font-size: 13.5px; color: {text_body}; line-height: 1.45; padding: 8px 12px; background: {reason_bg}; border-radius: 6px;">
 <b>💡 Decision Reason:</b> {reason}
 </div>
 </div>"""
@@ -214,9 +214,10 @@ def create_utility_factors_breakdown_chart(
 
 def create_agent_temperature_history_chart(
     df: pd.DataFrame,
-    desired_temp: float,
+    desired_temp: float = 22.0,
     comfort_tolerance: float = 1.5,
     dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Generate an interactive line chart tracking Room Temperature, Predicted Temperature,
@@ -284,13 +285,14 @@ def create_agent_temperature_history_chart(
         )
 
     # 5. Actual Room Temperature
+    actual_temp_series = df["actual_temp"] if "actual_temp" in df.columns else df.get("room_temp", [0.0] * len(df))
     fig.add_trace(
         go.Scatter(
             x=steps,
-            y=df["room_temp"],
+            y=actual_temp_series,
             mode="lines+markers",
-            line=dict(color="#3b82f6" if dark_mode else "#2563eb", width=3),
-            marker=dict(size=5, color="#60a5fa" if dark_mode else "#1d4ed8"),
+            line=dict(color="#60a5fa" if dark_mode else "#2563eb", width=3),
+            marker=dict(size=5, color="#3b82f6" if dark_mode else "#1d4ed8"),
             name="Actual Room Temp",
             hovertemplate="Step %{x}: Room %{y:.2f}°C (%{text})<extra></extra>",
             text=df["action"] if "action" in df.columns else None,
@@ -332,45 +334,55 @@ def create_temperature_gauge(
     comfort_tolerance: float = 1.5,
     min_gauge: float = 0.0,
     max_gauge: float = 45.0,
+    dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
-    Build an interactive gauge chart for the current room temperature.
+    Build an interactive scientific gauge chart for the current room temperature.
+    Supports dark_mode with theme-aligned palette.
     """
     lower_bound = max(min_gauge, desired_temp - comfort_tolerance)
     upper_bound = min(max_gauge, desired_temp + comfort_tolerance)
 
     if current_temp < lower_bound:
-        bar_color = STATUS_COLORS[CLASS_COLD]["color"]
+        bar_color = "#38bdf8" if dark_mode else STATUS_COLORS[CLASS_COLD]["color"]
     elif current_temp > upper_bound:
-        bar_color = STATUS_COLORS[CLASS_HOT]["color"]
+        bar_color = "#f87171" if dark_mode else STATUS_COLORS[CLASS_HOT]["color"]
     else:
-        bar_color = STATUS_COLORS[CLASS_COMFORTABLE]["color"]
+        bar_color = "#4ade80" if dark_mode else STATUS_COLORS[CLASS_COMFORTABLE]["color"]
+
+    num_color = "#f1f5f9" if dark_mode else "#172033"
+    title_color = "#94a3b8" if dark_mode else "#667085"
+    step_cold = "rgba(56, 189, 248, 0.15)" if dark_mode else "#e0f2fe"
+    step_comfort = "rgba(74, 222, 128, 0.15)" if dark_mode else "#dcfce7"
+    step_hot = "rgba(248, 113, 113, 0.15)" if dark_mode else "#fee2e2"
+    border_col = "#293548" if dark_mode else "#e5eaf1"
 
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number+delta",
             value=current_temp,
-            number={"suffix": "°C", "font": {"size": 34, "color": "#0f172a"}},
+            number={"suffix": "°C", "font": {"size": 32, "color": num_color}},
             delta={
                 "reference": desired_temp,
-                "increasing": {"color": "#dc2626"},
-                "decreasing": {"color": "#0284c7"},
+                "increasing": {"color": "#f87171" if dark_mode else "#dc2626"},
+                "decreasing": {"color": "#38bdf8" if dark_mode else "#0284c7"},
                 "suffix": "° vs Target",
             },
-            title={"text": "<b>Current Room Temperature</b>", "font": {"size": 15, "color": "#334155"}},
+            title={"text": "<b>Current Room Temperature</b>", "font": {"size": 14, "color": title_color}},
             gauge={
                 "axis": {"range": [min_gauge, max_gauge], "tickwidth": 1, "tickcolor": "#94a3b8"},
-                "bar": {"color": bar_color, "thickness": 0.3},
-                "bgcolor": "#f8fafc",
+                "bar": {"color": bar_color, "thickness": 0.32},
+                "bgcolor": "#151e2e" if dark_mode else "#ffffff",
                 "borderwidth": 1,
-                "bordercolor": "#cbd5e1",
+                "bordercolor": border_col,
                 "steps": [
-                    {"range": [min_gauge, lower_bound], "color": "#e0f2fe"},
-                    {"range": [lower_bound, upper_bound], "color": "#dcfce7"},
-                    {"range": [upper_bound, max_gauge], "color": "#fee2e2"},
+                    {"range": [min_gauge, lower_bound], "color": step_cold},
+                    {"range": [lower_bound, upper_bound], "color": step_comfort},
+                    {"range": [upper_bound, max_gauge], "color": step_hot},
                 ],
                 "threshold": {
-                    "line": {"color": "#059669", "width": 4},
+                    "line": {"color": "#4ade80" if dark_mode else "#16a34a", "width": 3.5},
                     "thickness": 0.8,
                     "value": desired_temp,
                 },
@@ -379,8 +391,8 @@ def create_temperature_gauge(
     )
 
     fig.update_layout(
-        height=250,
-        margin=dict(l=25, r=25, t=40, b=20),
+        height=240,
+        margin=dict(l=20, r=20, t=35, b=15),
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family="sans-serif"),
     )
@@ -391,13 +403,19 @@ def create_comparison_bar_chart(
     room_temp: float,
     desired_temp: float,
     outside_temp: float,
+    dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Build a side-by-side comparison bar chart for Indoor, Desired, and Outdoor temperatures.
     """
     categories = ["Current Indoor", "Target (Comfort)", "Outside Ambient"]
     temperatures = [room_temp, desired_temp, outside_temp]
-    colors = ["#2563eb", "#16a34a", "#ea580c"]
+    colors = (
+        ["#60a5fa", "#4ade80", "#94a3b8"]
+        if dark_mode
+        else ["#2563eb", "#16a34a", "#667085"]
+    )
 
     fig = go.Figure(
         go.Bar(
@@ -406,22 +424,22 @@ def create_comparison_bar_chart(
             marker_color=colors,
             text=[f"{t:.1f}°C" for t in temperatures],
             textposition="auto",
-            textfont=dict(size=14, color="white", weight="bold"),
-            width=0.45,
+            textfont=dict(size=13, color="white", weight="bold"),
+            width=0.42,
         )
     )
 
     fig.update_layout(
         title="<b>Temperature Comparison</b>",
-        title_font=dict(size=15, color="#1e293b"),
+        title_font=dict(size=15, color="#f1f5f9" if dark_mode else "#172033"),
         yaxis_title="Temperature (°C)",
-        template="plotly_white",
-        height=250,
+        template="plotly_dark" if dark_mode else "plotly_white",
+        height=240,
         margin=dict(l=25, r=20, t=45, b=20),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(21, 30, 46, 0.6)" if dark_mode else "rgba(247, 249, 252, 0.6)",
     )
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1")
 
     return fig
 
@@ -572,10 +590,11 @@ def get_reflex_decision_card_html(
 
 def create_reflex_temperature_history_chart(
     df: pd.DataFrame,
-    lower_threshold: float,
-    upper_threshold: float,
-    desired_temp: float,
+    lower_threshold: float = 20.0,
+    upper_threshold: float = 26.0,
+    desired_temp: float = 22.0,
     dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Generate an interactive line chart tracking room temperature against the
@@ -760,28 +779,28 @@ def get_comparison_summary_html(summary: Dict[str, Any], dark_mode: bool = False
     headline = summary.get("headline", "")
 
     if winner == "Utility-Based Agent":
-        accent = "#38bdf8" if dark_mode else "#2563eb"
+        accent = "#60a5fa" if dark_mode else "#2563eb"
         bg = "#172554" if dark_mode else "#eff6ff"
         border = "#1e40af" if dark_mode else "#93c5fd"
         badge = "🤖 UTILITY-BASED AGENT LEADS"
     elif winner == "Simple Reflex Agent":
-        accent = "#fb923c" if dark_mode else "#ea580c"
-        bg = "#3a1905" if dark_mode else "#fff7ed"
-        border = "#9a3412" if dark_mode else "#fdba74"
+        accent = "#22d3ee" if dark_mode else "#06b6d4"
+        bg = "#083344" if dark_mode else "#ecfeff"
+        border = "#0e7490" if dark_mode else "#a5f3fc"
         badge = "🔁 SIMPLE REFLEX AGENT LEADS"
     else:
-        accent = "#94a3b8" if dark_mode else "#475569"
-        bg = "#131d33" if dark_mode else "#f8fafc"
-        border = "#334155" if dark_mode else "#cbd5e1"
+        accent = "#94a3b8" if dark_mode else "#667085"
+        bg = "#151e2e" if dark_mode else "#f8fafc"
+        border = "#293548" if dark_mode else "#e5eaf1"
         badge = "⚖️ BALANCED / TIE"
 
-    card_bg = "#131d33" if dark_mode else bg
-    box_bg = "#0b1120" if dark_mode else "white"
-    box_border = "#1e293b" if dark_mode else "#e2e8f0"
-    text_main = "#f8fafc" if dark_mode else "#0f172a"
-    text_sub = "#cbd5e1" if dark_mode else "#334155"
+    card_bg = "#151e2e" if dark_mode else bg
+    box_bg = "#1c2738" if dark_mode else "#ffffff"
+    box_border = "#293548" if dark_mode else "#e5eaf1"
+    text_main = "#f1f5f9" if dark_mode else "#172033"
+    text_sub = "#cbd5e1" if dark_mode else "#475569"
 
-    html = f"""<div style="background-color: {card_bg}; border: 2px solid {border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);">
+    html = f"""<div style="background-color: {card_bg}; border: 2px solid {border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
 <div>
 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: {accent};">Overall Comparison Summary (Data-Driven)</div>
@@ -790,15 +809,15 @@ def get_comparison_summary_html(summary: Dict[str, Any], dark_mode: bool = False
 </div>
 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
 <div style="background: {box_bg}; border: 1px solid {box_border}; border-radius: 8px; padding: 8px 14px; text-align: center;">
-<div style="font-size: 11px; font-weight: 700; color: #2563eb;">UTILITY WINS</div>
+<div style="font-size: 11px; font-weight: 700; color: {'#60a5fa' if dark_mode else '#2563eb'};">UTILITY WINS</div>
 <div style="font-size: 20px; font-weight: 800; color: {text_main};">{u_wins}</div>
 </div>
 <div style="background: {box_bg}; border: 1px solid {box_border}; border-radius: 8px; padding: 8px 14px; text-align: center;">
-<div style="font-size: 11px; font-weight: 700; color: #ea580c;">REFLEX WINS</div>
+<div style="font-size: 11px; font-weight: 700; color: {'#22d3ee' if dark_mode else '#06b6d4'};">REFLEX WINS</div>
 <div style="font-size: 20px; font-weight: 800; color: {text_main};">{r_wins}</div>
 </div>
 <div style="background: {box_bg}; border: 1px solid {box_border}; border-radius: 8px; padding: 8px 14px; text-align: center;">
-<div style="font-size: 11px; font-weight: 700; color: #64748b;">TIES</div>
+<div style="font-size: 11px; font-weight: 700; color: #94a3b8;">TIES</div>
 <div style="font-size: 20px; font-weight: 800; color: {text_main};">{ties}</div>
 </div>
 </div>
@@ -820,6 +839,10 @@ def create_comparison_temperature_chart(
     Chart 1: Compare Utility-Based Agent and Simple Reflex Agent room temperatures
     alongside the desired temperature reference line and comfort band.
     Supports either (utility_df, reflex_df) or (df=combined_df).
+    Scientific Theme Colors:
+    - Utility Agent: Primary Blue (#2563EB Light / #60A5FA Dark)
+    - Reflex Agent: Secondary Cyan (#06B6D4 Light / #22D3EE Dark)
+    - Desired Target: Green Dashed (#16A34A Light / #4ADE80 Dark)
     """
     if utility_df is None and df is not None:
         utility_df = pd.DataFrame({
@@ -850,7 +873,7 @@ def create_comparison_temperature_chart(
             x=list(steps) + list(steps[::-1]),
             y=[upper_bound] * len(steps) + [lower_bound] * len(steps),
             fill="toself",
-            fillcolor="rgba(34, 197, 94, 0.15)" if dark_mode else "rgba(34, 197, 94, 0.12)",
+            fillcolor="rgba(74, 222, 128, 0.15)" if dark_mode else "rgba(22, 163, 74, 0.12)",
             line=dict(color="rgba(34, 197, 94, 0)"),
             hoverinfo="skip",
             showlegend=True,
@@ -864,7 +887,7 @@ def create_comparison_temperature_chart(
             x=steps,
             y=[desired_temp] * len(steps),
             mode="lines",
-            line=dict(color="#22c55e" if dark_mode else "#16a34a", width=2.0, dash="dash"),
+            line=dict(color="#4ade80" if dark_mode else "#16a34a", width=2.0, dash="dash"),
             name=f"Desired Temp ({desired_temp:.1f}°C)",
             hovertemplate="Target: %{y:.1f}°C<extra></extra>",
         )
@@ -882,28 +905,28 @@ def create_comparison_temperature_chart(
         )
     )
 
-    # Utility-Based Agent Temperature
+    # Utility-Based Agent Temperature (Primary Blue)
     fig.add_trace(
         go.Scatter(
             x=steps,
             y=utility_df["actual_temp"],
             mode="lines+markers",
-            line=dict(color="#3b82f6" if dark_mode else "#2563eb", width=3),
-            marker=dict(size=5, color="#60a5fa" if dark_mode else "#1d4ed8"),
+            line=dict(color="#60a5fa" if dark_mode else "#2563eb", width=3),
+            marker=dict(size=5, color="#3b82f6" if dark_mode else "#1d4ed8"),
             name="Utility-Based Agent",
             text=utility_df["action"],
             hovertemplate="Step %{x}: Utility %{y:.2f}°C (%{text})<extra></extra>",
         )
     )
 
-    # Simple Reflex Agent Temperature
+    # Simple Reflex Agent Temperature (Secondary Cyan)
     fig.add_trace(
         go.Scatter(
             x=reflex_df["step"],
             y=reflex_df["actual_temp"],
             mode="lines+markers",
-            line=dict(color="#fb923c" if dark_mode else "#ea580c", width=2.6, dash="solid"),
-            marker=dict(size=5, color="#f97316" if dark_mode else "#c2410c", symbol="diamond"),
+            line=dict(color="#22d3ee" if dark_mode else "#06b6d4", width=2.6, dash="solid"),
+            marker=dict(size=5, color="#0891b2" if dark_mode else "#0891b2", symbol="diamond"),
             name="Simple Reflex Agent",
             text=reflex_df["action"],
             hovertemplate="Step %{x}: Reflex %{y:.2f}°C (%{text})<extra></extra>",
@@ -912,7 +935,7 @@ def create_comparison_temperature_chart(
 
     fig.update_layout(
         title="<b>1. Temperature Comparison (Synchronized Run)</b>",
-        title_font=dict(size=16, color="#f8fafc" if dark_mode else "#1e293b"),
+        title_font=dict(size=16, color="#f1f5f9" if dark_mode else "#172033"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Temperature (°C)",
         template="plotly_dark" if dark_mode else "plotly_white",
@@ -924,15 +947,15 @@ def create_comparison_temperature_chart(
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(15, 23, 42, 0.85)" if dark_mode else "rgba(255,255,255,0.75)",
-            font=dict(color="#f1f5f9" if dark_mode else "#334155"),
+            bgcolor="rgba(21, 30, 46, 0.85)" if dark_mode else "rgba(255,255,255,0.75)",
+            font=dict(color="#f1f5f9" if dark_mode else "#172033"),
         ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(21, 30, 46, 0.6)" if dark_mode else "rgba(247, 249, 252, 0.6)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
-    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
+    fig.update_xaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1")
+    fig.update_yaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1")
     return fig
 
 
@@ -946,6 +969,9 @@ def create_comparison_energy_chart(
     """
     Chart 2: Compare cumulative energy consumption over time for both agents.
     Supports either (utility_df, reflex_df) or (df=combined_df).
+    Scientific Theme Colors:
+    - Utility Agent: Primary Blue (#2563EB Light / #60A5FA Dark)
+    - Reflex Agent: Secondary Cyan (#06B6D4 Light / #22D3EE Dark)
     """
     if utility_df is None and df is not None:
         utility_df = pd.DataFrame({
@@ -969,7 +995,7 @@ def create_comparison_energy_chart(
             x=utility_df["step"],
             y=utility_df["cumulative_energy"],
             mode="lines+markers",
-            line=dict(color="#3b82f6" if dark_mode else "#2563eb", width=3),
+            line=dict(color="#60a5fa" if dark_mode else "#2563eb", width=3),
             marker=dict(size=5),
             name="Utility-Based Agent",
             customdata=utility_df["energy_consumed"],
@@ -981,7 +1007,7 @@ def create_comparison_energy_chart(
             x=reflex_df["step"],
             y=reflex_df["cumulative_energy"],
             mode="lines+markers",
-            line=dict(color="#fb923c" if dark_mode else "#ea580c", width=2.8),
+            line=dict(color="#22d3ee" if dark_mode else "#06b6d4", width=2.8),
             marker=dict(size=5, symbol="diamond"),
             name="Simple Reflex Agent",
             customdata=reflex_df["energy_consumed"],
@@ -991,7 +1017,7 @@ def create_comparison_energy_chart(
 
     fig.update_layout(
         title="<b>2. Cumulative Energy Consumption Over Time</b>",
-        title_font=dict(size=15, color="#f8fafc" if dark_mode else "#1e293b"),
+        title_font=dict(size=15, color="#f1f5f9" if dark_mode else "#172033"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Cumulative Energy (units)",
         template="plotly_dark" if dark_mode else "plotly_white",
@@ -1003,27 +1029,56 @@ def create_comparison_energy_chart(
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(15, 23, 42, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
-            font=dict(color="#f1f5f9" if dark_mode else "#334155"),
+            bgcolor="rgba(21, 30, 46, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#172033"),
         ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(21, 30, 46, 0.6)" if dark_mode else "rgba(247, 249, 252, 0.6)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
-    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0", rangemode="tozero")
+    fig.update_xaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1")
+    fig.update_yaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1", rangemode="tozero")
     return fig
 
 
 def create_comparison_error_chart(
-    utility_df: pd.DataFrame,
-    reflex_df: pd.DataFrame,
+    utility_df: Optional[pd.DataFrame] = None,
+    reflex_df: Optional[pd.DataFrame] = None,
+    df: Optional[pd.DataFrame] = None,
+    desired_temp: float = 22.0,
+    dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Chart 3: Compare absolute temperature error |T_t - T_desired| at every time step.
+    Supports either (utility_df, reflex_df) or (df=combined_df).
+    Scientific Theme Colors:
+    - Utility Agent: Primary Blue (#2563EB Light / #60A5FA Dark)
+    - Reflex Agent: Secondary Cyan (#06B6D4 Light / #22D3EE Dark)
     """
+    if utility_df is None and df is not None:
+        u_temp = df.get("utility_temp", df.get("actual_temp", 0.0))
+        r_temp = df.get("reflex_temp", df.get("actual_temp", 0.0))
+        utility_df = pd.DataFrame({
+            "step": df["step"],
+            "abs_error": df.get("utility_abs_error", (u_temp - desired_temp).abs()),
+        })
+        reflex_df = pd.DataFrame({
+            "step": df["step"],
+            "abs_error": df.get("reflex_abs_error", (r_temp - desired_temp).abs()),
+        })
+    elif utility_df is not None and "abs_error" not in utility_df.columns:
+        if "actual_temp" in utility_df.columns:
+            utility_df = utility_df.copy()
+            utility_df["abs_error"] = (utility_df["actual_temp"] - desired_temp).abs()
+
+    if reflex_df is not None and "abs_error" not in reflex_df.columns:
+        if "actual_temp" in reflex_df.columns:
+            reflex_df = reflex_df.copy()
+            reflex_df["abs_error"] = (reflex_df["actual_temp"] - desired_temp).abs()
+
     fig = go.Figure()
-    if utility_df.empty or reflex_df.empty:
+    if utility_df is None or reflex_df is None or utility_df.empty or reflex_df.empty:
         fig.update_layout(title="No temperature error data recorded yet.", height=320)
         return fig
 
@@ -1032,7 +1087,7 @@ def create_comparison_error_chart(
             x=utility_df["step"],
             y=utility_df["abs_error"],
             mode="lines+markers",
-            line=dict(color="#2563eb", width=2.8),
+            line=dict(color="#60a5fa" if dark_mode else "#2563eb", width=2.8),
             marker=dict(size=5),
             name="Utility-Based Agent Error",
             hovertemplate="Step %{x}: |Error| = %{y:.2f}°C<extra></extra>",
@@ -1043,7 +1098,7 @@ def create_comparison_error_chart(
             x=reflex_df["step"],
             y=reflex_df["abs_error"],
             mode="lines+markers",
-            line=dict(color="#ea580c", width=2.6),
+            line=dict(color="#22d3ee" if dark_mode else "#06b6d4", width=2.6),
             marker=dict(size=5, symbol="diamond"),
             name="Simple Reflex Agent Error",
             hovertemplate="Step %{x}: |Error| = %{y:.2f}°C<extra></extra>",
@@ -1052,31 +1107,56 @@ def create_comparison_error_chart(
 
     fig.update_layout(
         title="<b>3. Absolute Temperature Error Over Time</b>",
-        title_font=dict(size=15, color="#1e293b"),
+        title_font=dict(size=15, color="#f1f5f9" if dark_mode else "#172033"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Absolute Error (°C)",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=320,
         margin=dict(l=25, r=20, t=50, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(21, 30, 46, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#172033"),
+        ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(21, 30, 46, 0.6)" if dark_mode else "rgba(247, 249, 252, 0.6)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", rangemode="tozero")
+    fig.update_xaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1")
+    fig.update_yaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1", rangemode="tozero")
     return fig
 
 
 def create_comparison_action_distribution_chart(
-    utility_df: pd.DataFrame,
-    reflex_df: pd.DataFrame,
+    utility_df: Optional[pd.DataFrame] = None,
+    reflex_df: Optional[pd.DataFrame] = None,
+    df: Optional[pd.DataFrame] = None,
+    dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Chart 4: Compare HEAT, COOL, and OFF activation frequencies for both agents.
+    Supports either (utility_df, reflex_df) or (df=combined_df).
+    Scientific Theme Colors:
+    - Utility Agent: Primary Blue (#2563EB Light / #60A5FA Dark)
+    - Reflex Agent: Secondary Cyan (#06B6D4 Light / #22D3EE Dark)
     """
-    u_active = utility_df[utility_df["step"] > 0] if not utility_df.empty else pd.DataFrame()
-    r_active = reflex_df[reflex_df["step"] > 0] if not reflex_df.empty else pd.DataFrame()
+    if utility_df is None and df is not None:
+        utility_df = pd.DataFrame({
+            "step": df["step"],
+            "action": df.get("utility_action", df.get("action", "")),
+        })
+        reflex_df = pd.DataFrame({
+            "step": df["step"],
+            "action": df.get("reflex_action", df.get("action", "")),
+        })
+
+    u_active = utility_df[utility_df["step"] > 0] if utility_df is not None and not utility_df.empty else pd.DataFrame()
+    r_active = reflex_df[reflex_df["step"] > 0] if reflex_df is not None and not reflex_df.empty else pd.DataFrame()
 
     actions = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
     labels = ["🔥 HEAT", "❄️ COOL", "⏸️ OFF"]
@@ -1090,7 +1170,7 @@ def create_comparison_action_distribution_chart(
             name="Utility-Based Agent",
             x=labels,
             y=u_counts,
-            marker_color="#2563eb",
+            marker_color="#60a5fa" if dark_mode else "#2563eb",
             text=[str(c) for c in u_counts],
             textposition="auto",
         )
@@ -1100,7 +1180,7 @@ def create_comparison_action_distribution_chart(
             name="Simple Reflex Agent",
             x=labels,
             y=r_counts,
-            marker_color="#ea580c",
+            marker_color="#22d3ee" if dark_mode else "#06b6d4",
             text=[str(c) for c in r_counts],
             textposition="auto",
         )
@@ -1108,38 +1188,51 @@ def create_comparison_action_distribution_chart(
 
     fig.update_layout(
         title="<b>4. Action Distribution (HEAT / COOL / OFF)</b>",
-        title_font=dict(size=15, color="#1e293b"),
+        title_font=dict(size=15, color="#f1f5f9" if dark_mode else "#172033"),
         barmode="group",
         yaxis_title="Number of Steps",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=310,
         margin=dict(l=25, r=20, t=50, b=25),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(21, 30, 46, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#172033"),
+        ),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(21, 30, 46, 0.6)" if dark_mode else "rgba(247, 249, 252, 0.6)",
     )
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", rangemode="tozero")
+    fig.update_yaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1", rangemode="tozero")
     return fig
 
 
 def create_comparison_classification_chart(
-    util_metrics: Any,
-    refl_metrics: Any,
+    util_metrics: Any = None,
+    refl_metrics: Any = None,
+    dark_mode: bool = False,
+    **kwargs: Any,
 ) -> go.Figure:
     """
     Chart 5: Compare percentage of time each agent spends in Cold, Comfortable,
     and Hot environment classifications.
+    Scientific Theme Colors:
+    - Utility Agent: Primary Blue (#2563EB Light / #60A5FA Dark)
+    - Reflex Agent: Secondary Cyan (#06B6D4 Light / #22D3EE Dark)
     """
     categories = ["❄️ Cold", "🌿 Comfortable", "🔥 Hot"]
     u_pcts = [
-        util_metrics.cold_percentage,
-        util_metrics.comfortable_percentage,
-        util_metrics.hot_percentage,
+        getattr(util_metrics, "cold_percentage", 0.0) if util_metrics else 0.0,
+        getattr(util_metrics, "comfortable_percentage", 0.0) if util_metrics else 0.0,
+        getattr(util_metrics, "hot_percentage", 0.0) if util_metrics else 0.0,
     ]
     r_pcts = [
-        refl_metrics.cold_percentage,
-        refl_metrics.comfortable_percentage,
-        refl_metrics.hot_percentage,
+        getattr(refl_metrics, "cold_percentage", 0.0) if refl_metrics else 0.0,
+        getattr(refl_metrics, "comfortable_percentage", 0.0) if refl_metrics else 0.0,
+        getattr(refl_metrics, "hot_percentage", 0.0) if refl_metrics else 0.0,
     ]
 
     fig = go.Figure()
@@ -1148,7 +1241,7 @@ def create_comparison_classification_chart(
             name="Utility-Based Agent",
             x=categories,
             y=u_pcts,
-            marker_color="#2563eb",
+            marker_color="#60a5fa" if dark_mode else "#2563eb",
             text=[f"{v:.1f}%" for v in u_pcts],
             textposition="auto",
         )
@@ -1158,7 +1251,7 @@ def create_comparison_classification_chart(
             name="Simple Reflex Agent",
             x=categories,
             y=r_pcts,
-            marker_color="#ea580c",
+            marker_color="#22d3ee" if dark_mode else "#06b6d4",
             text=[f"{v:.1f}%" for v in r_pcts],
             textposition="auto",
         )
@@ -1166,16 +1259,24 @@ def create_comparison_classification_chart(
 
     fig.update_layout(
         title="<b>5. Environment Classification Time Share (%)</b>",
-        title_font=dict(size=15, color="#1e293b"),
+        title_font=dict(size=15, color="#f1f5f9" if dark_mode else "#172033"),
         barmode="group",
         yaxis_title="Percentage of Steps (%)",
         yaxis_range=[0, 108],
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=310,
         margin=dict(l=25, r=20, t=50, b=25),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(21, 30, 46, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#172033"),
+        ),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(21, 30, 46, 0.6)" if dark_mode else "rgba(247, 249, 252, 0.6)",
     )
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#293548" if dark_mode else "#e5eaf1")
     return fig

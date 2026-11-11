@@ -1,14 +1,14 @@
 """
 Environment Classifier and Demonstrator
 Interactive Room Temperature Control Simulation & Multi-Agent Comparison.
-Clean, lightweight, professional dashboard with fixed top header and theme toggle.
+Clean Minimalist & Scientific Dashboard supporting Light and Dark modes.
 
 Sections:
-1. Home
+1. Overview
 2. Environment Setup
 3. Utility-Based Agent
 4. Reflex Thermostat
-5. Comparison
+5. Agent Comparison
 6. Results
 """
 
@@ -45,9 +45,13 @@ from comparison import (
 )
 from utils import (
     create_agent_temperature_history_chart,
+    create_comparison_action_distribution_chart,
+    create_comparison_bar_chart,
     create_comparison_energy_chart,
+    create_comparison_error_chart,
     create_comparison_temperature_chart,
     create_reflex_temperature_history_chart,
+    create_temperature_gauge,
     create_utility_comparison_chart,
     get_comparison_summary_html,
     get_decision_card_html,
@@ -247,16 +251,35 @@ dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 # ---------------------------------------------------------
 # Dynamic Light/Dark Theme & Fixed Header Styling
 # ---------------------------------------------------------
-header_bg = "#0b1329" if dark_mode else "#ffffff"
-header_border = "#1e293b" if dark_mode else "#e2e8f0"
-header_text = "#f8fafc" if dark_mode else "#0f172a"
-app_bg = "#0b1120" if dark_mode else "#f8fafc"
-sidebar_bg = "#090e17" if dark_mode else "#ffffff"
-sidebar_border = "#1e293b" if dark_mode else "#e2e8f0"
-card_bg = "#131d33" if dark_mode else "#ffffff"
-card_border = "#334155" if dark_mode else "#e2e8f0"
-text_primary = "#f8fafc" if dark_mode else "#1e293b"
-text_secondary = "#94a3b8" if dark_mode else "#475569"
+# Palette tokens per design specifications
+if dark_mode:
+    app_bg = "#0b1120"
+    card_bg = "#151e2e"
+    card_sub_bg = "#1c2738"
+    text_primary = "#f1f5f9"
+    text_secondary = "#94a3b8"
+    primary_blue = "#60a5fa"
+    secondary_cyan = "#22d3ee"
+    border_color = "#293548"
+    header_bg = "#0b1329"
+    header_border = "#293548"
+    header_text = "#f1f5f9"
+    sidebar_bg = "#0b1120"
+    sidebar_border = "#293548"
+else:
+    app_bg = "#f7f9fc"
+    card_bg = "#ffffff"
+    card_sub_bg = "#f7f9fc"
+    text_primary = "#172033"
+    text_secondary = "#667085"
+    primary_blue = "#2563eb"
+    secondary_cyan = "#06b6d4"
+    border_color = "#e5eaf1"
+    header_bg = "#ffffff"
+    header_border = "#e5eaf1"
+    header_text = "#172033"
+    sidebar_bg = "#ffffff"
+    sidebar_border = "#e5eaf1"
 
 theme_css = f"""
 <style>
@@ -306,7 +329,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     justify-content: space-between;
     padding: 0 1.5rem 0 4.2rem;
     z-index: 999980;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"});
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.25" if dark_mode else "0.04"});
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }}
@@ -335,7 +358,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-right: 125px; /* Leaves clean room for docked stToggle */
+    margin-right: 125px; /* Leaves room for docked toggle */
 }}
 
 .header-status-badge {{
@@ -387,7 +410,7 @@ section[data-testid="stSidebar"] {{
     z-index: 999970 !important;
 }}
 
-/* 6. Typography and Card styling */
+/* 6. Scientific Typography and Card styling */
 .main-title {{
     font-size: 1.85rem;
     font-weight: 700;
@@ -403,7 +426,7 @@ section[data-testid="stSidebar"] {{
 
 .info-card {{
     background-color: {card_bg};
-    border: 1px solid {card_border};
+    border: 1px solid {border_color};
     border-radius: 8px;
     padding: 14px 18px;
     margin-bottom: 1rem;
@@ -414,7 +437,7 @@ section[data-testid="stSidebar"] {{
 
 .summary-card {{
     background: {card_bg};
-    border: 1px solid {card_border};
+    border: 1px solid {border_color};
     border-radius: 8px;
     padding: 14px 16px;
     height: 100%;
@@ -423,7 +446,7 @@ section[data-testid="stSidebar"] {{
 
 div[data-testid="stMetric"] {{
     background-color: {card_bg} !important;
-    border: 1px solid {card_border} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     padding: 10px 14px !important;
 }}
@@ -524,11 +547,11 @@ if toggle_theme != dark_mode:
 # Sidebar Navigation & Demo Presets
 # ---------------------------------------------------------
 SECTIONS = [
-    "Home",
+    "Overview",
     "Environment Setup",
     "Utility-Based Agent",
     "Reflex Thermostat",
-    "Comparison",
+    "Agent Comparison",
     "Results",
 ]
 
@@ -558,7 +581,7 @@ with st.sidebar:
         ),
     )
 
-    if st.button("Apply Selected Scenario", use_container_width=True):
+    if st.button("Apply Selected Scenario", use_container_width=True, key="btn_apply_scenario"):
         if "Scenario 1" in scenario_choice:
             apply_demonstration_scenario("cold_room")
         elif "Scenario 2" in scenario_choice:
@@ -577,66 +600,142 @@ with st.sidebar:
         f"**Reflex Bounds:** [{st.session_state.reflex_lower_slider:.1f}°C, {st.session_state.reflex_upper_slider:.1f}°C]"
     )
 
-    if st.button("🔄 Reset All Simulations", use_container_width=True):
+    if st.button("🔄 Reset All Simulations", use_container_width=True, key="btn_sidebar_reset"):
         reset_all_simulations()
         st.rerun()
 
 
 # =========================================================
-# SECTION 1: Home
+# SECTION 1: Overview
 # =========================================================
-if nav_selection == "Home":
+if nav_selection == "Overview":
     st.markdown(
         """<div class="main-title">Environment Classifier and Demonstrator</div>
-<div class="sub-title">Intelligent Room Temperature Control Simulation</div>""",
+<div class="sub-title">Intelligent Room Temperature Control & Multi-Agent Evaluation</div>""",
         unsafe_allow_html=True,
     )
 
+    # 1. Real-time Status Card
     st.markdown(
-        """<div class="info-card">
-<b>Project Overview:</b> This application simulates an indoor microclimate using a thermodynamic heat-transfer model
-and demonstrates two different artificial intelligence agent architectures:
-<br><br>
-<b>1. Utility-Based Agent:</b> Predicts the next room temperature for all available actions (HEAT, COOL, OFF)
-and selects the action with the maximum utility score by balancing thermal comfort against energy consumption.
-<br><br>
-<b>2. Simple Reflex Thermostat:</b> Makes decisions using fixed condition-action threshold rules
-based only on the current room temperature without prediction or utility evaluation.
-<br><br>
-Both agents are evaluated under identical environmental disturbances to compare their comfort precision, energy use, and stability.
-</div>""",
+        get_status_card_html(
+            classification=cur_class,
+            current_temp=cur_temp,
+            desired_temp=st.session_state.desired_temp,
+            dark_mode=dark_mode,
+        ),
         unsafe_allow_html=True,
     )
 
-    st.subheader("Key Features")
-    c1, c2, c3 = st.columns(3)
-    with c1:
+    # 2. 4 Essential Metric Cards
+    m1, m2, m3, m4 = st.columns(4)
+    with m1:
+        st.metric(
+            "Current Room Temp",
+            f"{cur_temp:.2f} °C",
+            delta=f"{cur_temp - st.session_state.desired_temp:+.1f} °C vs target",
+            delta_color="inverse",
+            help="Current indoor thermodynamic state",
+        )
+    with m2:
+        st.metric(
+            "Desired Target",
+            f"{st.session_state.desired_temp:.1f} °C",
+            delta=f"±{st.session_state.comfort_tolerance:.1f} °C band",
+            delta_color="off",
+            help="Target comfort temperature setpoint",
+        )
+    with m3:
+        st.metric(
+            "Outside Temp",
+            f"{st.session_state.outside_temp:.1f} °C",
+            delta=f"Insulation: {st.session_state.insulation_level}",
+            delta_color="off",
+            help="Outdoor ambient temperature influencing heat exchange",
+        )
+    with m4:
+        st.metric(
+            "Environment Status",
+            cur_class.upper(),
+            delta=status_info["icon"],
+            delta_color="off",
+            help="Classification into Cold, Comfortable, or Hot",
+        )
+
+    # 3. Environmental Temperature Monitoring Visualization
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("Temperature Monitoring & Thermal State")
+    ch_col1, ch_col2 = st.columns(2)
+    with ch_col1:
+        st.plotly_chart(
+            create_temperature_gauge(
+                current_temp=cur_temp,
+                desired_temp=st.session_state.desired_temp,
+                comfort_tolerance=st.session_state.comfort_tolerance,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="overview_temp_gauge",
+        )
+    with ch_col2:
+        st.plotly_chart(
+            create_comparison_bar_chart(
+                room_temp=cur_temp,
+                desired_temp=st.session_state.desired_temp,
+                outside_temp=st.session_state.outside_temp,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="overview_bar_chart",
+        )
+
+    # 4. Agent Architecture Overview
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("Agent Architecture Summary")
+    ac1, ac2 = st.columns(2)
+    with ac1:
         st.markdown(
-            """<div class="summary-card">
-<h4 style="margin-top:0; color:#0284c7;">🌡️ Thermodynamic Environment</h4>
-Simulates heat exchange with outdoor air using Newton's Law of Cooling, active HVAC heating/cooling power, and stochastic disturbances. Classifies room status into <b>Cold</b>, <b>Comfortable</b>, and <b>Hot</b>.
+            f"""<div class="summary-card" style="border-left: 4px solid {primary_blue};">
+<h4 style="margin-top:0; color:{primary_blue};">🤖 Utility-Based Intelligent Agent</h4>
+<b>Decision Paradigm:</b> Predictive Multi-Objective Optimization.<br>
+<b>Internal Model:</b> Evaluates resulting temperature for actions (HEAT, COOL, OFF) using thermodynamic simulation.<br>
+<b>Utility Formula:</b> Utility = -(w_c · Comfort Penalty) - (w_e · Energy Cost) - (w_s · Instability) - (w_o · Overshoot).<br>
+<b>Selected Action:</b> Selects the action that achieves maximum utility score.
 </div>""",
             unsafe_allow_html=True,
         )
-    with c2:
+    with ac2:
         st.markdown(
-            """<div class="summary-card">
-<h4 style="margin-top:0; color:#2563eb;">🤖 Utility-Based Agent</h4>
-Uses an internal thermodynamic prediction model to evaluate actions against comfort error, energy cost, stability, and overshoot penalties to select the best action.
-</div>""",
-            unsafe_allow_html=True,
-        )
-    with c3:
-        st.markdown(
-            """<div class="summary-card">
-<h4 style="margin-top:0; color:#ea580c;">🔁 Reflex Thermostat</h4>
-Applies simple condition-action rules: heats below the lower threshold, cools above the upper threshold, and remains OFF within the acceptable deadband.
+            f"""<div class="summary-card" style="border-left: 4px solid {secondary_cyan};">
+<h4 style="margin-top:0; color:{secondary_cyan};">🔁 Simple Reflex Thermostat</h4>
+<b>Decision Paradigm:</b> Deterministic Condition-Action Rules.<br>
+<b>Sensor Input:</b> Observes only current room temperature without lookahead or utility evaluation.<br>
+<b>Rules:</b>
+• If Temperature &lt; {st.session_state.reflex_lower_slider:.1f}°C → HEAT<br>
+• If Temperature &gt; {st.session_state.reflex_upper_slider:.1f}°C → COOL<br>
+• Otherwise (Deadband) → OFF
 </div>""",
             unsafe_allow_html=True,
         )
 
+    # 5. Quick-Start Demonstration Scenarios
     st.markdown("<br>", unsafe_allow_html=True)
-    st.info("💡 **Quick Start:** Use the sidebar navigation on the left to configure the environment or jump directly to **Comparison** to see both agents in action.")
+    st.subheader("Quick Scenario Launchers")
+    sc1, sc2, sc3 = st.columns(3)
+    with sc1:
+        if st.button("❄️ Scenario 1: Cold Room", use_container_width=True, key="btn_ov_sc1"):
+            apply_demonstration_scenario("cold_room")
+            st.rerun()
+        st.caption("14°C initial room temp with 10°C outside. Tests heating response.")
+    with sc2:
+        if st.button("🔥 Scenario 2: Hot Room", use_container_width=True, key="btn_ov_sc2"):
+            apply_demonstration_scenario("hot_room")
+            st.rerun()
+        st.caption("32°C initial room temp with 36°C outside. Tests cooling response.")
+    with sc3:
+        if st.button("🌿 Scenario 3: Comfortable Room", use_container_width=True, key="btn_ov_sc3"):
+            apply_demonstration_scenario("comfortable_room")
+            st.rerun()
+        st.caption("22°C initial room temp with good insulation. Tests energy conservation.")
 
 
 # =========================================================
@@ -645,7 +744,7 @@ Applies simple condition-action rules: heats below the lower threshold, cools ab
 elif nav_selection == "Environment Setup":
     st.markdown(
         """<div class="main-title">Environment Setup</div>
-<div class="sub-title">Configure room temperatures, insulation, and simulation parameters</div>""",
+<div class="sub-title">Configure room temperatures, insulation parameters, and agent weights</div>""",
         unsafe_allow_html=True,
     )
 
@@ -659,6 +758,7 @@ elif nav_selection == "Environment Setup":
             max_value=float(SimulationDefaults.MAX_INITIAL_TEMP),
             value=float(st.session_state.initial_temp),
             step=0.5,
+            key="sl_init_temp",
             help="Starting temperature of the room.",
         )
         st.session_state.desired_temp = st.slider(
@@ -667,6 +767,7 @@ elif nav_selection == "Environment Setup":
             max_value=float(SimulationDefaults.MAX_DESIRED_TEMP),
             value=float(st.session_state.desired_temp),
             step=0.5,
+            key="sl_desired_temp",
             help="Desired target comfort temperature.",
         )
         st.session_state.comfort_tolerance = st.slider(
@@ -675,6 +776,7 @@ elif nav_selection == "Environment Setup":
             max_value=3.0,
             value=float(st.session_state.comfort_tolerance),
             step=0.1,
+            key="sl_comfort_tolerance",
             help="Acceptable deviation around the desired temperature.",
         )
         st.session_state.outside_temp = st.slider(
@@ -683,6 +785,7 @@ elif nav_selection == "Environment Setup":
             max_value=float(SimulationDefaults.MAX_OUTSIDE_TEMP),
             value=float(st.session_state.outside_temp),
             step=0.5,
+            key="sl_outside_temp",
             help="Outdoor ambient temperature.",
         )
 
@@ -691,6 +794,7 @@ elif nav_selection == "Environment Setup":
             "Room Insulation Level",
             options=ins_opts,
             index=ins_opts.index(st.session_state.insulation_level),
+            key="sb_insulation",
             help="Determines the rate of heat exchange with outside air.",
         )
         st.session_state.max_steps = st.slider(
@@ -699,6 +803,7 @@ elif nav_selection == "Environment Setup":
             max_value=int(SimulationDefaults.MAX_STEPS),
             value=int(st.session_state.max_steps),
             step=5,
+            key="sl_max_steps",
             help="Total number of simulation steps to run.",
         )
 
@@ -745,6 +850,7 @@ elif nav_selection == "Environment Setup":
             max_value=3.0,
             value=float(st.session_state.weight_comfort),
             step=0.1,
+            key="sl_weight_c",
             help="Priority given to staying close to target temperature.",
         )
         st.session_state.weight_energy = st.slider(
@@ -753,6 +859,7 @@ elif nav_selection == "Environment Setup":
             max_value=2.0,
             value=float(st.session_state.weight_energy),
             step=0.05,
+            key="sl_weight_e",
             help="Penalty for consuming electricity when heating or cooling.",
         )
         st.session_state.weight_stability = st.slider(
@@ -761,6 +868,7 @@ elif nav_selection == "Environment Setup":
             max_value=2.0,
             value=float(st.session_state.weight_stability),
             step=0.05,
+            key="sl_weight_s",
             help="Penalty for large single-step temperature changes.",
         )
         st.session_state.weight_overshoot = st.slider(
@@ -769,6 +877,7 @@ elif nav_selection == "Environment Setup":
             max_value=3.0,
             value=float(st.session_state.weight_overshoot),
             step=0.1,
+            key="sl_weight_o",
             help="Penalty for exceeding the comfortable temperature boundaries.",
         )
 
@@ -784,7 +893,7 @@ elif nav_selection == "Environment Setup":
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Apply Settings & Reset All Simulations", type="primary", use_container_width=True):
+    if st.button("Apply Settings & Reset All Simulations", type="primary", use_container_width=True, key="btn_apply_reset"):
         reset_all_simulations()
         st.success("Configuration applied! All simulations reset with new parameters.")
         st.rerun()
@@ -1028,9 +1137,9 @@ elif nav_selection == "Reflex Thermostat":
 
 
 # =========================================================
-# SECTION 5: Comparison
+# SECTION 5: Agent Comparison
 # =========================================================
-elif nav_selection == "Comparison":
+elif nav_selection == "Agent Comparison":
     st.markdown(
         """<div class="main-title">Agent Performance Comparison</div>
 <div class="sub-title">Side-by-side benchmark with identical environmental disturbances</div>""",
@@ -1125,6 +1234,31 @@ elif nav_selection == "Comparison":
         ),
         use_container_width=True,
         key="chart_sec_c_energy",
+    )
+
+    # 3. Absolute Temperature Error Over Time Chart
+    st.subheader("3. Absolute Temperature Error Over Time")
+    st.plotly_chart(
+        create_comparison_error_chart(
+            utility_df=u_df,
+            reflex_df=r_df,
+            desired_temp=cfg.desired_temp,
+            dark_mode=dark_mode,
+        ),
+        use_container_width=True,
+        key="chart_sec_c_error",
+    )
+
+    # 4. Action Distribution Comparison Chart
+    st.subheader("4. Action Distribution (HEAT / COOL / OFF)")
+    st.plotly_chart(
+        create_comparison_action_distribution_chart(
+            utility_df=u_df,
+            reflex_df=r_df,
+            dark_mode=dark_mode,
+        ),
+        use_container_width=True,
+        key="chart_sec_c_action",
     )
 
     # Quantitative Metrics Table
