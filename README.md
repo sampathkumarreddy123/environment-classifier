@@ -1,19 +1,14 @@
 # Environment Classifier and Demonstrator
-### Intelligent Room Temperature Control Simulation (Phase 1 Foundation)
+### Intelligent Room Temperature Control Simulation (Phase 2: Utility-Based Intelligent Agent)
 
 ---
 
 ## 📖 Overview
-The **Environment Classifier and Demonstrator** is an interactive thermodynamic simulation platform designed to evaluate and compare intelligent control strategies. 
+The **Environment Classifier and Demonstrator** is an interactive thermodynamic simulation platform designed to evaluate and demonstrate intelligent environmental control.
 
-In **Phase 1 (Foundation)**, the project establishes:
-1. A continuous thermodynamic room environment model with heat exchange, insulation factors, HVAC actuation, and environmental disturbances.
-2. A temperature classification system categorizing room states into **Cold**, **Comfortable**, and **Hot**.
-3. A modern Streamlit dashboard featuring interactive configuration controls, live temperature gauges, comparative bar charts, and trajectory history plots.
-
-In **Phase 2**, this foundation will be used to compare two intelligent agents:
-- **Utility-Based Agent**: Optimizes actions by maximizing a multi-objective utility function (thermal comfort vs. energy consumption).
-- **Simple Reflex Thermostat**: Operates on fixed threshold rules with hysteresis.
+- **Phase 1 (Foundation):** Established the thermodynamic room model (Newton's cooling law, HVAC actuation, disturbance noise), temperature classification (**Cold**, **Comfortable**, **Hot**), and the interactive Streamlit dashboard.
+- **Phase 2 (Current Phase):** Implements the **Utility-Based Intelligent Agent** in `utility_agent.py`, which predicts future thermal comfort, evaluates candidate actions against multiple competing objectives, and selects the action that maximizes net utility.
+- **Phase 3 (Upcoming):** Will introduce the Simple Reflex Thermostat for direct head-to-head comparison against this utility-based agent.
 
 ---
 
@@ -21,84 +16,80 @@ In **Phase 2**, this foundation will be used to compare two intelligent agents:
 
 ```text
 environment-classifier/
-├── app.py                # Main Streamlit web application & dashboard UI
-├── environment.py        # Thermodynamic room simulation model & state management
-├── config.py             # Simulation constants, default limits, color schemes, and actions
-├── utils.py              # Visualizations (Plotly gauge, line charts, bar comparisons, status cards)
-├── requirements.txt      # Project dependencies (Streamlit, NumPy, Pandas, Plotly, Matplotlib)
-├── test_simulation.py    # Automated test suite for simulation physics and classifier logic
-└── README.md             # Project documentation and user guide
+├── app.py                   # Main Streamlit web dashboard & agent visualization interface
+├── utility_agent.py         # Utility-based intelligent agent (prediction & multi-factor utility optimization)
+├── environment.py           # Thermodynamic room simulation model & state classification
+├── config.py                # Configuration defaults, utility weights, action definitions, and styling
+├── utils.py                 # Visualizations (Plotly charts, gauges, utility breakdowns, decision cards)
+├── requirements.txt         # Project dependencies (Streamlit, NumPy, Pandas, Plotly, Matplotlib)
+├── test_utility_agent.py    # Test suite verifying agent decision-making across all 5 required conditions
+├── test_simulation.py       # Test suite verifying thermodynamic physics and classification
+├── run.ps1                  # PowerShell launcher script
+├── run.bat                  # Windows batch launcher script
+└── README.md                # Project documentation and user guide
 ```
 
 ---
 
-## 🧮 Thermodynamic Mathematical Model
+## 🧠 Utility-Based Agent Architecture
 
-The room temperature at time step $t + 1$ is modeled according to continuous thermodynamic principles:
+Rather than relying on fixed temperature thresholds, the utility-based agent evaluates every available action ($a \in \{\text{HEAT}, \text{COOL}, \text{OFF}\}$) using an internal mental model of the room thermodynamics and a multi-objective utility function.
 
-$$T_{t+1} = T_t + \Delta T_{\text{ambient}} + \Delta T_{\text{HVAC}} + \epsilon_t$$
-
-Where:
-1. **Ambient Heat Transfer (Newton's Law of Cooling):**
-   $$\Delta T_{\text{ambient}} = k \cdot (T_{\text{outside}} - T_t)$$
-   $k$ is the insulation heat-loss coefficient:
-   - **Poor:** $k = 0.14$ (rapid heat transfer)
-   - **Medium:** $k = 0.07$ (standard double-glazed insulation)
-   - **Good:** $k = 0.025$ (high-performance thermal insulation)
-
-2. **HVAC Actuation:**
-   $$\Delta T_{\text{HVAC}} = \begin{cases} +P_{\text{heater}} & \text{if Action = HEAT} \\ -P_{\text{cooler}} & \text{if Action = COOL} \\ 0 & \text{if Action = OFF} \end{cases}$$
-
-3. **Stochastic Disturbance:**
-   $$\epsilon_t \sim \mathcal{N}(0, \sigma^2)$$
-   Where $\sigma$ is the disturbance level (modeling opened doors, solar gain fluctuations, occupant body heat).
+### 1. Decision-Making Process (at every time step $t$):
+1. **Observe** current room temperature $T_t$.
+2. **Read** desired comfort target $T_{\text{desired}}$ and tolerance $\tau$.
+3. **Observe** outside ambient temperature $T_{\text{outside}}$ and insulation level $k$.
+4. **Generate** candidate actions: `['HEAT', 'COOL', 'OFF']`.
+5. **Predict** resulting temperature $\hat{T}_{t+1}(a)$ using the environment model:
+   $$\hat{T}_{t+1}(a) = T_t + k \cdot (T_{\text{outside}} - T_t) + \Delta T_{\text{HVAC}}(a)$$
+6. **Calculate** utility $\text{Utility}(a)$ balancing comfort, energy, stability, and overshoot.
+7. **Select** the action with maximum utility:
+   $$a^* = \arg\max_{a} \text{Utility}(a)$$
+8. **Apply** the action to the physical room environment.
+9. **Record** telemetry, utility scores, and natural language explanation.
 
 ---
 
-## 🏷️ Temperature Classification
+### 2. Multi-Objective Utility Function
 
-The room state is classified relative to the target desired temperature $T_{\text{desired}}$ and comfort tolerance $\tau$ (default $\pm 1.5^\circ\text{C}$):
+$$\text{Utility}(a) = - \left( w_c \cdot P_{\text{comfort}} + w_e \cdot C_{\text{energy}} + w_s \cdot P_{\text{instability}} + w_o \cdot P_{\text{overshoot}} \right)$$
 
-- ❄️ **Cold:** $T_t < T_{\text{desired}} - \tau$
-- 🌿 **Comfortable:** $T_{\text{desired}} - \tau \le T_t \le T_{\text{desired}} + \tau$
-- 🔥 **Hot:** $T_t > T_{\text{desired}} + \tau$
+Where:
+- **$P_{\text{comfort}} = |\hat{T}_{t+1}(a) - T_{\text{desired}}|$:** Distance between predicted temperature and desired target.
+- **$C_{\text{energy}} \in \{1.0 \text{ (HEAT)}, 1.0 \text{ (COOL)}, 0.0 \text{ (OFF)}\}$:** Power consumption cost.
+- **$P_{\text{instability}} = |\hat{T}_{t+1}(a) - T_t|$:** Penalizes abrupt temperature fluctuations.
+- **$P_{\text{overshoot}}$:** Distance exceeding the acceptable comfort zone bounds ($[T_{\text{desired}} - \tau, T_{\text{desired}} + \tau]$).
+- **Configurable Weights ($w_c, w_e, w_s, w_o$):** Sliders in the sidebar allow real-time tuning of agent priorities.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Requirements
-Ensure Python 3.10+ is installed.
-
-### 2. Install Dependencies
-```bash
+### 1. Install Dependencies
+```powershell
 pip install -r requirements.txt
 ```
 
-### 3. Run Automated Tests
-Verify that the thermodynamic model and classification logic pass all checks:
-```bash
+### 2. Run Automated Verification Tests
+```powershell
+# Run the 6-test suite verifying the utility-based agent
+python test_utility_agent.py
+
+# Run the thermodynamic environment model tests
 python test_simulation.py
 ```
 
-### 4. Launch the Web Application
-You can run the application directly using any of the following methods:
+### 3. Launch the Application
+Run using any of the following methods:
 
-**Option A (Quick Launcher Script):**
+**Quick Launcher:**
 ```powershell
 .\run.ps1
 ```
-or double-click `run.bat` in File Explorer.
+*(or double-click `run.bat`)*
 
-**Option B (Standard Streamlit Command):**
-If you open a new PowerShell terminal:
+**Direct Streamlit Command:**
 ```powershell
-streamlit run app.py
-```
-
-If using your current PowerShell session, refresh the PATH first:
-```powershell
-$env:Path = [System.Environment]::GetEnvironmentVariable("Path","User") + ";" + [System.Environment]::GetEnvironmentVariable("Path","Machine")
 streamlit run app.py
 ```
 
@@ -106,7 +97,10 @@ Open your browser at `http://localhost:8501`.
 
 ---
 
-## 🎮 Interactive Controls
-- **Sidebar**: Adjust initial temperature, comfort target, outside temperature, room insulation, HVAC power, and disturbance noise.
-- **Interactive Stepping**: Step through the simulation step-by-step or run a full batch run with manual HVAC actions (OFF, HEAT, COOL) to observe thermal inertia and response curves.
-- **Data Export**: Download the simulated trajectory data as a CSV file for analysis.
+## 📊 Dashboard Features
+- **Utility Decision Card:** Displays current temperature, desired temperature, selected action, predicted temperature, utility score, and natural language reasoning.
+- **Utility Comparison Bar Chart:** Live comparison of utility scores across `HEAT`, `COOL`, and `OFF` highlighting the chosen action.
+- **Weighted Penalty Decomposition:** Stacked chart showing comfort penalty, energy cost, instability penalty, and overshoot penalty for all actions.
+- **Interactive Trajectory:** Plots room temperature, agent predicted temperature, outside ambient, and comfort zone band over time.
+- **Telemetry Export:** Download complete step-by-step history as a CSV file.
+- **Manual Sandbox:** Phase 1 manual room explorer remains intact in a dedicated tab.

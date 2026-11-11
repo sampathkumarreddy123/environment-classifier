@@ -48,24 +48,19 @@ class SimulationDefaults:
 
 
 @dataclass(frozen=True)
-class AgentDefaults:
-    """Default parameters for Simple Reflex and Utility-Based agents."""
+class UtilityWeightsDefaults:
+    """Default configurable weights for the Utility-Based Agent."""
+    
+    # Weight factors for utility function penalties
+    DEFAULT_WEIGHT_COMFORT: float = 1.0     # Multiplier for comfort deviation
+    DEFAULT_WEIGHT_ENERGY: float = 0.5      # Multiplier for energy consumption
+    DEFAULT_WEIGHT_STABILITY: float = 0.2   # Multiplier for temperature change magnitude
+    DEFAULT_WEIGHT_OVERSHOOT: float = 1.0   # Multiplier for comfort zone bounds violations
 
-    # Reflex Agent parameters
-    DEFAULT_REFLEX_HYSTERESIS: float = 0.0  # Optional deadband offset
-
-    # Utility-Based Agent weights and costs
-    DEFAULT_WEIGHT_COMFORT: float = 1.0     # Multiplier for comfort penalty / reward
-    DEFAULT_WEIGHT_ENERGY: float = 0.4      # Multiplier for energy cost penalty
-    DEFAULT_WEIGHT_SWITCHING: float = 0.1   # Penalty for toggling HVAC state
-
-    # Energy consumption units per action
-    ENERGY_COST_OFF: float = 0.0
+    # Energy consumption costs per action
     ENERGY_COST_HEAT: float = 1.0
     ENERGY_COST_COOL: float = 1.0
-
-    # Comfort bonus when within target tolerance
-    COMFORT_BONUS: float = 2.0
+    ENERGY_COST_OFF: float = 0.0
 
 
 # Insulation levels mapped to heat transfer coefficients (k)
@@ -85,12 +80,7 @@ CLASS_HOT = "Hot"
 ACTION_OFF = "OFF"
 ACTION_HEAT = "HEAT"
 ACTION_COOL = "COOL"
-ALL_ACTIONS = [ACTION_OFF, ACTION_HEAT, ACTION_COOL]
-
-# Agent Identifiers
-AGENT_REFLEX = "Simple Reflex Thermostat"
-AGENT_UTILITY = "Utility-Based Agent"
-ALL_AGENTS = [AGENT_REFLEX, AGENT_UTILITY]
+ALL_ACTIONS = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
 
 # Classification Color Scheme (Clean, modern palette)
 STATUS_COLORS = {
@@ -114,5 +104,27 @@ STATUS_COLORS = {
         "border": "#fca5a5",
         "icon": "🔥",
         "description": "Temperature is above the comfortable range.",
+    },
+}
+
+# Action Display Metadata
+ACTION_METADATA = {
+    ACTION_HEAT: {
+        "name": "HEAT",
+        "label": "🔥 HEAT",
+        "color": "#ea580c",
+        "description": "Engage heater (+Power)",
+    },
+    ACTION_COOL: {
+        "name": "COOL",
+        "label": "❄️ COOL",
+        "color": "#0284c7",
+        "description": "Engage air conditioner (-Power)",
+    },
+    ACTION_OFF: {
+        "name": "OFF",
+        "label": "⏸️ OFF",
+        "color": "#64748b",
+        "description": "Disable HVAC (Passive drift)",
     },
 }
