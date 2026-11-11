@@ -1,7 +1,7 @@
 """
 Environment Classifier and Demonstrator
 Interactive Room Temperature Control Simulation & Multi-Agent Comparison.
-Clean, lightweight, professional dashboard for college project demonstration.
+Clean, lightweight, professional dashboard with fixed top header and theme toggle.
 
 Sections:
 1. Home
@@ -56,54 +56,13 @@ from utils import (
 )
 
 # ---------------------------------------------------------
-# Page Configuration & Clean Styling
+# Page Configuration
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="Environment Classifier & Demonstrator",
+    page_title="Environment Classifier and Demonstrator",
     page_icon="🌡️",
     layout="wide",
     initial_sidebar_state="expanded",
-)
-
-# Minimal, clean CSS suitable for academic evaluation
-st.markdown(
-    """
-    <style>
-    .main-title {
-        font-size: 1.85rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 0.2rem;
-    }
-    .sub-title {
-        font-size: 1.05rem;
-        color: #475569;
-        margin-bottom: 1rem;
-    }
-    .info-card {
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px 18px;
-        margin-bottom: 1rem;
-        color: #334155;
-        font-size: 0.95rem;
-        line-height: 1.5;
-    }
-    .summary-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 14px 16px;
-        height: 100%;
-    }
-    div[data-testid="stMetricValue"] {
-        font-size: 1.4rem;
-        font-weight: 700;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
 )
 
 
@@ -112,6 +71,7 @@ st.markdown(
 # ---------------------------------------------------------
 def init_session_state() -> None:
     defaults = {
+        "dark_mode": False,
         "initial_temp": float(SimulationDefaults.DEFAULT_INITIAL_TEMP),
         "desired_temp": float(SimulationDefaults.DEFAULT_DESIRED_TEMP),
         "outside_temp": float(SimulationDefaults.DEFAULT_OUTSIDE_TEMP),
@@ -281,6 +241,283 @@ comparison_runner: ComparisonRunner = st.session_state.comparison_runner
 latest_cfg = _build_comparison_config()
 if comparison_runner.config != latest_cfg:
     comparison_runner.reset(latest_cfg)
+
+dark_mode: bool = bool(st.session_state.get("dark_mode", False))
+
+# ---------------------------------------------------------
+# Dynamic Light/Dark Theme & Fixed Header Styling
+# ---------------------------------------------------------
+header_bg = "#0b1329" if dark_mode else "#ffffff"
+header_border = "#1e293b" if dark_mode else "#e2e8f0"
+header_text = "#f8fafc" if dark_mode else "#0f172a"
+app_bg = "#0b1120" if dark_mode else "#f8fafc"
+sidebar_bg = "#090e17" if dark_mode else "#ffffff"
+sidebar_border = "#1e293b" if dark_mode else "#e2e8f0"
+card_bg = "#131d33" if dark_mode else "#ffffff"
+card_border = "#334155" if dark_mode else "#e2e8f0"
+text_primary = "#f8fafc" if dark_mode else "#1e293b"
+text_secondary = "#94a3b8" if dark_mode else "#475569"
+
+theme_css = f"""
+<style>
+/* 1. Complete Removal of Streamlit Deploy Button & Deployment Elements */
+[data-testid="stDeployButton"],
+.stDeployButton,
+div[data-testid="stToolbar"] > div:has([data-testid="stDeployButton"]),
+div[data-testid="stToolbar"] button[kind="header"][data-testid="stDeployButton"],
+button[title="Deploy this app"],
+#MainMenu > div:has(button[title="Deploy this app"]) {{
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}}
+
+/* 2. Configure Streamlit's Default Header */
+header[data-testid="stHeader"] {{
+    background-color: transparent !important;
+    height: 70px !important;
+    z-index: 999990 !important;
+}}
+
+/* Ensure Streamlit's sidebar collapse/expand button sits cleanly on top left of header */
+header[data-testid="stHeader"] button[data-testid="stSidebarCollapseButton"],
+header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
+[data-testid="stSidebarCollapseButton"] {{
+    margin-top: 10px !important;
+    margin-left: 12px !important;
+    z-index: 1000000 !important;
+    color: {header_text} !important;
+}}
+
+/* 3. Professional Fixed Top Header */
+.fixed-top-header {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background-color: {header_bg};
+    border-bottom: 1px solid {header_border};
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem 0 4.2rem;
+    z-index: 999980;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"});
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}}
+
+.header-left {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+}}
+
+.header-icon {{
+    font-size: 22px;
+    line-height: 1;
+}}
+
+.header-title {{
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: {header_text};
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}}
+
+.header-right {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: 125px; /* Leaves clean room for docked stToggle */
+}}
+
+.header-status-badge {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}}
+
+/* Dock Theme Toggle switch directly into top right header */
+div[data-testid="stToggle"] {{
+    position: fixed !important;
+    top: 20px !important;
+    right: 22px !important;
+    z-index: 1000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+}}
+
+div[data-testid="stToggle"] label {{
+    margin: 0 !important;
+    color: {header_text} !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+}}
+
+/* 4. Page Content Layout & Vertical Spacing */
+.block-container,
+div[data-testid="stMainBlockContainer"],
+div[data-testid="block-container"] {{
+    padding-top: 5.6rem !important;
+    background-color: {app_bg} !important;
+}}
+
+/* 5. Sidebar layout starts cleanly below fixed header */
+section[data-testid="stSidebar"] {{
+    top: 70px !important;
+    height: calc(100vh - 70px) !important;
+    border-right: 1px solid {sidebar_border} !important;
+    background-color: {sidebar_bg} !important;
+    z-index: 999970 !important;
+}}
+
+/* 6. Typography and Card styling */
+.main-title {{
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: {text_primary};
+    margin-bottom: 0.2rem;
+}}
+
+.sub-title {{
+    font-size: 1.05rem;
+    color: {text_secondary};
+    margin-bottom: 1rem;
+}}
+
+.info-card {{
+    background-color: {card_bg};
+    border: 1px solid {card_border};
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 1rem;
+    color: {text_primary};
+    font-size: 0.95rem;
+    line-height: 1.5;
+}}
+
+.summary-card {{
+    background: {card_bg};
+    border: 1px solid {card_border};
+    border-radius: 8px;
+    padding: 14px 16px;
+    height: 100%;
+    color: {text_primary};
+}}
+
+div[data-testid="stMetric"] {{
+    background-color: {card_bg} !important;
+    border: 1px solid {card_border} !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+}}
+
+div[data-testid="stMetricValue"] {{
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: {text_primary} !important;
+}}
+
+div[data-testid="stMetricLabel"] {{
+    color: {text_secondary} !important;
+}}
+
+{"body, .stApp { background-color: #0b1120 !important; color: #f1f5f9 !important; } section[data-testid=\"stSidebar\"] * { color: #cbd5e1 !important; } h1, h2, h3, h4 { color: #f8fafc !important; }" if dark_mode else ""}
+
+/* Responsive Mobile / Tablet adjustments */
+@media (max-width: 860px) {{
+    .header-title {{
+        font-size: 1rem !important;
+    }}
+    .header-status-badge {{
+        font-size: 11px !important;
+        padding: 4px 8px !important;
+    }}
+    .header-right {{
+        margin-right: 110px !important;
+    }}
+}}
+
+@media (max-width: 640px) {{
+    .header-title {{
+        display: none !important;
+    }}
+    .fixed-top-header {{
+        padding-left: 3.5rem !important;
+    }}
+}}
+</style>
+"""
+st.markdown(theme_css, unsafe_allow_html=True)
+
+
+# ---------------------------------------------------------
+# Fixed Top Header HTML & Real-time Status Badge
+# ---------------------------------------------------------
+current_obs = env.get_state()
+cur_temp = current_obs["room_temp"]
+cur_class = current_obs["classification"]
+status_info = STATUS_COLORS.get(cur_class, STATUS_COLORS[CLASS_COMFORTABLE])
+
+if dark_mode:
+    if cur_class == CLASS_COLD:
+        badge_bg = "#082f49"
+        badge_border = "#0284c7"
+        badge_color = "#38bdf8"
+    elif cur_class == CLASS_HOT:
+        badge_bg = "#431407"
+        badge_border = "#ea580c"
+        badge_color = "#fb923c"
+    else:
+        badge_bg = "#052e16"
+        badge_border = "#16a34a"
+        badge_color = "#4ade80"
+else:
+    badge_bg = status_info["bg_light"]
+    badge_border = status_info["border"]
+    badge_color = status_info["color"]
+
+header_html = f"""<header class="fixed-top-header">
+<div class="header-left">
+<span class="header-icon">🌡️</span>
+<span class="header-title">Environment Classifier and Demonstrator</span>
+</div>
+<div class="header-right">
+<div class="header-status-badge" style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: {badge_color};">
+<span>{status_info['icon']}</span>
+<span>{cur_class.upper()}</span>
+<span style="opacity: 0.85; margin-left: 2px;">{cur_temp:.1f}°C</span>
+</div>
+</div>
+</header>"""
+st.markdown(header_html, unsafe_allow_html=True)
+
+# Theme Toggle switch (docked via CSS into top right of fixed header)
+toggle_theme = st.toggle(
+    "🌙 Dark" if dark_mode else "☀️ Light",
+    key="header_theme_toggle",
+    value=dark_mode,
+    help="Toggle between Light Mode and Dark Mode",
+)
+if toggle_theme != dark_mode:
+    st.session_state["dark_mode"] = toggle_theme
+    st.rerun()
 
 
 # ---------------------------------------------------------
@@ -572,6 +809,7 @@ elif nav_selection == "Utility-Based Agent":
             classification=current_state["classification"],
             current_temp=current_state["room_temp"],
             desired_temp=current_state["desired_temp"],
+            dark_mode=dark_mode,
         ),
         unsafe_allow_html=True,
     )
@@ -641,6 +879,7 @@ elif nav_selection == "Utility-Based Agent":
                 predicted_temp=last_dec.predicted_temp,
                 utility_score=last_dec.utility_score,
                 reason=last_dec.reason,
+                dark_mode=dark_mode,
             ),
             unsafe_allow_html=True,
         )
@@ -649,6 +888,7 @@ elif nav_selection == "Utility-Based Agent":
             create_utility_comparison_chart(
                 action_evaluations=last_dec.action_evaluations,
                 selected_action=last_dec.selected_action,
+                dark_mode=dark_mode,
             ),
             use_container_width=True,
             key="chart_sec_u_comp",
@@ -662,6 +902,7 @@ elif nav_selection == "Utility-Based Agent":
             df=sim_df,
             desired_temp=st.session_state.desired_temp,
             comfort_tolerance=st.session_state.comfort_tolerance,
+            dark_mode=dark_mode,
         ),
         use_container_width=True,
         key="chart_sec_u_history",
@@ -699,6 +940,7 @@ elif nav_selection == "Reflex Thermostat":
             classification=r_state["classification"],
             current_temp=r_state["room_temp"],
             desired_temp=r_state["desired_temp"],
+            dark_mode=dark_mode,
         ),
         unsafe_allow_html=True,
     )
@@ -752,6 +994,7 @@ elif nav_selection == "Reflex Thermostat":
             lower_threshold=reflex_agent.lower_threshold,
             upper_threshold=reflex_agent.upper_threshold,
             selected_action=r_preview.selected_action,
+            dark_mode=dark_mode,
         ),
         unsafe_allow_html=True,
     )
@@ -765,6 +1008,7 @@ elif nav_selection == "Reflex Thermostat":
             lower_threshold=reflex_agent.lower_threshold,
             upper_threshold=reflex_agent.upper_threshold,
             desired_temp=st.session_state.desired_temp,
+            dark_mode=dark_mode,
         ),
         use_container_width=True,
         key="chart_sec_r_history",
@@ -821,7 +1065,7 @@ elif nav_selection == "Comparison":
     comp_summary = eval_res["summary"]
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(get_comparison_summary_html(comp_summary), unsafe_allow_html=True)
+    st.markdown(get_comparison_summary_html(comp_summary, dark_mode=dark_mode), unsafe_allow_html=True)
 
     # Key Performance Metrics Cards
     k1, k2, k3, k4 = st.columns(4)
@@ -865,6 +1109,7 @@ elif nav_selection == "Comparison":
             reflex_df=r_df,
             desired_temp=cfg.desired_temp,
             comfort_tolerance=cfg.comfort_tolerance,
+            dark_mode=dark_mode,
         ),
         use_container_width=True,
         key="chart_sec_c_traj",
@@ -876,6 +1121,7 @@ elif nav_selection == "Comparison":
         create_comparison_energy_chart(
             utility_df=u_df,
             reflex_df=r_df,
+            dark_mode=dark_mode,
         ),
         use_container_width=True,
         key="chart_sec_c_energy",

@@ -20,7 +20,7 @@ from config import (
 )
 
 
-def get_status_card_html(classification: str, current_temp: float, desired_temp: float) -> str:
+def get_status_card_html(classification: str, current_temp: float, desired_temp: float, dark_mode: bool = False) -> str:
     """
     Generate an HTML status card representing the temperature classification.
     """
@@ -28,21 +28,27 @@ def get_status_card_html(classification: str, current_temp: float, desired_temp:
     delta = current_temp - desired_temp
     delta_str = f"{'+' if delta > 0 else ''}{delta:.1f}°C from target ({desired_temp:.1f}°C)"
 
-    html = f"""<div style="background-color: {info['bg_light']}; border: 2px solid {info['border']}; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+    card_bg = "#131d33" if dark_mode else info['bg_light']
+    card_border = "#334155" if dark_mode else info['border']
+    text_main = "#f8fafc" if dark_mode else "#1e293b"
+    text_sub = "#94a3b8" if dark_mode else "#64748b"
+    text_desc = "#cbd5e1" if dark_mode else "#475569"
+
+    html = f"""<div style="background-color: {card_bg}; border: 2px solid {card_border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
 <div style="display: flex; align-items: center; justify-content: space-between;">
 <div style="display: flex; align-items: center; gap: 12px;">
 <span style="font-size: 32px;">{info['icon']}</span>
 <div>
 <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: {info['color']};">Environment Status</div>
-<div style="font-size: 22px; font-weight: 800; color: #1e293b;">{classification.upper()}</div>
+<div style="font-size: 22px; font-weight: 800; color: {text_main};">{classification.upper()}</div>
 </div>
 </div>
 <div style="text-align: right;">
 <div style="font-size: 24px; font-weight: 800; color: {info['color']};">{current_temp:.1f}°C</div>
-<div style="font-size: 13px; font-weight: 500; color: #64748b;">{delta_str}</div>
+<div style="font-size: 13px; font-weight: 500; color: {text_sub};">{delta_str}</div>
 </div>
 </div>
-<div style="margin-top: 8px; font-size: 13px; color: #475569; border-top: 1px solid {info['border']}; padding-top: 8px;">
+<div style="margin-top: 8px; font-size: 13px; color: {text_desc}; border-top: 1px solid {card_border}; padding-top: 8px;">
 {info['description']}
 </div>
 </div>"""
@@ -56,38 +62,48 @@ def get_decision_card_html(
     predicted_temp: float,
     utility_score: float,
     reason: str,
+    dark_mode: bool = False,
 ) -> str:
     """
     Generate a styled decision explanation card for the Utility-Based Agent.
     """
     meta = ACTION_METADATA.get(selected_action, ACTION_METADATA[ACTION_OFF])
 
-    html = f"""<div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-left: 6px solid {meta['color']}; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+    card_bg = "#131d33" if dark_mode else "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)"
+    card_border = "#334155" if dark_mode else "#cbd5e1"
+    sub_bg = "#0b1120" if dark_mode else "white"
+    sub_border = "#1e293b" if dark_mode else "#e2e8f0"
+    reason_bg = "#0f172a" if dark_mode else "#f1f5f9"
+    text_main = "#f8fafc" if dark_mode else "#0f172a"
+    text_body = "#cbd5e1" if dark_mode else "#334155"
+    text_sub = "#94a3b8" if dark_mode else "#64748b"
+
+    html = f"""<div style="background: {card_bg}; border: 1px solid {card_border}; border-left: 6px solid {meta['color']}; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
 <div>
-<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Utility Agent Decision</div>
-<div style="font-size: 22px; font-weight: 800; color: #0f172a;">Selected Action: <span style="color: {meta['color']};">{meta['label']}</span></div>
+<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: {text_sub};">Utility Agent Decision</div>
+<div style="font-size: 22px; font-weight: 800; color: {text_main};">Selected Action: <span style="color: {meta['color']};">{meta['label']}</span></div>
 </div>
 <div style="text-align: right;">
-<div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Max Utility Score</div>
-<div style="font-size: 24px; font-weight: 800; color: #0f172a;">{utility_score:.2f}</div>
+<div style="font-size: 11px; color: {text_sub}; font-weight: 600; text-transform: uppercase;">Max Utility Score</div>
+<div style="font-size: 24px; font-weight: 800; color: {text_main};">{utility_score:.2f}</div>
 </div>
 </div>
-<div style="display: flex; gap: 12px; background: white; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 14px;">
+<div style="display: flex; gap: 12px; background: {sub_bg}; padding: 12px 16px; border-radius: 8px; border: 1px solid {sub_border}; margin-bottom: 14px;">
 <div style="flex: 1;">
-<div style="font-size: 11px; color: #64748b; font-weight: 600;">Current Temp</div>
-<div style="font-size: 17px; font-weight: 700; color: #1e293b;">{current_temp:.2f}°C</div>
+<div style="font-size: 11px; color: {text_sub}; font-weight: 600;">Current Temp</div>
+<div style="font-size: 17px; font-weight: 700; color: {text_main};">{current_temp:.2f}°C</div>
 </div>
 <div style="flex: 1;">
-<div style="font-size: 11px; color: #64748b; font-weight: 600;">Desired Target</div>
+<div style="font-size: 11px; color: {text_sub}; font-weight: 600;">Desired Target</div>
 <div style="font-size: 17px; font-weight: 700; color: #16a34a;">{desired_temp:.1f}°C</div>
 </div>
 <div style="flex: 1;">
-<div style="font-size: 11px; color: #64748b; font-weight: 600;">Predicted Outcome</div>
+<div style="font-size: 11px; color: {text_sub}; font-weight: 600;">Predicted Outcome</div>
 <div style="font-size: 17px; font-weight: 700; color: {meta['color']};">{predicted_temp:.2f}°C</div>
 </div>
 </div>
-<div style="font-size: 14px; color: #334155; line-height: 1.5; padding: 8px 12px; background: #f1f5f9; border-radius: 6px;">
+<div style="font-size: 14px; color: {text_body}; line-height: 1.5; padding: 8px 12px; background: {reason_bg}; border-radius: 6px;">
 <b>💡 Decision Reason:</b> {reason}
 </div>
 </div>"""
@@ -97,6 +113,7 @@ def get_decision_card_html(
 def create_utility_comparison_chart(
     action_evaluations: Dict[str, Any],
     selected_action: str,
+    dark_mode: bool = False,
 ) -> go.Figure:
     """
     Generate a bar chart comparing the total utility scores for HEAT, COOL, and OFF.
@@ -113,11 +130,11 @@ def create_utility_comparison_chart(
     for a in actions:
         if a == selected_action:
             colors.append("#2563eb")  # Highlight winner
-            border_colors.append("#1e3a8a")
+            border_colors.append("#60a5fa" if dark_mode else "#1e3a8a")
             border_widths.append(3)
         else:
-            colors.append("#cbd5e1")
-            border_colors.append("#94a3b8")
+            colors.append("#334155" if dark_mode else "#cbd5e1")
+            border_colors.append("#475569" if dark_mode else "#94a3b8")
             border_widths.append(1)
 
     fig = go.Figure(
@@ -130,22 +147,22 @@ def create_utility_comparison_chart(
             ),
             text=[f"{u:.2f}" for u in utilities],
             textposition="auto",
-            textfont=dict(size=14, weight="bold"),
+            textfont=dict(size=14, weight="bold", color="#ffffff" if dark_mode else "#0f172a"),
             width=0.45,
         )
     )
 
     fig.update_layout(
         title="<b>Action Utility Comparison (Highest Selected)</b>",
-        title_font=dict(size=15, color="#1e293b"),
+        title_font=dict(size=15, color="#f8fafc" if dark_mode else "#1e293b"),
         yaxis_title="Net Utility Score",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=280,
         margin=dict(l=25, r=20, t=45, b=25),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
     )
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
 
     return fig
 
@@ -199,6 +216,7 @@ def create_agent_temperature_history_chart(
     df: pd.DataFrame,
     desired_temp: float,
     comfort_tolerance: float = 1.5,
+    dark_mode: bool = False,
 ) -> go.Figure:
     """
     Generate an interactive line chart tracking Room Temperature, Predicted Temperature,
@@ -220,7 +238,7 @@ def create_agent_temperature_history_chart(
             x=list(steps) + list(steps[::-1]),
             y=[upper_bound] * len(steps) + [lower_bound] * len(steps),
             fill="toself",
-            fillcolor="rgba(34, 197, 94, 0.12)",
+            fillcolor="rgba(34, 197, 94, 0.15)" if dark_mode else "rgba(34, 197, 94, 0.12)",
             line=dict(color="rgba(34, 197, 94, 0)"),
             hoverinfo="skip",
             showlegend=True,
@@ -234,7 +252,7 @@ def create_agent_temperature_history_chart(
             x=steps,
             y=[desired_temp] * len(steps),
             mode="lines",
-            line=dict(color="#16a34a", width=1.8, dash="dash"),
+            line=dict(color="#22c55e" if dark_mode else "#16a34a", width=1.8, dash="dash"),
             name=f"Target ({desired_temp:.1f}°C)",
             hovertemplate="Target: %{y:.1f}°C<extra></extra>",
         )
@@ -259,7 +277,7 @@ def create_agent_temperature_history_chart(
                 x=steps,
                 y=df["predicted_temp"],
                 mode="lines",
-                line=dict(color="#a855f7", width=1.8, dash="dashdot"),
+                line=dict(color="#c084fc" if dark_mode else "#a855f7", width=1.8, dash="dashdot"),
                 name="Agent Predicted Temp",
                 hovertemplate="Step %{x}: Predicted %{y:.2f}°C<extra></extra>",
             )
@@ -271,8 +289,8 @@ def create_agent_temperature_history_chart(
             x=steps,
             y=df["room_temp"],
             mode="lines+markers",
-            line=dict(color="#2563eb", width=3),
-            marker=dict(size=5, color="#1d4ed8"),
+            line=dict(color="#3b82f6" if dark_mode else "#2563eb", width=3),
+            marker=dict(size=5, color="#60a5fa" if dark_mode else "#1d4ed8"),
             name="Actual Room Temp",
             hovertemplate="Step %{x}: Room %{y:.2f}°C (%{text})<extra></extra>",
             text=df["action"] if "action" in df.columns else None,
@@ -281,10 +299,10 @@ def create_agent_temperature_history_chart(
 
     fig.update_layout(
         title="<b>Room Temperature Trajectory & Agent Performance</b>",
-        title_font=dict(size=16, color="#1e293b"),
+        title_font=dict(size=16, color="#f8fafc" if dark_mode else "#1e293b"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Temperature (°C)",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=390,
         margin=dict(l=30, r=20, t=50, b=40),
         legend=dict(
@@ -293,14 +311,16 @@ def create_agent_temperature_history_chart(
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(255,255,255,0.7)",
+            bgcolor="rgba(15, 23, 42, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#334155"),
         ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
     )
 
-    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_xaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
     fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
 
     return fig
@@ -411,6 +431,7 @@ def get_reflex_rules_html(
     lower_threshold: float,
     upper_threshold: float,
     selected_action: str,
+    dark_mode: bool = False,
 ) -> str:
     """
     Generate visual HTML condition-action rule cards using the actual configured
@@ -423,7 +444,7 @@ def get_reflex_rules_html(
             "arrow_label": "🔥 HEAT",
             "desc": "Room is below lower threshold — turn on heating.",
             "accent": "#ea580c",
-            "bg_active": "#fff7ed",
+            "bg_active": "#2a1205" if dark_mode else "#fff7ed",
             "border_active": "#fb923c",
         },
         {
@@ -432,7 +453,7 @@ def get_reflex_rules_html(
             "arrow_label": "⏸️ OFF",
             "desc": "Room is between thresholds — turn off both systems.",
             "accent": "#16a34a",
-            "bg_active": "#f0fdf4",
+            "bg_active": "#052e16" if dark_mode else "#f0fdf4",
             "border_active": "#4ade80",
         },
         {
@@ -441,7 +462,7 @@ def get_reflex_rules_html(
             "arrow_label": "❄️ COOL",
             "desc": "Room is above upper threshold — turn on cooling.",
             "accent": "#0284c7",
-            "bg_active": "#f0f9ff",
+            "bg_active": "#082f49" if dark_mode else "#f0f9ff",
             "border_active": "#38bdf8",
         },
     ]
@@ -449,23 +470,25 @@ def get_reflex_rules_html(
     cards_html = []
     for rule in rules:
         is_active = rule["action"] == selected_action
-        bg = rule["bg_active"] if is_active else "#f8fafc"
-        border = f"2px solid {rule['border_active']}" if is_active else "1px solid #e2e8f0"
-        opacity = "1.0" if is_active else "0.72"
-        shadow = "0 4px 10px rgba(15, 23, 42, 0.08)" if is_active else "none"
-        badge_bg = rule["accent"] if is_active else "#94a3b8"
+        bg = rule["bg_active"] if is_active else ("#131d33" if dark_mode else "#f8fafc")
+        border = f"2px solid {rule['border_active']}" if is_active else ("1px solid #334155" if dark_mode else "1px solid #e2e8f0")
+        opacity = "1.0" if is_active else "0.78"
+        shadow = "0 4px 10px rgba(15, 23, 42, 0.15)" if is_active else "none"
+        badge_bg = rule["accent"] if is_active else ("#475569" if dark_mode else "#94a3b8")
         badge_text = "ACTIVE RULE" if is_active else "INACTIVE"
+        text_head = "#f8fafc" if dark_mode else "#0f172a"
+        text_sub = "#cbd5e1" if dark_mode else "#475569"
 
         cards_html.append(
             f"""<div style="flex: 1; min-width: 210px; background-color: {bg}; border: {border}; border-radius: 10px; padding: 14px 16px; opacity: {opacity}; box-shadow: {shadow};">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
 <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: white; background-color: {badge_bg}; padding: 2px 8px; border-radius: 999px;">{badge_text}</span>
-<span style="font-size: 12px; font-weight: 600; color: #64748b;">Current: {current_temp:.2f}°C</span>
+<span style="font-size: 12px; font-weight: 600; color: {text_sub};">Current: {current_temp:.2f}°C</span>
 </div>
-<div style="font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
-{rule['condition']} <span style="color: #64748b; margin: 0 4px;">→</span> <span style="color: {rule['accent']};">{rule['arrow_label']}</span>
+<div style="font-size: 18px; font-weight: 800; color: {text_head}; margin-bottom: 4px;">
+{rule['condition']} <span style="color: {text_sub}; margin: 0 4px;">→</span> <span style="color: {rule['accent']};">{rule['arrow_label']}</span>
 </div>
-<div style="font-size: 12.5px; color: #475569; line-height: 1.4;">{rule['desc']}</div>
+<div style="font-size: 12.5px; color: {text_sub}; line-height: 1.4;">{rule['desc']}</div>
 </div>"""
         )
 
@@ -552,6 +575,7 @@ def create_reflex_temperature_history_chart(
     lower_threshold: float,
     upper_threshold: float,
     desired_temp: float,
+    dark_mode: bool = False,
 ) -> go.Figure:
     """
     Generate an interactive line chart tracking room temperature against the
@@ -568,7 +592,7 @@ def create_reflex_temperature_history_chart(
     action_colors = {
         ACTION_HEAT: ACTION_METADATA[ACTION_HEAT]["color"],
         ACTION_COOL: ACTION_METADATA[ACTION_COOL]["color"],
-        ACTION_OFF: "#16a34a",
+        ACTION_OFF: "#22c55e" if dark_mode else "#16a34a",
     }
     marker_colors = [
         action_colors.get(a, "#64748b")
@@ -581,7 +605,7 @@ def create_reflex_temperature_history_chart(
             x=list(steps) + list(steps[::-1]),
             y=[upper_threshold] * len(steps) + [lower_threshold] * len(steps),
             fill="toself",
-            fillcolor="rgba(34, 197, 94, 0.10)",
+            fillcolor="rgba(34, 197, 94, 0.14)" if dark_mode else "rgba(34, 197, 94, 0.10)",
             line=dict(color="rgba(34, 197, 94, 0)"),
             hoverinfo="skip",
             showlegend=True,
@@ -595,7 +619,7 @@ def create_reflex_temperature_history_chart(
             x=steps,
             y=[upper_threshold] * len(steps),
             mode="lines",
-            line=dict(color="#0284c7", width=1.8, dash="dash"),
+            line=dict(color="#38bdf8" if dark_mode else "#0284c7", width=1.8, dash="dash"),
             name=f"Upper Threshold ({upper_threshold:.1f}°C → COOL)",
             hovertemplate="Upper Threshold: %{y:.1f}°C<extra></extra>",
         )
@@ -607,7 +631,7 @@ def create_reflex_temperature_history_chart(
             x=steps,
             y=[lower_threshold] * len(steps),
             mode="lines",
-            line=dict(color="#ea580c", width=1.8, dash="dash"),
+            line=dict(color="#fb923c" if dark_mode else "#ea580c", width=1.8, dash="dash"),
             name=f"Lower Threshold ({lower_threshold:.1f}°C → HEAT)",
             hovertemplate="Lower Threshold: %{y:.1f}°C<extra></extra>",
         )
@@ -619,7 +643,7 @@ def create_reflex_temperature_history_chart(
             x=steps,
             y=[desired_temp] * len(steps),
             mode="lines",
-            line=dict(color="#16a34a", width=1.3, dash="dot"),
+            line=dict(color="#22c55e" if dark_mode else "#16a34a", width=1.3, dash="dot"),
             name=f"Desired Target ({desired_temp:.1f}°C)",
             hovertemplate="Target: %{y:.1f}°C<extra></extra>",
         )
@@ -643,7 +667,7 @@ def create_reflex_temperature_history_chart(
             x=steps,
             y=df[temp_col],
             mode="lines+markers",
-            line=dict(color="#0f172a", width=2.5),
+            line=dict(color="#f8fafc" if dark_mode else "#0f172a", width=2.5),
             marker=dict(size=7, color=marker_colors, line=dict(width=1, color="white")),
             name="Room Temperature",
             text=df["action"] if "action" in df.columns else None,
@@ -653,10 +677,10 @@ def create_reflex_temperature_history_chart(
 
     fig.update_layout(
         title="<b>Simple Reflex Thermostat Temperature Trajectory</b>",
-        title_font=dict(size=16, color="#1e293b"),
+        title_font=dict(size=16, color="#f8fafc" if dark_mode else "#1e293b"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Temperature (°C)",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=390,
         margin=dict(l=30, r=20, t=55, b=40),
         legend=dict(
@@ -665,14 +689,15 @@ def create_reflex_temperature_history_chart(
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(255,255,255,0.7)",
+            bgcolor="rgba(15, 23, 42, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#334155"),
         ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_xaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
 
     return fig
 
@@ -723,7 +748,7 @@ def create_reflex_action_summary_chart(df: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def get_comparison_summary_html(summary: Dict[str, Any]) -> str:
+def get_comparison_summary_html(summary: Dict[str, Any], dark_mode: bool = False) -> str:
     """
     Generate an overall comparison summary banner driven strictly by actual
     simulation metric wins (never hardcoded).
@@ -735,40 +760,46 @@ def get_comparison_summary_html(summary: Dict[str, Any]) -> str:
     headline = summary.get("headline", "")
 
     if winner == "Utility-Based Agent":
-        accent = "#2563eb"
-        bg = "#eff6ff"
-        border = "#93c5fd"
+        accent = "#38bdf8" if dark_mode else "#2563eb"
+        bg = "#172554" if dark_mode else "#eff6ff"
+        border = "#1e40af" if dark_mode else "#93c5fd"
         badge = "🤖 UTILITY-BASED AGENT LEADS"
     elif winner == "Simple Reflex Agent":
-        accent = "#ea580c"
-        bg = "#fff7ed"
-        border = "#fdba74"
+        accent = "#fb923c" if dark_mode else "#ea580c"
+        bg = "#3a1905" if dark_mode else "#fff7ed"
+        border = "#9a3412" if dark_mode else "#fdba74"
         badge = "🔁 SIMPLE REFLEX AGENT LEADS"
     else:
-        accent = "#475569"
-        bg = "#f8fafc"
-        border = "#cbd5e1"
+        accent = "#94a3b8" if dark_mode else "#475569"
+        bg = "#131d33" if dark_mode else "#f8fafc"
+        border = "#334155" if dark_mode else "#cbd5e1"
         badge = "⚖️ BALANCED / TIE"
 
-    html = f"""<div style="background-color: {bg}; border: 2px solid {border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);">
+    card_bg = "#131d33" if dark_mode else bg
+    box_bg = "#0b1120" if dark_mode else "white"
+    box_border = "#1e293b" if dark_mode else "#e2e8f0"
+    text_main = "#f8fafc" if dark_mode else "#0f172a"
+    text_sub = "#cbd5e1" if dark_mode else "#334155"
+
+    html = f"""<div style="background-color: {card_bg}; border: 2px solid {border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);">
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
 <div>
 <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: {accent};">Overall Comparison Summary (Data-Driven)</div>
-<div style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 2px;">{badge}</div>
-<div style="font-size: 14px; color: #334155; margin-top: 4px;">{headline}</div>
+<div style="font-size: 22px; font-weight: 800; color: {text_main}; margin-top: 2px;">{badge}</div>
+<div style="font-size: 14px; color: {text_sub}; margin-top: 4px;">{headline}</div>
 </div>
 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-<div style="background: white; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; text-align: center;">
+<div style="background: {box_bg}; border: 1px solid {box_border}; border-radius: 8px; padding: 8px 14px; text-align: center;">
 <div style="font-size: 11px; font-weight: 700; color: #2563eb;">UTILITY WINS</div>
-<div style="font-size: 20px; font-weight: 800; color: #0f172a;">{u_wins}</div>
+<div style="font-size: 20px; font-weight: 800; color: {text_main};">{u_wins}</div>
 </div>
-<div style="background: white; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 14px; text-align: center;">
+<div style="background: {box_bg}; border: 1px solid {box_border}; border-radius: 8px; padding: 8px 14px; text-align: center;">
 <div style="font-size: 11px; font-weight: 700; color: #ea580c;">REFLEX WINS</div>
-<div style="font-size: 20px; font-weight: 800; color: #0f172a;">{r_wins}</div>
+<div style="font-size: 20px; font-weight: 800; color: {text_main};">{r_wins}</div>
 </div>
-<div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; text-align: center;">
+<div style="background: {box_bg}; border: 1px solid {box_border}; border-radius: 8px; padding: 8px 14px; text-align: center;">
 <div style="font-size: 11px; font-weight: 700; color: #64748b;">TIES</div>
-<div style="font-size: 20px; font-weight: 800; color: #0f172a;">{ties}</div>
+<div style="font-size: 20px; font-weight: 800; color: {text_main};">{ties}</div>
 </div>
 </div>
 </div>
@@ -782,6 +813,7 @@ def create_comparison_temperature_chart(
     desired_temp: float = 22.0,
     comfort_tolerance: float = 1.5,
     df: Optional[pd.DataFrame] = None,
+    dark_mode: bool = False,
     **kwargs: Any,
 ) -> go.Figure:
     """
@@ -818,7 +850,7 @@ def create_comparison_temperature_chart(
             x=list(steps) + list(steps[::-1]),
             y=[upper_bound] * len(steps) + [lower_bound] * len(steps),
             fill="toself",
-            fillcolor="rgba(34, 197, 94, 0.12)",
+            fillcolor="rgba(34, 197, 94, 0.15)" if dark_mode else "rgba(34, 197, 94, 0.12)",
             line=dict(color="rgba(34, 197, 94, 0)"),
             hoverinfo="skip",
             showlegend=True,
@@ -832,7 +864,7 @@ def create_comparison_temperature_chart(
             x=steps,
             y=[desired_temp] * len(steps),
             mode="lines",
-            line=dict(color="#16a34a", width=2.0, dash="dash"),
+            line=dict(color="#22c55e" if dark_mode else "#16a34a", width=2.0, dash="dash"),
             name=f"Desired Temp ({desired_temp:.1f}°C)",
             hovertemplate="Target: %{y:.1f}°C<extra></extra>",
         )
@@ -856,8 +888,8 @@ def create_comparison_temperature_chart(
             x=steps,
             y=utility_df["actual_temp"],
             mode="lines+markers",
-            line=dict(color="#2563eb", width=3),
-            marker=dict(size=5, color="#1d4ed8"),
+            line=dict(color="#3b82f6" if dark_mode else "#2563eb", width=3),
+            marker=dict(size=5, color="#60a5fa" if dark_mode else "#1d4ed8"),
             name="Utility-Based Agent",
             text=utility_df["action"],
             hovertemplate="Step %{x}: Utility %{y:.2f}°C (%{text})<extra></extra>",
@@ -870,8 +902,8 @@ def create_comparison_temperature_chart(
             x=reflex_df["step"],
             y=reflex_df["actual_temp"],
             mode="lines+markers",
-            line=dict(color="#ea580c", width=2.6, dash="solid"),
-            marker=dict(size=5, color="#c2410c", symbol="diamond"),
+            line=dict(color="#fb923c" if dark_mode else "#ea580c", width=2.6, dash="solid"),
+            marker=dict(size=5, color="#f97316" if dark_mode else "#c2410c", symbol="diamond"),
             name="Simple Reflex Agent",
             text=reflex_df["action"],
             hovertemplate="Step %{x}: Reflex %{y:.2f}°C (%{text})<extra></extra>",
@@ -880,10 +912,10 @@ def create_comparison_temperature_chart(
 
     fig.update_layout(
         title="<b>1. Temperature Comparison (Synchronized Run)</b>",
-        title_font=dict(size=16, color="#1e293b"),
+        title_font=dict(size=16, color="#f8fafc" if dark_mode else "#1e293b"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Temperature (°C)",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=390,
         margin=dict(l=30, r=20, t=55, b=40),
         legend=dict(
@@ -892,14 +924,15 @@ def create_comparison_temperature_chart(
             y=1.02,
             xanchor="right",
             x=1,
-            bgcolor="rgba(255,255,255,0.75)",
+            bgcolor="rgba(15, 23, 42, 0.85)" if dark_mode else "rgba(255,255,255,0.75)",
+            font=dict(color="#f1f5f9" if dark_mode else "#334155"),
         ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_xaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
     return fig
 
 
@@ -907,6 +940,7 @@ def create_comparison_energy_chart(
     utility_df: Optional[pd.DataFrame] = None,
     reflex_df: Optional[pd.DataFrame] = None,
     df: Optional[pd.DataFrame] = None,
+    dark_mode: bool = False,
     **kwargs: Any,
 ) -> go.Figure:
     """
@@ -935,7 +969,7 @@ def create_comparison_energy_chart(
             x=utility_df["step"],
             y=utility_df["cumulative_energy"],
             mode="lines+markers",
-            line=dict(color="#2563eb", width=3),
+            line=dict(color="#3b82f6" if dark_mode else "#2563eb", width=3),
             marker=dict(size=5),
             name="Utility-Based Agent",
             customdata=utility_df["energy_consumed"],
@@ -947,7 +981,7 @@ def create_comparison_energy_chart(
             x=reflex_df["step"],
             y=reflex_df["cumulative_energy"],
             mode="lines+markers",
-            line=dict(color="#ea580c", width=2.8),
+            line=dict(color="#fb923c" if dark_mode else "#ea580c", width=2.8),
             marker=dict(size=5, symbol="diamond"),
             name="Simple Reflex Agent",
             customdata=reflex_df["energy_consumed"],
@@ -957,19 +991,27 @@ def create_comparison_energy_chart(
 
     fig.update_layout(
         title="<b>2. Cumulative Energy Consumption Over Time</b>",
-        title_font=dict(size=15, color="#1e293b"),
+        title_font=dict(size=15, color="#f8fafc" if dark_mode else "#1e293b"),
         xaxis_title="Simulation Time Step",
         yaxis_title="Cumulative Energy (units)",
-        template="plotly_white",
+        template="plotly_dark" if dark_mode else "plotly_white",
         height=320,
         margin=dict(l=25, r=20, t=50, b=30),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(15, 23, 42, 0.85)" if dark_mode else "rgba(255,255,255,0.7)",
+            font=dict(color="#f1f5f9" if dark_mode else "#334155"),
+        ),
         hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+        plot_bgcolor="rgba(15, 23, 42, 0.6)" if dark_mode else "rgba(248, 250, 252, 0.6)",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
-    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", rangemode="tozero")
+    fig.update_xaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#334155" if dark_mode else "#e2e8f0", rangemode="tozero")
     return fig
 
 
