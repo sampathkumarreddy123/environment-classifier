@@ -3,6 +3,7 @@ Helper functions and visualization utilities for the Environment Classifier
 and Demonstrator application (Phase 2: Utility-Based Intelligent Agent).
 """
 
+import textwrap
 from typing import Dict, Any, Optional
 import plotly.graph_objects as go
 import pandas as pd
@@ -27,41 +28,25 @@ def get_status_card_html(classification: str, current_temp: float, desired_temp:
     delta = current_temp - desired_temp
     delta_str = f"{'+' if delta > 0 else ''}{delta:.1f}°C from target ({desired_temp:.1f}°C)"
 
-    return f"""
-    <div style="
-        background-color: {info['bg_light']};
-        border: 2px solid {info['border']};
-        border-radius: 12px;
-        padding: 16px 20px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    ">
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 32px;">{info['icon']}</span>
-                <div>
-                    <div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: {info['color']};">
-                        Environment Status
-                    </div>
-                    <div style="font-size: 22px; font-weight: 800; color: #1e293b;">
-                        {classification.upper()}
-                    </div>
-                </div>
-            </div>
-            <div style="text-align: right;">
-                <div style="font-size: 24px; font-weight: 800; color: {info['color']};">
-                    {current_temp:.1f}°C
-                </div>
-                <div style="font-size: 13px; font-weight: 500; color: #64748b;">
-                    {delta_str}
-                </div>
-            </div>
-        </div>
-        <div style="margin-top: 8px; font-size: 13px; color: #475569; border-top: 1px solid {info['border']}; padding-top: 8px;">
-            {info['description']}
-        </div>
-    </div>
-    """
+    html = f"""<div style="background-color: {info['bg_light']}; border: 2px solid {info['border']}; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+<div style="display: flex; align-items: center; justify-content: space-between;">
+<div style="display: flex; align-items: center; gap: 12px;">
+<span style="font-size: 32px;">{info['icon']}</span>
+<div>
+<div style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: {info['color']};">Environment Status</div>
+<div style="font-size: 22px; font-weight: 800; color: #1e293b;">{classification.upper()}</div>
+</div>
+</div>
+<div style="text-align: right;">
+<div style="font-size: 24px; font-weight: 800; color: {info['color']};">{current_temp:.1f}°C</div>
+<div style="font-size: 13px; font-weight: 500; color: #64748b;">{delta_str}</div>
+</div>
+</div>
+<div style="margin-top: 8px; font-size: 13px; color: #475569; border-top: 1px solid {info['border']}; padding-top: 8px;">
+{info['description']}
+</div>
+</div>"""
+    return html
 
 
 def get_decision_card_html(
@@ -77,51 +62,36 @@ def get_decision_card_html(
     """
     meta = ACTION_METADATA.get(selected_action, ACTION_METADATA[ACTION_OFF])
 
-    return f"""
-    <div style="
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid #cbd5e1;
-        border-left: 6px solid {meta['color']};
-        border-radius: 10px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-    ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <div>
-                <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">
-                    Utility Agent Decision
-                </span>
-                <div style="font-size: 20px; font-weight: 800; color: #0f172a;">
-                    Selected Action: <span style="color: {meta['color']};">{meta['label']}</span>
-                </div>
-            </div>
-            <div style="text-align: right;">
-                <div style="font-size: 12px; color: #64748b; font-weight: 600;">Max Utility Score</div>
-                <div style="font-size: 22px; font-weight: 800; color: #0f172a;">{utility_score:.2f}</div>
-            </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: white; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 12px;">
-            <div>
-                <div style="font-size: 11px; color: #64748b;">Current Temp</div>
-                <div style="font-size: 16px; font-weight: 700; color: #1e293b;">{current_temp:.2f}°C</div>
-            </div>
-            <div>
-                <div style="font-size: 11px; color: #64748b;">Desired Target</div>
-                <div style="font-size: 16px; font-weight: 700; color: #16a34a;">{desired_temp:.1f}°C</div>
-            </div>
-            <div>
-                <div style="font-size: 11px; color: #64748b;">Predicted Outcome</div>
-                <div style="font-size: 16px; font-weight: 700; color: {meta['color']};">{predicted_temp:.2f}°C</div>
-            </div>
-        </div>
-
-        <div style="font-size: 13.5px; color: #334155; line-height: 1.45;">
-            <b>💡 Decision Reason:</b> {reason}
-        </div>
-    </div>
-    """
+    html = f"""<div style="background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1; border-left: 6px solid {meta['color']}; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<div>
+<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b;">Utility Agent Decision</div>
+<div style="font-size: 22px; font-weight: 800; color: #0f172a;">Selected Action: <span style="color: {meta['color']};">{meta['label']}</span></div>
+</div>
+<div style="text-align: right;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">Max Utility Score</div>
+<div style="font-size: 24px; font-weight: 800; color: #0f172a;">{utility_score:.2f}</div>
+</div>
+</div>
+<div style="display: flex; gap: 12px; background: white; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 14px;">
+<div style="flex: 1;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Current Temp</div>
+<div style="font-size: 17px; font-weight: 700; color: #1e293b;">{current_temp:.2f}°C</div>
+</div>
+<div style="flex: 1;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Desired Target</div>
+<div style="font-size: 17px; font-weight: 700; color: #16a34a;">{desired_temp:.1f}°C</div>
+</div>
+<div style="flex: 1;">
+<div style="font-size: 11px; color: #64748b; font-weight: 600;">Predicted Outcome</div>
+<div style="font-size: 17px; font-weight: 700; color: {meta['color']};">{predicted_temp:.2f}°C</div>
+</div>
+</div>
+<div style="font-size: 14px; color: #334155; line-height: 1.5; padding: 8px 12px; background: #f1f5f9; border-radius: 6px;">
+<b>💡 Decision Reason:</b> {reason}
+</div>
+</div>"""
+    return html
 
 
 def create_utility_comparison_chart(

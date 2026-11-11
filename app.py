@@ -322,18 +322,16 @@ with st.sidebar:
 # Main Header
 # ---------------------------------------------------------
 st.markdown(
-    """
-    <div class="main-header">
-        <div class="main-title">Environment Classifier and Demonstrator</div>
-        <div class="main-subtitle">Intelligent Room Temperature Control Simulation</div>
-    </div>
-    <div class="desc-box">
-        <b>Phase 2 – Utility-Based Intelligent Agent:</b> An optimization-driven agent that evaluates candidate
-        actions (<b>HEAT</b>, <b>COOL</b>, <b>OFF</b>) by projecting future thermal comfort, energy consumption,
-        temperature stability, and boundary overshoots. Actions are selected by <b>maximizing a multi-factor utility function</b>
-        rather than simple fixed threshold rules.
-    </div>
-    """,
+    """<div class="main-header">
+<div class="main-title">Environment Classifier and Demonstrator</div>
+<div class="main-subtitle">Intelligent Room Temperature Control Simulation</div>
+</div>
+<div class="desc-box">
+<b>Phase 2 – Utility-Based Intelligent Agent:</b> An optimization-driven agent that evaluates candidate
+actions (<b>HEAT</b>, <b>COOL</b>, <b>OFF</b>) by projecting future thermal comfort, energy consumption,
+temperature stability, and boundary overshoots. Actions are selected by <b>maximizing a multi-factor utility function</b>
+rather than simple fixed threshold rules.
+</div>""",
     unsafe_allow_html=True,
 )
 
