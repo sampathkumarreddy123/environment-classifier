@@ -197,9 +197,9 @@ ALL_ACTIONS = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
 # Classification Color Scheme (Biophilic Eco-Tech Palette)
 STATUS_COLORS = {
     CLASS_COLD: {
-        "color": "#2E8B8B",       # Muted Teal / Crisp Glacial
+        "color": "#4D9285",       # Muted Teal / Crisp Glacial
         "bg_light": "#EAF0E5",
-        "border": "#B9D7C1",
+        "border": "#DCE5D8",
         "icon": "❄️",
         "description": "Temperature is below the comfortable range.",
     },
@@ -230,13 +230,13 @@ ACTION_METADATA = {
     ACTION_COOL: {
         "name": "COOL",
         "label": "❄️ COOL",
-        "color": "#2E8B8B",
+        "color": "#4D9285",
         "description": "Engage air conditioner (-Power)",
     },
     ACTION_OFF: {
         "name": "OFF",
         "label": "⏸️ OFF",
-        "color": "#718174",
+        "color": "#5F7162",
         "description": "Disable HVAC (Passive drift)",
     },
 }

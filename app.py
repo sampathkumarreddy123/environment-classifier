@@ -252,46 +252,50 @@ dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 # Dynamic Light/Dark Theme & Fixed Header Styling (Biophilic Eco-Tech)
 # ---------------------------------------------------------
 if dark_mode:
-    app_bg = "#101b17"
+    app_bg = "#101B17"
     card_bg = "#192720"
-    card_sub_bg = "#22352a"
-    text_primary = "#e7f0e8"
-    text_secondary = "#a1b5a5"
-    forest_green = "#376b4e"
-    muted_teal = "#5bb5b5"
-    sage_green = "#9dba91"
-    mint_accent = "#8fd0a8"
+    card_sub_bg = "#22352A"
+    text_primary = "#E7F0E8"
+    text_secondary = "#B4C4B5"
+    text_muted = "#A1B5A5"
+    forest_green = "#75B58A"
+    primary_green = "#75B58A"
+    muted_teal = "#5BB5B5"
+    sage_green = "#9DBA91"
+    mint_accent = "#8FD0A8"
     border_color = "#304438"
     header_bg = "#192720"
     header_border = "#304438"
-    header_text = "#e7f0e8"
-    sidebar_bg = "#101b17"
+    header_text = "#E7F0E8"
+    sidebar_bg = "#101B17"
     sidebar_border = "#304438"
-    button_hover_bg = "#447f5e"
+    button_hover_bg = "#5A9E6F"
 else:
-    app_bg = "#f5f7f0"
-    card_bg = "#ffffff"
-    card_sub_bg = "#eaf0e5"
-    text_primary = "#26382d"
-    text_secondary = "#718174"
-    forest_green = "#245c43"
-    muted_teal = "#2e8b8b"
-    sage_green = "#829b78"
-    mint_accent = "#b9d7c1"
-    border_color = "#dce5d8"
-    header_bg = "#ffffff"
-    header_border = "#dce5d8"
-    header_text = "#26382d"
-    sidebar_bg = "#ffffff"
-    sidebar_border = "#dce5d8"
-    button_hover_bg = "#1d4a36"
+    app_bg = "#F5F7F0"
+    card_bg = "#FFFFFF"
+    card_sub_bg = "#EAF0E5"
+    text_primary = "#26382D"
+    text_secondary = "#5F7162"
+    text_muted = "#718174"
+    forest_green = "#245C43"
+    primary_green = "#245C43"
+    muted_teal = "#4D9285"
+    sage_green = "#829B78"
+    mint_accent = "#B9D7C1"
+    border_color = "#DCE5D8"
+    header_bg = "#FFFFFF"
+    header_border = "#DCE5D8"
+    header_text = "#26382D"
+    sidebar_bg = "#FFFFFF"
+    sidebar_border = "#DCE5D8"
+    button_hover_bg = "#1D4A36"
 
 theme_css = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 html, body, [class*="css"], .stApp {{
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    font-family: 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     background-color: {app_bg} !important;
     color: {text_primary} !important;
 }}
@@ -336,7 +340,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     width: 100%;
     height: 70px;
     background-color: {header_bg};
-    border-bottom: 1px solid {header_border};
+    border-bottom: 1.5px solid {header_border};
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -365,7 +369,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 }}
 
 .header-title {{
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: {header_text};
     letter-spacing: -0.01em;
@@ -374,7 +378,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 }}
 
 .header-subtitle {{
-    font-size: 0.76rem;
+    font-size: 0.8rem;
     font-weight: 500;
     color: {text_secondary};
     letter-spacing: 0.01em;
@@ -418,14 +422,14 @@ div[data-testid="stToggle"] label {{
     margin: 0 !important;
     color: {header_text} !important;
     font-weight: 600 !important;
-    font-size: 0.85rem !important;
+    font-size: 0.88rem !important;
 }}
 
 /* 4. Page Content Layout & Vertical Spacing */
 .block-container,
 div[data-testid="stMainBlockContainer"],
 div[data-testid="block-container"] {{
-    padding-top: 5.6rem !important;
+    padding-top: 5.8rem !important;
     background-color: {app_bg} !important;
 }}
 
@@ -433,7 +437,7 @@ div[data-testid="block-container"] {{
 section[data-testid="stSidebar"] {{
     top: 70px !important;
     height: calc(100vh - 70px) !important;
-    border-right: 1px solid {sidebar_border} !important;
+    border-right: 1.5px solid {sidebar_border} !important;
     background-color: {sidebar_bg} !important;
     z-index: 999970 !important;
 }}
@@ -444,52 +448,81 @@ section[data-testid="stSidebar"] * {{
 
 /* 6. Biophilic Typography and Card styling */
 .main-title {{
-    font-size: 1.85rem;
-    font-weight: 800;
-    color: {text_primary};
-    margin-bottom: 0.2rem;
-    letter-spacing: -0.02em;
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    color: {text_primary} !important;
+    margin-bottom: 0.25rem !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.25 !important;
 }}
 
 .sub-title {{
-    font-size: 1.02rem;
-    color: {text_secondary};
-    margin-bottom: 1.1rem;
-    font-weight: 500;
+    font-size: 16px !important;
+    color: {text_secondary} !important;
+    margin-bottom: 1.2rem !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
 }}
 
 .info-card {{
     background-color: {card_bg};
-    border: 1px solid {border_color};
+    border: 1.5px solid {border_color};
     border-radius: 10px;
-    padding: 14px 18px;
-    margin-bottom: 1rem;
+    padding: 16px 20px;
+    margin-bottom: 1.2rem;
     color: {text_primary};
-    font-size: 0.95rem;
+    font-size: 15.5px;
     line-height: 1.5;
 }}
 
 .summary-card {{
     background: {card_bg};
-    border: 1px solid {border_color};
+    border: 1.5px solid {border_color};
     border-radius: 10px;
-    padding: 16px 18px;
+    padding: 18px 20px;
     height: 100%;
     color: {text_primary};
+    font-size: 15px;
+    line-height: 1.55;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}}
+
+/* Headings */
+h1, h2, h3, div[data-testid="stHeadingWithActionElements"] h2, h3 {{
+    color: {text_primary} !important;
+    font-size: 24px !important;
+    font-weight: 600 !important;
+    margin-top: 1.2rem !important;
+    margin-bottom: 0.6rem !important;
+    letter-spacing: -0.01em !important;
+}}
+
+h4, .card-title {{
+    color: {text_primary} !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+}}
+
+/* Captions & Helper Text */
+div[data-testid="stCaptionContainer"],
+.stCaption,
+small {{
+    color: {text_secondary} !important;
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
 }}
 
 /* Metric Cards */
 div[data-testid="stMetric"] {{
     background-color: {card_bg} !important;
-    border: 1px solid {border_color} !important;
+    border: 1.5px solid {border_color} !important;
     border-radius: 10px !important;
-    padding: 12px 16px !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+    padding: 14px 18px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
 }}
 
 div[data-testid="stMetricValue"] {{
-    font-size: 1.45rem !important;
+    font-size: 28px !important;
     font-weight: 700 !important;
     color: {text_primary} !important;
     font-feature-settings: "tnum" 1;
@@ -497,21 +530,80 @@ div[data-testid="stMetricValue"] {{
 
 div[data-testid="stMetricLabel"] {{
     color: {text_secondary} !important;
-    font-size: 0.85rem !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.04em !important;
+}}
+
+div[data-testid="stMetricDelta"] {{
+    font-size: 13px !important;
+    font-weight: 600 !important;
+}}
+
+/* Sliders */
+div[data-testid="stSlider"] label {{
+    color: {text_primary} !important;
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+}}
+
+div[data-testid="stSlider"] [data-testid="stThumbValue"] {{
+    color: {text_primary} !important;
+    font-size: 13.5px !important;
+    font-weight: 700 !important;
+}}
+
+div[data-testid="stSlider"] [data-testid="stTickBarMin"],
+div[data-testid="stSlider"] [data-testid="stTickBarMax"] {{
+    color: {text_secondary} !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+}}
+
+div[data-baseweb="slider"] div[role="slider"] {{
+    background-color: {primary_green} !important;
+    border-color: {card_bg} !important;
+}}
+
+/* Selectbox */
+div[data-testid="stSelectbox"] label {{
+    color: {text_primary} !important;
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+}}
+
+div[data-baseweb="select"] > div {{
+    background-color: {card_bg} !important;
+    border: 1.5px solid {border_color} !important;
+    border-radius: 8px !important;
+    color: {text_primary} !important;
+}}
+
+div[data-baseweb="select"] * {{
+    color: {text_primary} !important;
+    font-size: 14.5px !important;
+}}
+
+/* Radio options in sidebar */
+div[data-testid="stRadio"] label,
+div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
+    color: {text_primary} !important;
+    font-size: 14.5px !important;
+    font-weight: 500 !important;
 }}
 
 /* Buttons Styling in Biophilic Forest Green */
 button[kind="primary"],
 .stButton > button[kind="primary"],
 button[data-testid="baseButton-primary"] {{
-    background-color: {forest_green} !important;
+    background-color: {primary_green} !important;
     color: #ffffff !important;
     border: none !important;
     border-radius: 8px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
+    padding: 0.5rem 1rem !important;
     transition: background-color 0.2s ease !important;
 }}
 
@@ -527,9 +619,11 @@ button[kind="secondary"],
 button[data-testid="baseButton-secondary"] {{
     background-color: {card_bg} !important;
     color: {text_primary} !important;
-    border: 1px solid {border_color} !important;
+    border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
+    padding: 0.5rem 1rem !important;
     transition: all 0.2s ease !important;
 }}
 
@@ -537,7 +631,7 @@ button[kind="secondary"]:hover,
 .stButton > button[kind="secondary"]:hover,
 button[data-testid="baseButton-secondary"]:hover {{
     background-color: {card_sub_bg} !important;
-    border-color: {forest_green} !important;
+    border-color: {primary_green} !important;
     color: {text_primary} !important;
 }}
 
@@ -545,26 +639,22 @@ button[data-testid="baseButton-secondary"]:hover {{
 div[data-testid="stDownloadButton"] > button {{
     background-color: {card_bg} !important;
     color: {text_primary} !important;
-    border: 1px solid {border_color} !important;
+    border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
+    padding: 0.5rem 1rem !important;
 }}
 
 div[data-testid="stDownloadButton"] > button:hover {{
     background-color: {card_sub_bg} !important;
-    border-color: {forest_green} !important;
+    border-color: {primary_green} !important;
 }}
 
-/* Sliders */
-div[data-baseweb="slider"] div[role="slider"] {{
-    background-color: {forest_green} !important;
-    border-color: {mint_accent} !important;
-}}
-
-/* Headings */
-h1, h2, h3, h4, h5, h6 {{
-    color: {text_primary} !important;
-    font-weight: 700 !important;
+/* Tables / DataFrames */
+div[data-testid="stDataFrame"] {{
+    border: 1.5px solid {border_color} !important;
+    border-radius: 8px !important;
 }}
 
 /* Responsive Mobile / Tablet adjustments */
@@ -608,16 +698,16 @@ status_info = STATUS_COLORS.get(cur_class, STATUS_COLORS[CLASS_COMFORTABLE])
 if dark_mode:
     if cur_class == CLASS_COLD:
         badge_bg = "#162828"
-        badge_border = "#2e8b8b"
-        badge_color = "#5bb5b5"
+        badge_border = "#4D9285"
+        badge_color = "#5BB5B5"
     elif cur_class == CLASS_HOT:
-        badge_bg = "#2a1b1a"
-        badge_border = "#c65b52"
-        badge_color = "#e58b80"
+        badge_bg = "#2A1B1A"
+        badge_border = "#C65B52"
+        badge_color = "#E58B80"
     else:
         badge_bg = "#192720"
-        badge_border = "#376b4e"
-        badge_color = "#75c995"
+        badge_border = "#376B4E"
+        badge_color = "#75C995"
 else:
     badge_bg = status_info["bg_light"]
     badge_border = status_info["border"]
@@ -632,10 +722,10 @@ header_html = f"""<header class="fixed-top-header">
 </div>
 </div>
 <div class="header-right">
-<div class="header-status-badge" style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: {badge_color};">
+<div class="header-status-badge" style="background-color: {badge_bg}; border: 1.5px solid {badge_border}; color: {badge_color};">
 <span>{status_info['icon']}</span>
 <span>{cur_class.upper()}</span>
-<span style="opacity: 0.85; margin-left: 2px;">{cur_temp:.1f}°C</span>
+<span style="opacity: 0.9; margin-left: 2px;">{cur_temp:.1f}°C</span>
 </div>
 </div>
 </header>"""
