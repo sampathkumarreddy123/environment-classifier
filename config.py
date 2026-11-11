@@ -194,26 +194,26 @@ ACTION_HEAT = "HEAT"
 ACTION_COOL = "COOL"
 ALL_ACTIONS = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
 
-# Classification Color Scheme (Clean, modern academic palette)
+# Classification Color Scheme (Biophilic Eco-Tech Palette)
 STATUS_COLORS = {
     CLASS_COLD: {
-        "color": "#0284c7",       # Sky blue
-        "bg_light": "#e0f2fe",
-        "border": "#7dd3fc",
+        "color": "#2E8B8B",       # Muted Teal / Crisp Glacial
+        "bg_light": "#EAF0E5",
+        "border": "#B9D7C1",
         "icon": "❄️",
         "description": "Temperature is below the comfortable range.",
     },
     CLASS_COMFORTABLE: {
-        "color": "#16a34a",       # Fresh green
-        "bg_light": "#dcfce7",
-        "border": "#86efac",
+        "color": "#39845A",       # Natural Success Green
+        "bg_light": "#EAF0E5",
+        "border": "#829B78",
         "icon": "🌿",
         "description": "Temperature is within the optimal comfort zone.",
     },
     CLASS_HOT: {
-        "color": "#dc2626",       # Vibrant red
-        "bg_light": "#fee2e2",
-        "border": "#fca5a5",
+        "color": "#C65B52",       # Earthy Terracotta / Heat
+        "bg_light": "#FDF2F0",
+        "border": "#E58B80",
         "icon": "🔥",
         "description": "Temperature is above the comfortable range.",
     },
@@ -224,19 +224,19 @@ ACTION_METADATA = {
     ACTION_HEAT: {
         "name": "HEAT",
         "label": "🔥 HEAT",
-        "color": "#ea580c",
+        "color": "#C65B52",
         "description": "Engage heater (+Power)",
     },
     ACTION_COOL: {
         "name": "COOL",
         "label": "❄️ COOL",
-        "color": "#0284c7",
+        "color": "#2E8B8B",
         "description": "Engage air conditioner (-Power)",
     },
     ACTION_OFF: {
         "name": "OFF",
         "label": "⏸️ OFF",
-        "color": "#64748b",
+        "color": "#718174",
         "description": "Disable HVAC (Passive drift)",
     },
 }

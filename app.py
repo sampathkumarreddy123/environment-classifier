@@ -249,40 +249,53 @@ if comparison_runner.config != latest_cfg:
 dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 
 # ---------------------------------------------------------
-# Dynamic Light/Dark Theme & Fixed Header Styling
+# Dynamic Light/Dark Theme & Fixed Header Styling (Biophilic Eco-Tech)
 # ---------------------------------------------------------
-# Palette tokens per design specifications
 if dark_mode:
-    app_bg = "#0b1120"
-    card_bg = "#151e2e"
-    card_sub_bg = "#1c2738"
-    text_primary = "#f1f5f9"
-    text_secondary = "#94a3b8"
-    primary_blue = "#60a5fa"
-    secondary_cyan = "#22d3ee"
-    border_color = "#293548"
-    header_bg = "#0b1329"
-    header_border = "#293548"
-    header_text = "#f1f5f9"
-    sidebar_bg = "#0b1120"
-    sidebar_border = "#293548"
+    app_bg = "#101b17"
+    card_bg = "#192720"
+    card_sub_bg = "#22352a"
+    text_primary = "#e7f0e8"
+    text_secondary = "#a1b5a5"
+    forest_green = "#376b4e"
+    muted_teal = "#5bb5b5"
+    sage_green = "#9dba91"
+    mint_accent = "#8fd0a8"
+    border_color = "#304438"
+    header_bg = "#192720"
+    header_border = "#304438"
+    header_text = "#e7f0e8"
+    sidebar_bg = "#101b17"
+    sidebar_border = "#304438"
+    button_hover_bg = "#447f5e"
 else:
-    app_bg = "#f7f9fc"
+    app_bg = "#f5f7f0"
     card_bg = "#ffffff"
-    card_sub_bg = "#f7f9fc"
-    text_primary = "#172033"
-    text_secondary = "#667085"
-    primary_blue = "#2563eb"
-    secondary_cyan = "#06b6d4"
-    border_color = "#e5eaf1"
+    card_sub_bg = "#eaf0e5"
+    text_primary = "#26382d"
+    text_secondary = "#718174"
+    forest_green = "#245c43"
+    muted_teal = "#2e8b8b"
+    sage_green = "#829b78"
+    mint_accent = "#b9d7c1"
+    border_color = "#dce5d8"
     header_bg = "#ffffff"
-    header_border = "#e5eaf1"
-    header_text = "#172033"
+    header_border = "#dce5d8"
+    header_text = "#26382d"
     sidebar_bg = "#ffffff"
-    sidebar_border = "#e5eaf1"
+    sidebar_border = "#dce5d8"
+    button_hover_bg = "#1d4a36"
 
 theme_css = f"""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+html, body, [class*="css"], .stApp {{
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background-color: {app_bg} !important;
+    color: {text_primary} !important;
+}}
+
 /* 1. Complete Removal of Streamlit Deploy Button & Deployment Elements */
 [data-testid="stDeployButton"],
 .stDeployButton,
@@ -315,7 +328,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     color: {header_text} !important;
 }}
 
-/* 3. Professional Fixed Top Header */
+/* 3. Professional Biophilic Fixed Top Header */
 .fixed-top-header {{
     position: fixed;
     top: 0;
@@ -329,7 +342,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     justify-content: space-between;
     padding: 0 1.5rem 0 4.2rem;
     z-index: 999980;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.25" if dark_mode else "0.04"});
+    box-shadow: 0 1px 4px rgba(0, 0, 0, {"0.35" if dark_mode else "0.04"});
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }}
@@ -337,20 +350,35 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 .header-left {{
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     user-select: none;
 }}
 
 .header-icon {{
-    font-size: 22px;
+    font-size: 24px;
     line-height: 1;
 }}
 
+.header-title-group {{
+    display: flex;
+    flex-direction: column;
+}}
+
 .header-title {{
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: {header_text};
     letter-spacing: -0.01em;
+    line-height: 1.2;
+    white-space: nowrap;
+}}
+
+.header-subtitle {{
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: {text_secondary};
+    letter-spacing: 0.01em;
+    line-height: 1.2;
     white-space: nowrap;
 }}
 
@@ -410,24 +438,30 @@ section[data-testid="stSidebar"] {{
     z-index: 999970 !important;
 }}
 
-/* 6. Scientific Typography and Card styling */
+section[data-testid="stSidebar"] * {{
+    color: {text_primary} !important;
+}}
+
+/* 6. Biophilic Typography and Card styling */
 .main-title {{
     font-size: 1.85rem;
-    font-weight: 700;
+    font-weight: 800;
     color: {text_primary};
     margin-bottom: 0.2rem;
+    letter-spacing: -0.02em;
 }}
 
 .sub-title {{
-    font-size: 1.05rem;
+    font-size: 1.02rem;
     color: {text_secondary};
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    font-weight: 500;
 }}
 
 .info-card {{
     background-color: {card_bg};
     border: 1px solid {border_color};
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 14px 18px;
     margin-bottom: 1rem;
     color: {text_primary};
@@ -438,35 +472,108 @@ section[data-testid="stSidebar"] {{
 .summary-card {{
     background: {card_bg};
     border: 1px solid {border_color};
-    border-radius: 8px;
-    padding: 14px 16px;
+    border-radius: 10px;
+    padding: 16px 18px;
     height: 100%;
     color: {text_primary};
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }}
 
+/* Metric Cards */
 div[data-testid="stMetric"] {{
     background-color: {card_bg} !important;
     border: 1px solid {border_color} !important;
-    border-radius: 8px !important;
-    padding: 10px 14px !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
 }}
 
 div[data-testid="stMetricValue"] {{
-    font-size: 1.4rem;
-    font-weight: 700;
+    font-size: 1.45rem !important;
+    font-weight: 700 !important;
     color: {text_primary} !important;
+    font-feature-settings: "tnum" 1;
 }}
 
 div[data-testid="stMetricLabel"] {{
     color: {text_secondary} !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
 }}
 
-{"body, .stApp { background-color: #0b1120 !important; color: #f1f5f9 !important; } section[data-testid=\"stSidebar\"] * { color: #cbd5e1 !important; } h1, h2, h3, h4 { color: #f8fafc !important; }" if dark_mode else ""}
+/* Buttons Styling in Biophilic Forest Green */
+button[kind="primary"],
+.stButton > button[kind="primary"],
+button[data-testid="baseButton-primary"] {{
+    background-color: {forest_green} !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: background-color 0.2s ease !important;
+}}
+
+button[kind="primary"]:hover,
+.stButton > button[kind="primary"]:hover,
+button[data-testid="baseButton-primary"]:hover {{
+    background-color: {button_hover_bg} !important;
+    color: #ffffff !important;
+}}
+
+button[kind="secondary"],
+.stButton > button[kind="secondary"],
+button[data-testid="baseButton-secondary"] {{
+    background-color: {card_bg} !important;
+    color: {text_primary} !important;
+    border: 1px solid {border_color} !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}}
+
+button[kind="secondary"]:hover,
+.stButton > button[kind="secondary"]:hover,
+button[data-testid="baseButton-secondary"]:hover {{
+    background-color: {card_sub_bg} !important;
+    border-color: {forest_green} !important;
+    color: {text_primary} !important;
+}}
+
+/* Download Buttons */
+div[data-testid="stDownloadButton"] > button {{
+    background-color: {card_bg} !important;
+    color: {text_primary} !important;
+    border: 1px solid {border_color} !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}}
+
+div[data-testid="stDownloadButton"] > button:hover {{
+    background-color: {card_sub_bg} !important;
+    border-color: {forest_green} !important;
+}}
+
+/* Sliders */
+div[data-baseweb="slider"] div[role="slider"] {{
+    background-color: {forest_green} !important;
+    border-color: {mint_accent} !important;
+}}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {{
+    color: {text_primary} !important;
+    font-weight: 700 !important;
+}}
 
 /* Responsive Mobile / Tablet adjustments */
 @media (max-width: 860px) {{
+    .header-subtitle {{
+        display: none !important;
+    }}
     .header-title {{
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
     }}
     .header-status-badge {{
         font-size: 11px !important;
@@ -478,7 +585,7 @@ div[data-testid="stMetricLabel"] {{
 }}
 
 @media (max-width: 640px) {{
-    .header-title {{
+    .header-title-group {{
         display: none !important;
     }}
     .fixed-top-header {{
@@ -500,17 +607,17 @@ status_info = STATUS_COLORS.get(cur_class, STATUS_COLORS[CLASS_COMFORTABLE])
 
 if dark_mode:
     if cur_class == CLASS_COLD:
-        badge_bg = "#082f49"
-        badge_border = "#0284c7"
-        badge_color = "#38bdf8"
+        badge_bg = "#162828"
+        badge_border = "#2e8b8b"
+        badge_color = "#5bb5b5"
     elif cur_class == CLASS_HOT:
-        badge_bg = "#431407"
-        badge_border = "#ea580c"
-        badge_color = "#fb923c"
+        badge_bg = "#2a1b1a"
+        badge_border = "#c65b52"
+        badge_color = "#e58b80"
     else:
-        badge_bg = "#052e16"
-        badge_border = "#16a34a"
-        badge_color = "#4ade80"
+        badge_bg = "#192720"
+        badge_border = "#376b4e"
+        badge_color = "#75c995"
 else:
     badge_bg = status_info["bg_light"]
     badge_border = status_info["border"]
@@ -518,8 +625,11 @@ else:
 
 header_html = f"""<header class="fixed-top-header">
 <div class="header-left">
-<span class="header-icon">🌡️</span>
-<span class="header-title">Environment Classifier and Demonstrator</span>
+<span class="header-icon">🌿🌡️</span>
+<div class="header-title-group">
+<div class="header-title">Environment Classifier and Demonstrator</div>
+<div class="header-subtitle">Intelligent Room Temperature Control</div>
+</div>
 </div>
 <div class="header-right">
 <div class="header-status-badge" style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: {badge_color};">
@@ -694,8 +804,8 @@ if nav_selection == "Overview":
     ac1, ac2 = st.columns(2)
     with ac1:
         st.markdown(
-            f"""<div class="summary-card" style="border-left: 4px solid {primary_blue};">
-<h4 style="margin-top:0; color:{primary_blue};">🤖 Utility-Based Intelligent Agent</h4>
+            f"""<div class="summary-card" style="border-left: 4px solid {forest_green};">
+<h4 style="margin-top:0; color:{forest_green};">🌱 Utility-Based Intelligent Agent</h4>
 <b>Decision Paradigm:</b> Predictive Multi-Objective Optimization.<br>
 <b>Internal Model:</b> Evaluates resulting temperature for actions (HEAT, COOL, OFF) using thermodynamic simulation.<br>
 <b>Utility Formula:</b> Utility = -(w_c · Comfort Penalty) - (w_e · Energy Cost) - (w_s · Instability) - (w_o · Overshoot).<br>
@@ -705,8 +815,8 @@ if nav_selection == "Overview":
         )
     with ac2:
         st.markdown(
-            f"""<div class="summary-card" style="border-left: 4px solid {secondary_cyan};">
-<h4 style="margin-top:0; color:{secondary_cyan};">🔁 Simple Reflex Thermostat</h4>
+            f"""<div class="summary-card" style="border-left: 4px solid {muted_teal};">
+<h4 style="margin-top:0; color:{muted_teal};">🔁 Simple Reflex Thermostat</h4>
 <b>Decision Paradigm:</b> Deterministic Condition-Action Rules.<br>
 <b>Sensor Input:</b> Observes only current room temperature without lookahead or utility evaluation.<br>
 <b>Rules:</b>
