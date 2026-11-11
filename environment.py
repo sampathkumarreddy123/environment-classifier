@@ -164,7 +164,11 @@ class RoomEnvironment:
         """Return True if current temperature is within comfortable range."""
         return self.current_classification == CLASS_COMFORTABLE
 
-    def step(self, action: str = ACTION_OFF) -> Dict[str, Any]:
+    def step(
+        self,
+        action: str = ACTION_OFF,
+        disturbance: Optional[float] = None,
+    ) -> Dict[str, Any]:
         """
         Advance the simulation by one discrete time step.
 
@@ -178,13 +182,15 @@ class RoomEnvironment:
                - 'OFF': 0.0
 
             3. Stochastic Disturbance:
-               noise ~ N(0, disturbance_level^2)
+               noise ~ N(0, disturbance_level^2) (or explicit shared disturbance)
 
             Total delta_T = delta_ambient + delta_hvac + disturbance
             current_temp_{t+1} = current_temp_t + delta_T
 
         Args:
             action: Action taken ('OFF', 'HEAT', 'COOL').
+            disturbance: Optional externally supplied disturbance (°C) for
+                synchronized multi-agent comparison runs.
 
         Returns:
             Dictionary containing observation of the new state.
@@ -205,13 +211,15 @@ class RoomEnvironment:
             delta_hvac = 0.0
 
         # 3. Random environmental disturbance (e.g. open door, solar spike, body heat)
-        if self.disturbance_level > 0.0:
-            disturbance = float(self._rng.normal(0.0, self.disturbance_level))
+        if disturbance is not None:
+            applied_disturbance = float(disturbance)
+        elif self.disturbance_level > 0.0:
+            applied_disturbance = float(self._rng.normal(0.0, self.disturbance_level))
         else:
-            disturbance = 0.0
+            applied_disturbance = 0.0
 
         # 4. Update temperature
-        total_delta = delta_ambient + delta_hvac + disturbance
+        total_delta = delta_ambient + delta_hvac + applied_disturbance
         new_temp = self.current_temp + total_delta
 
         # Update tracking
@@ -225,7 +233,7 @@ class RoomEnvironment:
             action=action,
             delta_ambient=delta_ambient,
             delta_hvac=delta_hvac,
-            disturbance=disturbance,
+            disturbance=applied_disturbance,
         )
 
         return self.get_state()

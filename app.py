@@ -1,9 +1,10 @@
 """
 Main Streamlit Application for the Environment Classifier and Demonstrator.
 Supports Phase 1 (Room Simulation & Sandbox), Phase 2 (Utility-Based Intelligent Agent),
-and Phase 3 (Simple Reflex Thermostat Agent).
+Phase 3 (Simple Reflex Thermostat Agent), and Phase 4 (Synchronized Performance Comparison).
 """
 
+import time
 from typing import Dict, Any
 import streamlit as st
 import pandas as pd
@@ -24,14 +25,26 @@ from config import (
 from environment import RoomEnvironment
 from utility_agent import UtilityBasedAgent
 from reflex_agent import SimpleReflexAgent
+from comparison import (
+    ComparisonConfig,
+    ComparisonRunner,
+    determine_metric_winner,
+    determine_settling_winner,
+)
 from utils import (
     create_agent_temperature_history_chart,
+    create_comparison_action_distribution_chart,
     create_comparison_bar_chart,
+    create_comparison_classification_chart,
+    create_comparison_energy_chart,
+    create_comparison_error_chart,
+    create_comparison_temperature_chart,
     create_reflex_action_summary_chart,
     create_reflex_temperature_history_chart,
     create_temperature_gauge,
     create_utility_comparison_chart,
     create_utility_factors_breakdown_chart,
+    get_comparison_summary_html,
     get_decision_card_html,
     get_reflex_decision_card_html,
     get_reflex_rules_html,
@@ -132,6 +145,12 @@ def init_session_state() -> None:
     if "reflex_env" not in st.session_state:
         reset_reflex_simulation()
 
+    # Phase 4 Synchronized Comparison Runner
+    if "comparison_running" not in st.session_state:
+        st.session_state.comparison_running = False
+    if "comparison_runner" not in st.session_state:
+        reset_comparison_simulation()
+
     # Manual sandbox instance (Phase 1 feature preserved intact)
     if "sandbox_env" not in st.session_state:
         st.session_state.sandbox_env = RoomEnvironment(
@@ -145,6 +164,34 @@ def init_session_state() -> None:
             comfort_tolerance=st.session_state.comfort_tolerance,
             random_seed=st.session_state.random_seed,
         )
+
+
+def _build_comparison_config() -> ComparisonConfig:
+    """Snapshot current sidebar configuration for synchronized agent comparison."""
+    return ComparisonConfig(
+        initial_temp=float(st.session_state.initial_temp),
+        desired_temp=float(st.session_state.desired_temp),
+        outside_temp=float(st.session_state.outside_temp),
+        insulation_level=str(st.session_state.insulation_level),
+        comfort_tolerance=float(st.session_state.comfort_tolerance),
+        heater_power=float(st.session_state.heater_power),
+        cooling_power=float(st.session_state.cooling_power),
+        disturbance_level=float(st.session_state.disturbance_level),
+        max_steps=int(st.session_state.max_steps),
+        random_seed=int(st.session_state.random_seed),
+        weight_comfort=float(st.session_state.weight_comfort),
+        weight_energy=float(st.session_state.weight_energy),
+        weight_stability=float(st.session_state.weight_stability),
+        weight_overshoot=float(st.session_state.weight_overshoot),
+        lower_threshold=float(st.session_state.reflex_lower_slider),
+        upper_threshold=float(st.session_state.reflex_upper_slider),
+    )
+
+
+def reset_comparison_simulation() -> None:
+    """Reinstantiate the synchronized comparison runner with current configuration."""
+    st.session_state.comparison_running = False
+    st.session_state.comparison_runner = ComparisonRunner(_build_comparison_config())
 
 
 def _create_configured_environment() -> RoomEnvironment:
@@ -412,7 +459,15 @@ with st.sidebar:
     if st.button("🔄 Apply Configuration & Reset", use_container_width=True, type="primary"):
         reset_simulation()
         reset_reflex_simulation()
+        reset_comparison_simulation()
         st.rerun()
+
+# Keep comparison runner automatically synced if any sidebar configuration changed
+latest_comp_config = _build_comparison_config()
+comparison_runner: ComparisonRunner = st.session_state.comparison_runner
+if comparison_runner.config != latest_comp_config:
+    comparison_runner.reset(latest_comp_config)
+    st.session_state.comparison_running = False
 
 
 # ---------------------------------------------------------
@@ -424,14 +479,15 @@ st.markdown(
 <div class="main-subtitle">Intelligent Room Temperature Control Simulation</div>
 </div>
 <div class="desc-box">
-<b>Independent Agent Environments:</b> Explore the <b>Utility-Based Intelligent Agent</b> (Phase 2, optimization-driven
-over projected thermal states) alongside the <b>Simple Reflex Thermostat</b> (Phase 3, pure condition-action threshold rules),
-plus the Phase 1 interactive room sandbox.
+<b>Multi-Agent Simulation & Comparison:</b> Compare the <b>Utility-Based Intelligent Agent</b> (Phase 2) and
+<b>Simple Reflex Thermostat</b> (Phase 3) side-by-side under identical environmental conditions and shared
+disturbance sequences, or run each agent and the Phase 1 room sandbox independently.
 </div>""",
     unsafe_allow_html=True,
 )
 
-tab_agent, tab_reflex, tab_sandbox, tab_theory = st.tabs([
+tab_compare, tab_agent, tab_reflex, tab_sandbox, tab_theory = st.tabs([
+    "⚖️ Comparison Dashboard",
     "🤖 Utility-Based Agent Simulation",
     "🔁 Simple Reflex Thermostat",
     "🧪 Interactive Room Sandbox",
@@ -440,7 +496,264 @@ tab_agent, tab_reflex, tab_sandbox, tab_theory = st.tabs([
 
 
 # =========================================================
-# TAB 1: Utility-Based Agent Simulation
+# TAB 1: Synchronized Environment & Agent Comparison (Phase 4)
+# =========================================================
+with tab_compare:
+    st.markdown("### ⚖️ Synchronized Agent Comparison Dashboard")
+    cfg = comparison_runner.config
+    st.caption(
+        f"Shared Conditions — Initial: {cfg.initial_temp:.1f}°C · Target: {cfg.desired_temp:.1f}°C "
+        f"(±{cfg.comfort_tolerance:.1f}°C) · Outside: {cfg.outside_temp:.1f}°C · "
+        f"Insulation: {cfg.insulation_level} · Heater/Cooler: {cfg.heater_power:.1f}/{cfg.cooling_power:.1f}°C · "
+        f"Disturbance σ: {cfg.disturbance_level:.2f}°C · Seed: {cfg.random_seed} · "
+        f"Reflex Band: [{cfg.lower_threshold:.1f}°C, {cfg.upper_threshold:.1f}°C]"
+    )
+
+    # 1. Simulation Controls (Run, Pause/Resume, Instant Run, Re-run Same Seed, Reset)
+    cc1, cc2, cc3, cc4, cc5 = st.columns(5)
+    with cc1:
+        run_label = "▶️ Resume" if (comparison_runner.current_step > 0 and not comparison_runner.is_finished) else "▶️ Run Comparison"
+        if st.button(run_label, key="btn_comp_run", use_container_width=True, type="primary"):
+            if comparison_runner.is_finished:
+                comparison_runner.reset(_build_comparison_config())
+            st.session_state.comparison_running = True
+            st.rerun()
+    with cc2:
+        if st.button(
+            "⏸️ Pause",
+            key="btn_comp_pause",
+            use_container_width=True,
+            disabled=not st.session_state.comparison_running,
+        ):
+            st.session_state.comparison_running = False
+            st.rerun()
+    with cc3:
+        if st.button("⚡ Run Instant", key="btn_comp_run_all", use_container_width=True):
+            st.session_state.comparison_running = False
+            if comparison_runner.is_finished:
+                comparison_runner.run_all()
+            else:
+                comparison_runner.run_remaining()
+            st.rerun()
+    with cc4:
+        if st.button("🔁 Re-run (Same Seed)", key="btn_comp_rerun_seed", use_container_width=True):
+            st.session_state.comparison_running = False
+            comparison_runner.run_all()
+            st.rerun()
+    with cc5:
+        if st.button("↩️ Reset Comparison", key="btn_comp_reset", use_container_width=True):
+            reset_comparison_simulation()
+            st.rerun()
+
+    comp_progress = (
+        min(100.0, (comparison_runner.current_step / comparison_runner.max_steps) * 100.0)
+        if comparison_runner.max_steps > 0
+        else 0.0
+    )
+    status_label = "Running..." if st.session_state.comparison_running else (
+        "Completed" if comparison_runner.is_finished else (
+            "Paused" if comparison_runner.current_step > 0 else "Ready"
+        )
+    )
+    st.caption(
+        f"Synchronized Progress: Step {comparison_runner.current_step} / {comparison_runner.max_steps} "
+        f"({comp_progress:.0f}% — {status_label})"
+    )
+    st.progress(comp_progress / 100.0)
+
+    # Evaluate recorded simulation metrics
+    eval_res = comparison_runner.evaluate()
+    u_df = eval_res["utility_df"]
+    r_df = eval_res["reflex_df"]
+    combined_df = eval_res["combined_df"]
+    u_metrics = eval_res["utility_metrics"]
+    r_metrics = eval_res["reflex_metrics"]
+    comp_table_df = eval_res["comparison_df"]
+    comp_summary = eval_res["summary"]
+
+    # 2. Overall Performance Summary Banner
+    st.markdown(get_comparison_summary_html(comp_summary), unsafe_allow_html=True)
+
+    # 3. Side-by-Side Agent Overview & Metric Cards with Winner Indicators
+    def _winner_badge(winner_name: str) -> str:
+        if winner_name == "Utility-Based Agent":
+            return "Winner: 🤖 Utility-Based"
+        elif winner_name == "Simple Reflex Agent":
+            return "Winner: 🔁 Simple Reflex"
+        return "Result: ⚖️ Tie"
+
+    ov_col1, ov_col2 = st.columns(2)
+    with ov_col1:
+        st.info(
+            f"**🤖 Utility-Based Agent** · Final Temp: **{u_df['actual_temp'].iloc[-1]:.2f}°C** "
+            f"({u_df['classification'].iloc[-1]}) · Comfort Time: **{u_metrics.comfort_percentage:.1f}%** · "
+            f"Total Energy: **{u_metrics.total_energy:.1f} units**"
+        )
+    with ov_col2:
+        st.warning(
+            f"**🔁 Simple Reflex Agent** · Final Temp: **{r_df['actual_temp'].iloc[-1]:.2f}°C** "
+            f"({r_df['classification'].iloc[-1]}) · Comfort Time: **{r_metrics.comfort_percentage:.1f}%** · "
+            f"Total Energy: **{r_metrics.total_energy:.1f} units**"
+        )
+
+    st.subheader("🎯 Side-by-Side Key Metrics & Winners")
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    with sc1:
+        w_mae = determine_metric_winner(u_metrics.avg_abs_error, r_metrics.avg_abs_error, higher_is_better=False)
+        st.metric("Avg Abs Error (Utility vs Reflex)", f"{u_metrics.avg_abs_error:.2f}° vs {r_metrics.avg_abs_error:.2f}°", delta=_winner_badge(w_mae), delta_color="off")
+    with sc2:
+        w_comf = determine_metric_winner(u_metrics.comfort_percentage, r_metrics.comfort_percentage, higher_is_better=True)
+        st.metric("Comfort Time % (Utility vs Reflex)", f"{u_metrics.comfort_percentage:.1f}% vs {r_metrics.comfort_percentage:.1f}%", delta=_winner_badge(w_comf), delta_color="off")
+    with sc3:
+        w_eng = determine_metric_winner(u_metrics.total_energy, r_metrics.total_energy, higher_is_better=False)
+        st.metric("Total Energy (Utility vs Reflex)", f"{u_metrics.total_energy:.1f} vs {r_metrics.total_energy:.1f}", delta=_winner_badge(w_eng), delta_color="off")
+    with sc4:
+        w_settle = determine_settling_winner(u_metrics.settling_steps, r_metrics.settling_steps)
+        st.metric("Settling (Utility vs Reflex)", f"{u_metrics.settling_label} | {r_metrics.settling_label}", delta=_winner_badge(w_settle), delta_color="off")
+
+    sc5, sc6, sc7, sc8 = st.columns(4)
+    with sc5:
+        w_fin = determine_metric_winner(u_metrics.final_temp_error, r_metrics.final_temp_error, higher_is_better=False)
+        st.metric("Final Temp Error", f"{u_metrics.final_temp_error:.2f}° vs {r_metrics.final_temp_error:.2f}°", delta=_winner_badge(w_fin), delta_color="off")
+    with sc6:
+        w_over = determine_metric_winner(u_metrics.overshoot_count, r_metrics.overshoot_count, higher_is_better=False)
+        st.metric("Overshoots (Utility vs Reflex)", f"{u_metrics.overshoot_count} vs {r_metrics.overshoot_count}", delta=_winner_badge(w_over), delta_color="off")
+    with sc7:
+        w_fluc = determine_metric_winner(u_metrics.temp_fluctuations, r_metrics.temp_fluctuations, higher_is_better=False)
+        st.metric("Temp Fluctuations (°C/step)", f"{u_metrics.temp_fluctuations:.2f} vs {r_metrics.temp_fluctuations:.2f}", delta=_winner_badge(w_fluc), delta_color="off")
+    with sc8:
+        w_chg = determine_metric_winner(u_metrics.unnecessary_action_changes, r_metrics.unnecessary_action_changes, higher_is_better=False)
+        st.metric("Unnecessary Action Changes", f"{u_metrics.unnecessary_action_changes} vs {r_metrics.unnecessary_action_changes}", delta=_winner_badge(w_chg), delta_color="off")
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 4. All 5 Required Comparison Visualizations
+    st.subheader("📊 Comparative Visualizations")
+    st.plotly_chart(
+        create_comparison_temperature_chart(
+            utility_df=u_df,
+            reflex_df=r_df,
+            desired_temp=cfg.desired_temp,
+            comfort_tolerance=cfg.comfort_tolerance,
+        ),
+        use_container_width=True,
+        key="chart_comp_temperature",
+    )
+
+    ch_r1_c1, ch_r1_c2 = st.columns(2)
+    with ch_r1_c1:
+        st.plotly_chart(
+            create_comparison_energy_chart(utility_df=u_df, reflex_df=r_df),
+            use_container_width=True,
+            key="chart_comp_energy",
+        )
+    with ch_r1_c2:
+        st.plotly_chart(
+            create_comparison_error_chart(utility_df=u_df, reflex_df=r_df),
+            use_container_width=True,
+            key="chart_comp_error",
+        )
+
+    ch_r2_c1, ch_r2_c2 = st.columns(2)
+    with ch_r2_c1:
+        st.plotly_chart(
+            create_comparison_action_distribution_chart(utility_df=u_df, reflex_df=r_df),
+            use_container_width=True,
+            key="chart_comp_actions",
+        )
+    with ch_r2_c2:
+        st.plotly_chart(
+            create_comparison_classification_chart(util_metrics=u_metrics, refl_metrics=r_metrics),
+            use_container_width=True,
+            key="chart_comp_classification",
+        )
+
+    # 5. Environment Classification Summary & Step-by-Step Tracking
+    st.subheader("🌡️ Environment Classification Summary (Cold / Comfortable / Hot)")
+    cls_col1, cls_col2 = st.columns(2)
+    with cls_col1:
+        st.markdown(
+            f"**🤖 Utility-Based Agent:** "
+            f"❄️ Cold `{u_metrics.cold_percentage:.1f}%` ({u_metrics.cold_steps} steps) · "
+            f"🌿 Comfortable `{u_metrics.comfortable_percentage:.1f}%` ({u_metrics.comfortable_steps} steps) · "
+            f"🔥 Hot `{u_metrics.hot_percentage:.1f}%` ({u_metrics.hot_steps} steps)"
+        )
+    with cls_col2:
+        st.markdown(
+            f"**🔁 Simple Reflex Agent:** "
+            f"❄️ Cold `{r_metrics.cold_percentage:.1f}%` ({r_metrics.cold_steps} steps) · "
+            f"🌿 Comfortable `{r_metrics.comfortable_percentage:.1f}%` ({r_metrics.comfortable_steps} steps) · "
+            f"🔥 Hot `{r_metrics.hot_percentage:.1f}%` ({r_metrics.hot_steps} steps)"
+        )
+
+    with st.expander("🔍 Step-by-Step Classification & Synchronized Telemetry", expanded=False):
+        if not combined_df.empty:
+            step_cls_df = combined_df[[
+                "step",
+                "outside_temp",
+                "disturbance",
+                "utility_actual_temp",
+                "utility_action",
+                "utility_classification",
+                "reflex_actual_temp",
+                "reflex_action",
+                "reflex_classification",
+            ]]
+            st.dataframe(step_cls_df, use_container_width=True, hide_index=True)
+
+    # 6. Performance Metrics Results Table & CSV Exports
+    st.subheader("📋 Performance Comparison Results Table")
+    st.dataframe(comp_table_df, use_container_width=True, hide_index=True)
+
+    dl1, dl2, dl3, dl4 = st.columns(4)
+    with dl1:
+        st.download_button(
+            label="📥 Download Utility Agent CSV",
+            data=u_df.to_csv(index=False).encode("utf-8"),
+            file_name="comparison_utility_results.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="btn_comp_dl_utility",
+        )
+    with dl2:
+        st.download_button(
+            label="📥 Download Reflex Agent CSV",
+            data=r_df.to_csv(index=False).encode("utf-8"),
+            file_name="comparison_reflex_results.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="btn_comp_dl_reflex",
+        )
+    with dl3:
+        st.download_button(
+            label="📥 Download Combined Results CSV",
+            data=combined_df.to_csv(index=False).encode("utf-8"),
+            file_name="comparison_combined_results.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="btn_comp_dl_combined",
+        )
+    with dl4:
+        st.download_button(
+            label="📥 Download Metrics Table CSV",
+            data=comp_table_df.to_csv(index=False).encode("utf-8"),
+            file_name="comparison_metrics_summary.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="btn_comp_dl_metrics",
+        )
+
+    # Live step-by-step execution loop supporting reliable Pause / Resume
+    if st.session_state.comparison_running and not comparison_runner.is_finished:
+        comparison_runner.step_once()
+        if comparison_runner.is_finished:
+            st.session_state.comparison_running = False
+        time.sleep(0.06)
+        st.rerun()
+
+
+# =========================================================
+# TAB 2: Utility-Based Agent Simulation (Phase 2 Preserved)
 # =========================================================
 with tab_agent:
     current_state = env.get_state()

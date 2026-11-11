@@ -721,3 +721,387 @@ def create_reflex_action_summary_chart(df: pd.DataFrame) -> go.Figure:
     fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", dtick=1 if max(counts, default=0) <= 10 else None)
 
     return fig
+
+
+def get_comparison_summary_html(summary: Dict[str, Any]) -> str:
+    """
+    Generate an overall comparison summary banner driven strictly by actual
+    simulation metric wins (never hardcoded).
+    """
+    winner = summary.get("overall_winner", "Tie")
+    u_wins = summary.get("utility_wins", 0)
+    r_wins = summary.get("reflex_wins", 0)
+    ties = summary.get("ties", 0)
+    headline = summary.get("headline", "")
+
+    if winner == "Utility-Based Agent":
+        accent = "#2563eb"
+        bg = "#eff6ff"
+        border = "#93c5fd"
+        badge = "🤖 UTILITY-BASED AGENT LEADS"
+    elif winner == "Simple Reflex Agent":
+        accent = "#ea580c"
+        bg = "#fff7ed"
+        border = "#fdba74"
+        badge = "🔁 SIMPLE REFLEX AGENT LEADS"
+    else:
+        accent = "#475569"
+        bg = "#f8fafc"
+        border = "#cbd5e1"
+        badge = "⚖️ BALANCED / TIE"
+
+    html = f"""<div style="background-color: {bg}; border: 2px solid {border}; border-radius: 12px; padding: 16px 20px; margin-bottom: 18px; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+<div>
+<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: {accent};">Overall Comparison Summary (Data-Driven)</div>
+<div style="font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 2px;">{badge}</div>
+<div style="font-size: 14px; color: #334155; margin-top: 4px;">{headline}</div>
+</div>
+<div style="display: flex; gap: 12px; flex-wrap: wrap;">
+<div style="background: white; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; text-align: center;">
+<div style="font-size: 11px; font-weight: 700; color: #2563eb;">UTILITY WINS</div>
+<div style="font-size: 20px; font-weight: 800; color: #0f172a;">{u_wins}</div>
+</div>
+<div style="background: white; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 14px; text-align: center;">
+<div style="font-size: 11px; font-weight: 700; color: #ea580c;">REFLEX WINS</div>
+<div style="font-size: 20px; font-weight: 800; color: #0f172a;">{r_wins}</div>
+</div>
+<div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 14px; text-align: center;">
+<div style="font-size: 11px; font-weight: 700; color: #64748b;">TIES</div>
+<div style="font-size: 20px; font-weight: 800; color: #0f172a;">{ties}</div>
+</div>
+</div>
+</div>
+</div>"""
+    return html
+
+
+def create_comparison_temperature_chart(
+    utility_df: pd.DataFrame,
+    reflex_df: pd.DataFrame,
+    desired_temp: float,
+    comfort_tolerance: float,
+) -> go.Figure:
+    """
+    Chart 1: Compare Utility-Based Agent and Simple Reflex Agent room temperatures
+    alongside the desired temperature reference line and comfort band.
+    """
+    fig = go.Figure()
+    if utility_df.empty or reflex_df.empty:
+        fig.update_layout(title="No synchronized comparison data yet.", height=380)
+        return fig
+
+    steps = utility_df["step"]
+    lower_bound = desired_temp - comfort_tolerance
+    upper_bound = desired_temp + comfort_tolerance
+
+    # Shaded Comfort Range
+    fig.add_trace(
+        go.Scatter(
+            x=list(steps) + list(steps[::-1]),
+            y=[upper_bound] * len(steps) + [lower_bound] * len(steps),
+            fill="toself",
+            fillcolor="rgba(34, 197, 94, 0.12)",
+            line=dict(color="rgba(34, 197, 94, 0)"),
+            hoverinfo="skip",
+            showlegend=True,
+            name=f"Comfort Zone ({lower_bound:.1f}–{upper_bound:.1f}°C)",
+        )
+    )
+
+    # Desired Temperature Reference Line
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=[desired_temp] * len(steps),
+            mode="lines",
+            line=dict(color="#16a34a", width=2.0, dash="dash"),
+            name=f"Desired Temp ({desired_temp:.1f}°C)",
+            hovertemplate="Target: %{y:.1f}°C<extra></extra>",
+        )
+    )
+
+    # Outside Ambient Temperature
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=utility_df["outside_temp"],
+            mode="lines",
+            line=dict(color="#94a3b8", width=1.5, dash="dot"),
+            name="Outside Ambient",
+            hovertemplate="Step %{x}: Outside %{y:.1f}°C<extra></extra>",
+        )
+    )
+
+    # Utility-Based Agent Temperature
+    fig.add_trace(
+        go.Scatter(
+            x=steps,
+            y=utility_df["actual_temp"],
+            mode="lines+markers",
+            line=dict(color="#2563eb", width=3),
+            marker=dict(size=5, color="#1d4ed8"),
+            name="Utility-Based Agent",
+            text=utility_df["action"],
+            hovertemplate="Step %{x}: Utility %{y:.2f}°C (%{text})<extra></extra>",
+        )
+    )
+
+    # Simple Reflex Agent Temperature
+    fig.add_trace(
+        go.Scatter(
+            x=reflex_df["step"],
+            y=reflex_df["actual_temp"],
+            mode="lines+markers",
+            line=dict(color="#ea580c", width=2.6, dash="solid"),
+            marker=dict(size=5, color="#c2410c", symbol="diamond"),
+            name="Simple Reflex Agent",
+            text=reflex_df["action"],
+            hovertemplate="Step %{x}: Reflex %{y:.2f}°C (%{text})<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="<b>1. Temperature Comparison (Synchronized Run)</b>",
+        title_font=dict(size=16, color="#1e293b"),
+        xaxis_title="Simulation Time Step",
+        yaxis_title="Temperature (°C)",
+        template="plotly_white",
+        height=390,
+        margin=dict(l=30, r=20, t=55, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.75)",
+        ),
+        hovermode="x unified",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    return fig
+
+
+def create_comparison_energy_chart(
+    utility_df: pd.DataFrame,
+    reflex_df: pd.DataFrame,
+) -> go.Figure:
+    """
+    Chart 2: Compare cumulative energy consumption over time for both agents.
+    """
+    fig = go.Figure()
+    if utility_df.empty or reflex_df.empty:
+        fig.update_layout(title="No energy data recorded yet.", height=320)
+        return fig
+
+    fig.add_trace(
+        go.Scatter(
+            x=utility_df["step"],
+            y=utility_df["cumulative_energy"],
+            mode="lines+markers",
+            line=dict(color="#2563eb", width=3),
+            marker=dict(size=5),
+            name="Utility-Based Agent",
+            customdata=utility_df["energy_consumed"],
+            hovertemplate="Step %{x}: Cumulative %{y:.1f} units (Step: %{customdata:.1f})<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=reflex_df["step"],
+            y=reflex_df["cumulative_energy"],
+            mode="lines+markers",
+            line=dict(color="#ea580c", width=2.8),
+            marker=dict(size=5, symbol="diamond"),
+            name="Simple Reflex Agent",
+            customdata=reflex_df["energy_consumed"],
+            hovertemplate="Step %{x}: Cumulative %{y:.1f} units (Step: %{customdata:.1f})<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="<b>2. Cumulative Energy Consumption Over Time</b>",
+        title_font=dict(size=15, color="#1e293b"),
+        xaxis_title="Simulation Time Step",
+        yaxis_title="Cumulative Energy (units)",
+        template="plotly_white",
+        height=320,
+        margin=dict(l=25, r=20, t=50, b=30),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode="x unified",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", rangemode="tozero")
+    return fig
+
+
+def create_comparison_error_chart(
+    utility_df: pd.DataFrame,
+    reflex_df: pd.DataFrame,
+) -> go.Figure:
+    """
+    Chart 3: Compare absolute temperature error |T_t - T_desired| at every time step.
+    """
+    fig = go.Figure()
+    if utility_df.empty or reflex_df.empty:
+        fig.update_layout(title="No temperature error data recorded yet.", height=320)
+        return fig
+
+    fig.add_trace(
+        go.Scatter(
+            x=utility_df["step"],
+            y=utility_df["abs_error"],
+            mode="lines+markers",
+            line=dict(color="#2563eb", width=2.8),
+            marker=dict(size=5),
+            name="Utility-Based Agent Error",
+            hovertemplate="Step %{x}: |Error| = %{y:.2f}°C<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=reflex_df["step"],
+            y=reflex_df["abs_error"],
+            mode="lines+markers",
+            line=dict(color="#ea580c", width=2.6),
+            marker=dict(size=5, symbol="diamond"),
+            name="Simple Reflex Agent Error",
+            hovertemplate="Step %{x}: |Error| = %{y:.2f}°C<extra></extra>",
+        )
+    )
+
+    fig.update_layout(
+        title="<b>3. Absolute Temperature Error Over Time</b>",
+        title_font=dict(size=15, color="#1e293b"),
+        xaxis_title="Simulation Time Step",
+        yaxis_title="Absolute Error (°C)",
+        template="plotly_white",
+        height=320,
+        margin=dict(l=25, r=20, t=50, b=30),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        hovermode="x unified",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#e2e8f0")
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", rangemode="tozero")
+    return fig
+
+
+def create_comparison_action_distribution_chart(
+    utility_df: pd.DataFrame,
+    reflex_df: pd.DataFrame,
+) -> go.Figure:
+    """
+    Chart 4: Compare HEAT, COOL, and OFF activation frequencies for both agents.
+    """
+    u_active = utility_df[utility_df["step"] > 0] if not utility_df.empty else pd.DataFrame()
+    r_active = reflex_df[reflex_df["step"] > 0] if not reflex_df.empty else pd.DataFrame()
+
+    actions = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
+    labels = ["🔥 HEAT", "❄️ COOL", "⏸️ OFF"]
+
+    u_counts = [int((u_active["action"] == a).sum()) if not u_active.empty else 0 for a in actions]
+    r_counts = [int((r_active["action"] == a).sum()) if not r_active.empty else 0 for a in actions]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            name="Utility-Based Agent",
+            x=labels,
+            y=u_counts,
+            marker_color="#2563eb",
+            text=[str(c) for c in u_counts],
+            textposition="auto",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            name="Simple Reflex Agent",
+            x=labels,
+            y=r_counts,
+            marker_color="#ea580c",
+            text=[str(c) for c in r_counts],
+            textposition="auto",
+        )
+    )
+
+    fig.update_layout(
+        title="<b>4. Action Distribution (HEAT / COOL / OFF)</b>",
+        title_font=dict(size=15, color="#1e293b"),
+        barmode="group",
+        yaxis_title="Number of Steps",
+        template="plotly_white",
+        height=310,
+        margin=dict(l=25, r=20, t=50, b=25),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0", rangemode="tozero")
+    return fig
+
+
+def create_comparison_classification_chart(
+    util_metrics: Any,
+    refl_metrics: Any,
+) -> go.Figure:
+    """
+    Chart 5: Compare percentage of time each agent spends in Cold, Comfortable,
+    and Hot environment classifications.
+    """
+    categories = ["❄️ Cold", "🌿 Comfortable", "🔥 Hot"]
+    u_pcts = [
+        util_metrics.cold_percentage,
+        util_metrics.comfortable_percentage,
+        util_metrics.hot_percentage,
+    ]
+    r_pcts = [
+        refl_metrics.cold_percentage,
+        refl_metrics.comfortable_percentage,
+        refl_metrics.hot_percentage,
+    ]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            name="Utility-Based Agent",
+            x=categories,
+            y=u_pcts,
+            marker_color="#2563eb",
+            text=[f"{v:.1f}%" for v in u_pcts],
+            textposition="auto",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            name="Simple Reflex Agent",
+            x=categories,
+            y=r_pcts,
+            marker_color="#ea580c",
+            text=[f"{v:.1f}%" for v in r_pcts],
+            textposition="auto",
+        )
+    )
+
+    fig.update_layout(
+        title="<b>5. Environment Classification Time Share (%)</b>",
+        title_font=dict(size=15, color="#1e293b"),
+        barmode="group",
+        yaxis_title="Percentage of Steps (%)",
+        yaxis_range=[0, 108],
+        template="plotly_white",
+        height=310,
+        margin=dict(l=25, r=20, t=50, b=25),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(248, 250, 252, 0.6)",
+    )
+    fig.update_yaxes(showgrid=True, gridcolor="#e2e8f0")
+    return fig

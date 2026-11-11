@@ -265,7 +265,11 @@ class SimpleReflexAgent:
         self.simulation_history.append(record)
         return record
 
-    def step_environment(self, env: RoomEnvironment) -> Dict[str, Any]:
+    def step_environment(
+        self,
+        env: RoomEnvironment,
+        disturbance: Optional[float] = None,
+    ) -> Dict[str, Any]:
         """
         Execute one full simulation step against a RoomEnvironment instance:
         1. Observe the current room temperature.
@@ -276,7 +280,7 @@ class SimpleReflexAgent:
         """
         observation = env.get_state()
         decision = self.decide_action(observation)
-        next_state = env.step(decision.selected_action)
+        next_state = env.step(decision.selected_action, disturbance=disturbance)
         return self.record_step(observation, decision, next_state)
 
     def get_history_df(self) -> pd.DataFrame:
