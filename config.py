@@ -194,26 +194,26 @@ ACTION_HEAT = "HEAT"
 ACTION_COOL = "COOL"
 ALL_ACTIONS = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
 
-# Classification Color Scheme (Biophilic Eco-Tech Palette)
+# Classification Color Scheme (Biophilic Eco-Tech Palette: Soft Green, Muted Blue, Subtle Amber)
 STATUS_COLORS = {
     CLASS_COLD: {
-        "color": "#4D9285",       # Muted Teal / Crisp Glacial
-        "bg_light": "#EAF0E5",
-        "border": "#DCE5D8",
+        "color": "#2A6282",       # Muted Blue
+        "bg_light": "#EBF3F7",
+        "border": "#BDD8E6",
         "icon": "❄️",
         "description": "Temperature is below the comfortable range.",
     },
     CLASS_COMFORTABLE: {
-        "color": "#39845A",       # Natural Success Green
-        "bg_light": "#EAF0E5",
-        "border": "#829B78",
+        "color": "#245C43",       # Forest / Soft Green
+        "bg_light": "#EAF4EC",
+        "border": "#C6DEC9",
         "icon": "🌿",
         "description": "Temperature is within the optimal comfort zone.",
     },
     CLASS_HOT: {
-        "color": "#C65B52",       # Earthy Terracotta / Heat
-        "bg_light": "#FDF2F0",
-        "border": "#E58B80",
+        "color": "#965C1E",       # Subtle Amber
+        "bg_light": "#FDF4E7",
+        "border": "#F0D6B3",
         "icon": "🔥",
         "description": "Temperature is above the comfortable range.",
     },

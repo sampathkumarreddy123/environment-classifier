@@ -36,13 +36,14 @@ def _get_theme_palette(dark_mode: bool) -> Dict[str, str]:
     """
     if dark_mode:
         return {
-            "app_bg": "#101A16",
+            "app_bg": "#101B17",
             "card_bg": "#192720",
-            "sub_bg": "#22382C",
+            "sub_bg": "#22352A",
             "text_primary": "#E7F0E8",
-            "text_secondary": "#A1B5A5",
-            "text_muted": "#7B8F7F",
+            "text_secondary": "#B4C4B5",
+            "text_muted": "#8DA08F",
             "primary_green": "#75B58A",
+            "forest_green": "#75B58A",
             "sage_green": "#9DBA91",
             "border_color": "#304438",
             "success": "#75B58A",
@@ -50,13 +51,24 @@ def _get_theme_palette(dark_mode: bool) -> Dict[str, str]:
             "danger": "#E58B80",
             "util_agent": "#75B58A",
             "reflex_agent": "#5BB5B5",
-            "target": "#75B58A",
-            "outside": "#A1B5A5",
+            "target": "#9DBA91",
+            "outside": "#B4C4B5",
+            "heating": "#E8B65B",
+            "cooling": "#7AB8DA",
             "plot_bg": "rgba(25, 39, 32, 0.65)",
             "grid_color": "#304438",
             "legend_bg": "rgba(25, 39, 32, 0.92)",
             "comfort_fill": "rgba(117, 181, 138, 0.16)",
             "deadband_fill": "rgba(157, 186, 145, 0.16)",
+            "status_cold": "#6DA4C7",
+            "status_cold_bg": "#162732",
+            "status_cold_border": "#294356",
+            "status_comf": "#75B58A",
+            "status_comf_bg": "#1B2D22",
+            "status_comf_border": "#2D4837",
+            "status_hot": "#E0A05A",
+            "status_hot_bg": "#2E2216",
+            "status_hot_border": "#523A22",
         }
     else:
         return {
@@ -64,23 +76,35 @@ def _get_theme_palette(dark_mode: bool) -> Dict[str, str]:
             "card_bg": "#FFFFFF",
             "sub_bg": "#EAF2EB",
             "text_primary": "#26382D",
-            "text_secondary": "#718174",
-            "text_muted": "#8CA08E",
-            "primary_green": "#39845A",
+            "text_secondary": "#5F7162",
+            "text_muted": "#718174",
+            "primary_green": "#245C43",
+            "forest_green": "#245C43",
             "sage_green": "#829B78",
             "border_color": "#DCE5D8",
-            "success": "#39845A",
+            "success": "#245C43",
             "warning": "#D99A35",
             "danger": "#C65B52",
-            "util_agent": "#39845A",
+            "util_agent": "#245C43",
             "reflex_agent": "#4D9285",
-            "target": "#39845A",
-            "outside": "#718174",
+            "target": "#829B78",
+            "outside": "#5F7162",
+            "heating": "#D99A35",
+            "cooling": "#5D9FC2",
             "plot_bg": "rgba(245, 247, 240, 0.65)",
             "grid_color": "#DCE5D8",
             "legend_bg": "rgba(255, 255, 255, 0.92)",
-            "comfort_fill": "rgba(57, 132, 90, 0.13)",
+            "comfort_fill": "rgba(36, 92, 67, 0.12)",
             "deadband_fill": "rgba(130, 155, 120, 0.15)",
+            "status_cold": "#2A6282",
+            "status_cold_bg": "#EBF3F7",
+            "status_cold_border": "#BDD8E6",
+            "status_comf": "#245C43",
+            "status_comf_bg": "#EAF4EC",
+            "status_comf_border": "#C6DEC9",
+            "status_hot": "#965C1E",
+            "status_hot_bg": "#FDF4E7",
+            "status_hot_border": "#F0D6B3",
         }
 
 
@@ -180,30 +204,79 @@ def _apply_standard_chart_layout(
 def get_status_card_html(classification: str, current_temp: float, desired_temp: float, dark_mode: bool = False) -> str:
     """
     Generate an HTML status card representing the temperature classification
-    using the Biophilic Eco-Tech design palette with high-contrast text.
+    using the Biophilic Eco-Tech design palette with high-contrast text and Lucide outline icons.
     """
     p = _get_theme_palette(dark_mode)
-    info = STATUS_COLORS.get(classification, STATUS_COLORS[CLASS_COMFORTABLE])
     delta = current_temp - desired_temp
     delta_str = f"{'+' if delta > 0 else ''}{delta:.1f}°C from target ({desired_temp:.1f}°C)"
 
-    html = f"""<div style="background-color: {p['card_bg']}; border: 1.5px solid {p['border_color']}; border-radius: 10px; padding: 14px 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);">
-<div style="display: flex; align-items: center; justify-content: space-between;">
-<div style="display: flex; align-items: center; gap: 12px;">
-<span style="font-size: 28px;">{info['icon']}</span>
+    if classification == CLASS_COLD:
+        accent_color = p["status_cold"]
+        badge_bg = p["status_cold_bg"]
+        badge_border = p["status_cold_border"]
+        desc = "Temperature is below the comfortable range. Heating actuation recommended."
+        icon_svg = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/><line x1="4" y1="9" x2="8" y2="9"/><line x1="6" y1="7" x2="6" y2="11"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="4" y1="12" x2="4" y2="16"/></svg>"""
+    elif classification == CLASS_HOT:
+        accent_color = p["status_hot"]
+        badge_bg = p["status_hot_bg"]
+        badge_border = p["status_hot_border"]
+        desc = "Temperature is above the comfortable range. Cooling actuation recommended."
+        icon_svg = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9a4 4 0 0 0-2 7.5v.5a2 2 0 0 0 4 0v-.5A4 4 0 0 0 12 9z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>"""
+    else:
+        accent_color = p["status_comf"]
+        badge_bg = p["status_comf_bg"]
+        badge_border = p["status_comf_border"]
+        desc = "Temperature is within the optimal comfort zone. Energy conservation active."
+        icon_svg = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>"""
+
+    html = f"""<div style="background-color: {p['card_bg']}; border: 1px solid {p['border_color']}; border-left: 4px solid {accent_color}; border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);">
+<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+<div style="display: flex; align-items: center; gap: 14px;">
+<div style="display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; background-color: {badge_bg}; border: 1px solid {badge_border}; color: {accent_color};">
+{icon_svg}
+</div>
 <div>
-<div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: {info['color']};">Environment Status</div>
-<div style="font-size: 20px; font-weight: 800; color: {p['text_primary']};">{classification.upper()}</div>
+<div style="font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: {accent_color};">Environment Classification</div>
+<div style="font-size: 22px; font-weight: 700; color: {p['text_primary']}; line-height: 1.2;">{classification.upper()}</div>
 </div>
 </div>
 <div style="text-align: right;">
-<div style="font-size: 22px; font-weight: 800; color: {info['color']};">{current_temp:.1f}°C</div>
-<div style="font-size: 12px; font-weight: 600; color: {p['text_secondary']};">{delta_str}</div>
+<div style="font-size: 28px; font-weight: 700; color: {accent_color}; line-height: 1.15; font-feature-settings: 'tnum' 1;">{current_temp:.1f}°C</div>
+<div style="font-size: 13px; font-weight: 400; color: {p['text_secondary']}; margin-top: 2px;">{delta_str}</div>
 </div>
 </div>
-<div style="margin-top: 8px; font-size: 13px; color: {p['text_secondary']}; border-top: 1px solid {p['border_color']}; padding-top: 8px;">
-{info['description']}
+<div style="margin-top: 12px; font-size: 13.5px; color: {p['text_secondary']}; border-top: 1px solid {p['border_color']}; padding-top: 10px; line-height: 1.45;">
+{desc}
 </div>
+</div>"""
+    return _clean_html(html)
+
+
+def get_overview_metric_card_html(
+    label: str,
+    value: str,
+    subtext: str,
+    status_type: Optional[str] = None,
+    dark_mode: bool = False,
+) -> str:
+    """
+    Generate an uncluttered, premium Biophilic metric card without placeholder
+    boxes or redundant icons. Values are prominent with subtle inline supporting text.
+    """
+    p = _get_theme_palette(dark_mode)
+    val_color = p["text_primary"]
+
+    if status_type == "cold":
+        val_color = p["status_cold"]
+    elif status_type == "hot":
+        val_color = p["status_hot"]
+    elif status_type == "comfortable":
+        val_color = p["status_comf"]
+
+    html = f"""<div style="background-color: {p['card_bg']}; border: 1px solid {p['border_color']}; border-radius: 10px; padding: 14px 16px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+<div style="font-size: 13px; font-weight: 500; color: {p['text_secondary']}; margin-bottom: 4px;">{label}</div>
+<div style="font-size: 28px; font-weight: 700; color: {val_color}; line-height: 1.15; margin-bottom: 6px; font-feature-settings: 'tnum' 1;">{value}</div>
+<div style="font-size: 13px; font-weight: 400; color: {p['text_secondary']};">{subtext}</div>
 </div>"""
     return _clean_html(html)
 
@@ -472,22 +545,22 @@ def create_temperature_gauge(
 ) -> go.Figure:
     """
     Build an interactive scientific gauge chart for the current room temperature
-    using Biophilic Eco-Tech palette with proper margins and readable text.
+    using Biophilic Eco-Tech palette with compact vertical footprint.
     """
     p = _get_theme_palette(dark_mode)
     lower_bound = max(min_gauge, desired_temp - comfort_tolerance)
     upper_bound = min(max_gauge, desired_temp + comfort_tolerance)
 
     if current_temp < lower_bound:
-        bar_color = p["reflex_agent"]
+        bar_color = p["cooling"]
     elif current_temp > upper_bound:
-        bar_color = p["danger"]
+        bar_color = p["heating"]
     else:
-        bar_color = p["success"]
+        bar_color = p["primary_green"]
 
-    step_cold = "rgba(77, 146, 133, 0.16)" if dark_mode else "rgba(77, 146, 133, 0.12)"
-    step_comfort = "rgba(117, 201, 149, 0.18)" if dark_mode else "rgba(57, 132, 90, 0.14)"
-    step_hot = "rgba(229, 139, 128, 0.16)" if dark_mode else "rgba(198, 91, 82, 0.12)"
+    step_cold = "rgba(109, 164, 199, 0.16)" if dark_mode else "rgba(42, 98, 130, 0.10)"
+    step_comfort = "rgba(117, 181, 138, 0.18)" if dark_mode else "rgba(36, 92, 67, 0.12)"
+    step_hot = "rgba(224, 160, 90, 0.16)" if dark_mode else "rgba(150, 92, 30, 0.10)"
 
     font_family = "'DM Sans', 'Inter', -apple-system, sans-serif"
 
@@ -495,15 +568,15 @@ def create_temperature_gauge(
         go.Indicator(
             mode="gauge+number+delta",
             value=current_temp,
-            number={"suffix": "°C", "font": {"size": 32, "color": p["text_primary"], "family": font_family}},
+            number={"suffix": "°C", "font": {"size": 30, "color": p["text_primary"], "family": font_family}},
             delta={
                 "reference": desired_temp,
-                "increasing": {"color": p["danger"]},
-                "decreasing": {"color": p["reflex_agent"]},
+                "increasing": {"color": p["heating"]},
+                "decreasing": {"color": p["cooling"]},
                 "suffix": "° vs Target",
-                "font": {"size": 13, "family": font_family},
+                "font": {"size": 12, "family": font_family},
             },
-            title={"text": "<b>Current Room Temperature</b>", "font": {"size": 15, "color": p["text_primary"], "family": font_family}},
+            title={"text": "<b>Current Room Temperature</b>", "font": {"size": 14, "color": p["text_primary"], "family": font_family}},
             gauge={
                 "axis": {
                     "range": [min_gauge, max_gauge],
@@ -511,7 +584,7 @@ def create_temperature_gauge(
                     "tickcolor": p["text_secondary"],
                     "tickfont": {"size": 11, "color": p["text_secondary"], "family": font_family},
                 },
-                "bar": {"color": bar_color, "thickness": 0.32},
+                "bar": {"color": bar_color, "thickness": 0.28},
                 "bgcolor": p["card_bg"],
                 "borderwidth": 1,
                 "bordercolor": p["border_color"],
@@ -521,8 +594,8 @@ def create_temperature_gauge(
                     {"range": [upper_bound, max_gauge], "color": step_hot},
                 ],
                 "threshold": {
-                    "line": {"color": p["target"], "width": 3.5},
-                    "thickness": 0.8,
+                    "line": {"color": p["target"], "width": 3.0},
+                    "thickness": 0.75,
                     "value": desired_temp,
                 },
             },
@@ -531,8 +604,8 @@ def create_temperature_gauge(
 
     fig.update_layout(
         autosize=True,
-        height=260,
-        margin=dict(l=35, r=35, t=60, b=25),
+        height=270,
+        margin=dict(l=30, r=30, t=50, b=20),
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(family=font_family, color=p["text_secondary"]),
     )
@@ -548,10 +621,10 @@ def create_comparison_bar_chart(
 ) -> go.Figure:
     """
     Build a side-by-side comparison bar chart for Indoor, Desired, and Outdoor temperatures
-    in Biophilic palette with generous margins and high-contrast labels.
+    in Biophilic palette with generous width usage and high-contrast labels.
     """
     p = _get_theme_palette(dark_mode)
-    categories = ["Current Indoor", "Target (Comfort)", "Outside Ambient"]
+    categories = ["Current Indoor", "Target", "Outside Ambient"]
     temperatures = [room_temp, desired_temp, outside_temp]
     colors = [p["util_agent"], p["target"], p["sage_green"]]
 
@@ -564,7 +637,7 @@ def create_comparison_bar_chart(
             text=[f"{t:.1f}°C" for t in temperatures],
             textposition="auto",
             textfont=dict(size=13, color="white", weight="bold"),
-            width=0.42,
+            width=0.55,
         )
     )
 
@@ -573,13 +646,13 @@ def create_comparison_bar_chart(
         title_text="<b>Temperature Comparison</b>",
         dark_mode=dark_mode,
         yaxis_title="Temperature (°C)",
-        height=300,
+        height=270,
         show_legend=False,
         hovermode=None,
-        margin_top=75,
-        margin_bottom=55,
-        margin_left=75,
-        margin_right=35,
+        margin_top=65,
+        margin_bottom=45,
+        margin_left=65,
+        margin_right=25,
     )
     return fig
 
@@ -927,8 +1000,8 @@ def create_reflex_action_summary_chart(df: pd.DataFrame, dark_mode: bool = False
     p = _get_theme_palette(dark_mode)
     active_df = df[df["step"] > 0] if "step" in df.columns and len(df) > 1 else pd.DataFrame()
     actions = [ACTION_HEAT, ACTION_OFF, ACTION_COOL]
-    labels = ["🔥 HEAT", "⏸️ OFF", "❄️ COOL"]
-    colors = [p["danger"], p["success"], p["reflex_agent"]]
+    labels = ["HEAT", "OFF", "COOL"]
+    colors = [p["heating"], p["primary_green"], p["cooling"]]
 
     if active_df.empty or "action" not in active_df.columns:
         counts = [0, 0, 0]
@@ -944,7 +1017,7 @@ def create_reflex_action_summary_chart(df: pd.DataFrame, dark_mode: bool = False
             text=[f"{c} steps" for c in counts],
             textposition="auto",
             textfont=dict(size=13, color="white", weight="bold"),
-            width=0.45,
+            width=0.52,
         )
     )
 
@@ -1277,7 +1350,7 @@ def create_comparison_action_distribution_chart(
     r_active = reflex_df[reflex_df["step"] > 0] if reflex_df is not None and not reflex_df.empty else pd.DataFrame()
 
     actions = [ACTION_HEAT, ACTION_COOL, ACTION_OFF]
-    labels = ["🔥 HEAT", "❄️ COOL", "⏸️ OFF"]
+    labels = ["HEAT", "COOL", "OFF"]
 
     u_counts = [int((u_active["action"] == a).sum()) if not u_active.empty else 0 for a in actions]
     r_counts = [int((r_active["action"] == a).sum()) if not r_active.empty else 0 for a in actions]
@@ -1340,7 +1413,7 @@ def create_comparison_classification_chart(
     - Simple Reflex Agent: Muted Teal (#4D9285 Light / #5BB5B5 Dark)
     """
     p = _get_theme_palette(dark_mode)
-    categories = ["❄️ Cold", "🌿 Comfortable", "🔥 Hot"]
+    categories = ["Cold", "Comfortable", "Hot"]
     u_pcts = [
         getattr(util_metrics, "cold_percentage", 0.0) if util_metrics else 0.0,
         getattr(util_metrics, "comfortable_percentage", 0.0) if util_metrics else 0.0,

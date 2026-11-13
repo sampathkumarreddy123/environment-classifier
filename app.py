@@ -50,6 +50,7 @@ from utils import (
     create_utility_comparison_chart,
     get_comparison_summary_html,
     get_decision_card_html,
+    get_overview_metric_card_html,
     get_reflex_rules_html,
     get_status_card_html,
 )
@@ -247,11 +248,11 @@ dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 # Dynamic Light/Dark Theme & Fixed Header Styling (Biophilic Eco-Tech)
 # ---------------------------------------------------------
 if dark_mode:
-    app_bg = "#101A16"
+    app_bg = "#101B17"
     card_bg = "#192720"
-    card_sub_bg = "#22382C"
+    card_sub_bg = "#22352A"
     text_primary = "#E7F0E8"
-    text_secondary = "#A1B5A5"
+    text_secondary = "#B4C4B5"
     text_muted = "#7B8F7F"
     forest_green = "#75B58A"
     primary_green = "#75B58A"
@@ -265,7 +266,7 @@ if dark_mode:
     sidebar_bg = "#192720"
     sidebar_border = "#304438"
     button_hover_bg = "#5A9E6F"
-    logo_box_bg = "#22382C"
+    logo_box_bg = "#22352A"
     logo_box_border = "#304438"
     leaf_color = "#75B58A"
     thermo_color = "#8FD0A8"
@@ -274,10 +275,10 @@ else:
     card_bg = "#FFFFFF"
     card_sub_bg = "#EAF2EB"
     text_primary = "#26382D"
-    text_secondary = "#718174"
+    text_secondary = "#5F7162"
     text_muted = "#8CA08E"
-    forest_green = "#39845A"
-    primary_green = "#39845A"
+    forest_green = "#245C43"
+    primary_green = "#245C43"
     muted_teal = "#4D9285"
     sage_green = "#829B78"
     mint_accent = "#B9D7C1"
@@ -287,11 +288,11 @@ else:
     header_text = "#26382D"
     sidebar_bg = "#FFFFFF"
     sidebar_border = "#DCE5D8"
-    button_hover_bg = "#2E6C49"
+    button_hover_bg = "#1E4B37"
     logo_box_bg = "#EAF2EB"
     logo_box_border = "#DCE5D8"
-    leaf_color = "#39845A"
-    thermo_color = "#2E7D52"
+    leaf_color = "#245C43"
+    thermo_color = "#4D9285"
 
 theme_css = f"""
 <style>
@@ -349,7 +350,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     justify-content: space-between;
     padding: 0 1.5rem 0 4.2rem;
     z-index: 999980;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"});
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.03"});
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }}
@@ -377,7 +378,7 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 }}
 
 .header-title {{
-    font-size: 1.12rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: {header_text};
     letter-spacing: -0.015em;
@@ -386,11 +387,11 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 }}
 
 .header-subtitle {{
-    font-size: 0.8rem;
-    font-weight: 500;
+    font-size: 0.85rem;
+    font-weight: 400;
     color: {text_secondary};
-    letter-spacing: 0.01em;
-    line-height: 1.2;
+    letter-spacing: 0.005em;
+    line-height: 1.25;
     white-space: nowrap;
 }}
 
@@ -409,8 +410,8 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     padding: 5px 12px;
     border-radius: 9999px;
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     white-space: nowrap;
     transition: all 0.2s ease;
 }}
@@ -449,7 +450,7 @@ div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label {{
     margin: 0 !important;
     padding: 5px 12px !important;
     background-color: {card_sub_bg} !important;
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 9999px !important;
     cursor: pointer !important;
     display: inline-flex !important;
@@ -474,7 +475,7 @@ div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label p {{
     color: {header_text} !important;
     font-size: 13px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
+    letter-spacing: 0.01em !important;
     line-height: 1 !important;
     white-space: nowrap !important;
     display: flex !important;
@@ -514,11 +515,11 @@ section[data-testid="stSidebar"] * {{
     color: {text_primary} !important;
 }}
 
-/* 6. Biophilic Modern Sidebar Navigation Cards */
+/* 6. Biophilic Modern Sidebar Navigation - Calm & Integrated */
 div[data-testid="stRadio"] [role="radiogroup"] {{
     display: flex !important;
     flex-direction: column !important;
-    gap: 7px !important;
+    gap: 4px !important;
     width: 100% !important;
     padding: 2px 0 !important;
 }}
@@ -548,16 +549,16 @@ div[data-testid="stRadio"] [role="radiogroup"] > div {{
     width: 100% !important;
 }}
 
-/* Clean clickable navigation cards */
+/* Inactive navigation items: calm, transparent, no heavy individual borders */
 div[data-testid="stRadio"] [role="radiogroup"] label {{
-    background-color: {"#15241C" if dark_mode else "#FFFFFF"} !important;
-    border: 1px solid {border_color} !important;
-    border-left: 4px solid transparent !important;
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    border-left: 3.5px solid transparent !important;
     border-radius: 8px !important;
-    padding: 9px 12px !important;
+    padding: 8px 12px !important;
     margin: 0 !important;
     cursor: pointer !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.15s ease !important;
     display: flex !important;
     align-items: center !important;
     width: 100% !important;
@@ -565,25 +566,25 @@ div[data-testid="stRadio"] [role="radiogroup"] label {{
 }}
 
 div[data-testid="stRadio"] [role="radiogroup"] label:hover {{
-    background-color: {"#1D3025" if dark_mode else "#F0F6EE"} !important;
-    border-color: {border_color} !important;
+    background-color: {"rgba(117, 181, 138, 0.1)" if dark_mode else "rgba(36, 92, 67, 0.06)"} !important;
+    border-color: transparent !important;
     border-left-color: {"#5A9E6F" if dark_mode else "#829B78"} !important;
     transform: translateX(2px) !important;
 }}
 
 /* Active navigation state:
-   - Light sage-green background in Light Mode (#EAF2EB)
-   - Muted forest-green background in Dark Mode (#22382C)
-   - Left-side active indicator (4px solid #39845A / #75B58A)
-   - Forest-green / mint-green text and icon
+   - Soft sage-green background in Light Mode (#EAF2EB)
+   - Muted forest-green background in Dark Mode (#22352A)
+   - Left-side active indicator (3.5px solid #245C43 / #75B58A)
+   - Medium-weight text (600)
 */
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
 div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected="true"] label {{
-    background-color: {"#22382C" if dark_mode else "#EAF2EB"} !important;
-    border: 1px solid {"#3A5744" if dark_mode else "#C5DAC6"} !important;
-    border-left: 4px solid {primary_green} !important;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, {"0.2" if dark_mode else "0.05"}) !important;
+    background-color: {"#22352A" if dark_mode else "#EAF2EB"} !important;
+    border: 1px solid {"#2E4738" if dark_mode else "#D5E3D6"} !important;
+    border-left: 3.5px solid {primary_green} !important;
+    box-shadow: none !important;
 }}
 
 /* Ensure inner container fills width */
@@ -615,14 +616,14 @@ div[data-testid="stRadio"] .material-symbols-rounded {{
     font-size: 19px !important;
     margin-right: 8px !important;
     vertical-align: middle !important;
-    transition: color 0.2s ease !important;
+    transition: color 0.15s ease !important;
 }}
 
 /* Active navigation text and icon */
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p,
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p {{
     color: {primary_green} !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
 }}
 
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stIconMaterial"],
@@ -637,7 +638,7 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .mate
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 8px 10px;
     background-color: {card_sub_bg};
     border: 1px solid {border_color};
     border-radius: 9px;
@@ -668,16 +669,16 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .mate
     font-weight: 600;
     color: {text_secondary};
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
     line-height: 1.2;
 }}
 
 .sidebar-section-caption {{
     font-size: 11px;
-    font-weight: 700;
+    font-weight: 600;
     color: {text_secondary};
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.03em;
     margin-top: 6px;
     margin-bottom: 8px;
     padding-left: 2px;
@@ -686,7 +687,7 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .mate
 .sidebar-divider {{
     height: 1px;
     background-color: {border_color};
-    margin: 16px 0 12px 0;
+    margin: 14px 0 10px 0;
 }}
 
 .sidebar-settings-card {{
@@ -740,7 +741,7 @@ div[data-baseweb="select"] div {{
 }}
 
 div[data-baseweb="select"] > div {{
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     transition: border-color 0.2s ease !important;
 }}
@@ -767,7 +768,7 @@ div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
 ul[data-baseweb="menu"] {{
     background-color: {card_bg} !important;
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, {"0.35" if dark_mode else "0.08"}) !important;
 }}
@@ -787,58 +788,65 @@ li[data-baseweb="menu-item"][aria-selected="true"] {{
 
 /* 8. Biophilic Typography and Card styling */
 .main-title {{
-    font-size: 32px !important;
-    font-weight: 800 !important;
+    font-size: 28px !important;
+    font-weight: 700 !important;
     color: {text_primary} !important;
-    margin-bottom: 0.25rem !important;
-    letter-spacing: -0.02em !important;
+    margin-bottom: 0.2rem !important;
+    letter-spacing: -0.015em !important;
     line-height: 1.25 !important;
 }}
 
 .sub-title {{
-    font-size: 16px !important;
+    font-size: 14.5px !important;
     color: {text_secondary} !important;
     margin-bottom: 1.2rem !important;
-    font-weight: 500 !important;
+    font-weight: 400 !important;
     line-height: 1.5 !important;
 }}
 
 .info-card {{
     background-color: {card_bg};
-    border: 1.5px solid {border_color};
+    border: 1px solid {border_color};
     border-radius: 10px;
     padding: 16px 20px;
     margin-bottom: 1.2rem;
     color: {text_primary};
-    font-size: 15.5px;
+    font-size: 14.5px;
     line-height: 1.5;
 }}
 
 .summary-card {{
     background: {card_bg};
-    border: 1.5px solid {border_color};
+    border: 1px solid {border_color};
     border-radius: 10px;
-    padding: 18px 20px;
+    padding: 16px 18px;
     height: 100%;
     color: {text_primary};
-    font-size: 15px;
-    line-height: 1.55;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    font-size: 14px;
+    line-height: 1.5;
 }}
 
 /* Headings */
-h1, h2, h3, div[data-testid="stHeadingWithActionElements"] h2, h3 {{
+h1, h2, div[data-testid="stHeadingWithActionElements"] h2 {{
     color: {text_primary} !important;
-    font-size: 24px !important;
+    font-size: 22px !important;
     font-weight: 600 !important;
     margin-top: 1.2rem !important;
     margin-bottom: 0.6rem !important;
     letter-spacing: -0.01em !important;
 }}
 
-h4, .card-title {{
+h3, div[data-testid="stHeadingWithActionElements"] h3 {{
     color: {text_primary} !important;
     font-size: 18px !important;
+    font-weight: 600 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+}}
+
+h4, .card-title {{
+    color: {text_primary} !important;
+    font-size: 16px !important;
     font-weight: 600 !important;
 }}
 
@@ -847,17 +855,17 @@ div[data-testid="stCaptionContainer"],
 .stCaption,
 small {{
     color: {text_secondary} !important;
-    font-size: 13.5px !important;
+    font-size: 13px !important;
     line-height: 1.5 !important;
 }}
 
-/* 9. Metric Cards with Deep Targeting for Crystal Readability */
+/* 9. Metric Cards - Clean, Uncluttered, No Green Square Boxes or Distracting Tooltips */
 div[data-testid="stMetric"] {{
     background-color: {card_bg} !important;
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 10px !important;
-    padding: 14px 18px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.03"}) !important;
+    padding: 14px 16px !important;
+    box-shadow: none !important;
 }}
 
 div[data-testid="stMetricLabel"],
@@ -869,9 +877,17 @@ div[data-testid="stMetric"] label,
 div[data-testid="stMetric"] label * {{
     color: {text_secondary} !important;
     font-size: 13px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.04em !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}}
+
+/* Completely hide distracting help tooltip question marks */
+button[data-testid="stMetricHelpButton"],
+div[data-testid="stMetric"] svg[data-testid="stTooltipIcon"],
+div[data-testid="stMetricLabel"] svg {{
+    display: none !important;
+    visibility: hidden !important;
 }}
 
 div[data-testid="stMetricValue"],
@@ -881,16 +897,17 @@ div[data-testid="stMetricValue"] span,
 div[data-testid="stMetricValue"] div {{
     color: {text_primary} !important;
     font-size: 28px !important;
-    font-weight: 800 !important;
+    font-weight: 700 !important;
     font-feature-settings: "tnum" 1 !important;
 }}
 
+/* Delta styling: clean inline label, transparent background, no square box */
 div[data-testid="stMetricDelta"],
 div[data-testid="stMetricDelta"] > div {{
-    background-color: {"#24382C" if dark_mode else "#EAF0E5"} !important;
-    border: 1px solid {"#3A5543" if dark_mode else "#D2E0CC"} !important;
-    border-radius: 6px !important;
-    padding: 3px 8px !important;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin-top: 2px !important;
     display: inline-flex !important;
     align-items: center !important;
     gap: 4px !important;
@@ -900,10 +917,10 @@ div[data-testid="stMetricDelta"] > div {{
 div[data-testid="stMetricDelta"] *,
 div[data-testid="stMetricDelta"] span,
 div[data-testid="stMetricDelta"] svg {{
-    color: {"#75B58A" if dark_mode else "#39845A"} !important;
-    fill: {"#75B58A" if dark_mode else "#39845A"} !important;
+    color: {text_secondary} !important;
+    fill: {text_secondary} !important;
     font-size: 12.5px !important;
-    font-weight: 600 !important;
+    font-weight: 400 !important;
 }}
 
 /* Sliders */
@@ -938,11 +955,11 @@ button[kind="primary"],
 .stButton > button[kind="primary"],
 button[data-testid="baseButton-primary"] {{
     background-color: {primary_green} !important;
-    color: {"#101A16" if dark_mode else "#FFFFFF"} !important;
+    color: {"#101B17" if dark_mode else "#FFFFFF"} !important;
     border: none !important;
     border-radius: 8px !important;
     font-size: 14px !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     padding: 0.52rem 1.1rem !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.08"}) !important;
     transition: all 0.2s ease !important;
@@ -952,7 +969,7 @@ button[kind="primary"]:hover,
 .stButton > button[kind="primary"]:hover,
 button[data-testid="baseButton-primary"]:hover {{
     background-color: {button_hover_bg} !important;
-    color: {"#101A16" if dark_mode else "#FFFFFF"} !important;
+    color: {"#101B17" if dark_mode else "#FFFFFF"} !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.3" if dark_mode else "0.14"}) !important;
     transform: translateY(-1px) !important;
 }}
@@ -962,7 +979,7 @@ button[kind="secondary"],
 button[data-testid="baseButton-secondary"] {{
     background-color: {card_bg} !important;
     color: {text_primary} !important;
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -983,7 +1000,7 @@ button[data-testid="baseButton-secondary"]:hover {{
 div[data-testid="stDownloadButton"] > button {{
     background-color: {card_bg} !important;
     color: {text_primary} !important;
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
@@ -999,7 +1016,7 @@ div[data-testid="stDownloadButton"] > button:hover {{
 div[data-testid="stDataFrame"],
 div[data-testid="stTable"] {{
     background-color: {card_bg} !important;
-    border: 1.5px solid {border_color} !important;
+    border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     overflow: hidden !important;
     {"filter: invert(0.88) hue-rotate(180deg) !important;" if dark_mode else ""}
@@ -1062,22 +1079,22 @@ brand_logo_svg = f"""<svg width="38" height="38" viewBox="0 0 38 38" fill="none"
 
 # Outline status icon & theme-tailored badge colors
 if cur_class == CLASS_COLD:
-    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>"""
-    badge_bg = "#142525" if dark_mode else "#EBF5F3"
-    badge_border = "#2D5550" if dark_mode else "#A2CFC7"
-    badge_color = "#5BB5B5" if dark_mode else "#2A7366"
+    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>"""
+    badge_bg = "#162732" if dark_mode else "#EBF3F7"
+    badge_border = "#234255" if dark_mode else "#BED9E8"
+    badge_color = "#6BA4C8" if dark_mode else "#2A6282"
 elif cur_class == CLASS_HOT:
-    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>"""
-    badge_bg = "#281B1A" if dark_mode else "#FDF2F0"
-    badge_border = "#5E332E" if dark_mode else "#E58B80"
-    badge_color = "#E58B80" if dark_mode else "#B9493F"
+    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/><circle cx="12" cy="12" r="4"/></svg>"""
+    badge_bg = "#2E2216" if dark_mode else "#FDF4E7"
+    badge_border = "#4E3722" if dark_mode else "#F0D5AF"
+    badge_color = "#E8A25B" if dark_mode else "#965C1E"
 else:  # CLASS_COMFORTABLE
-    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>"""
-    badge_bg = "#1E3127" if dark_mode else "#EAF2EB"
-    badge_border = "#304438" if dark_mode else "#B4D5BE"
-    badge_color = "#75B58A" if dark_mode else "#39845A"
+    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>"""
+    badge_bg = "#1B2D22" if dark_mode else "#EAF4EC"
+    badge_border = "#2D4836" if dark_mode else "#C6DEC9"
+    badge_color = "#75B58A" if dark_mode else "#245C43"
 
-thermo_mini_svg = """<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>"""
+thermo_mini_svg = """<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>"""
 
 header_html = f"""<header class="fixed-top-header">
 <div class="header-left">
@@ -1088,7 +1105,7 @@ header_html = f"""<header class="fixed-top-header">
 </div>
 </div>
 <div class="header-right">
-<div class="header-status-badge" style="background-color: {badge_bg}; border: 1.5px solid {badge_border}; color: {badge_color};">
+<div class="header-status-badge" style="background-color: {badge_bg}; border: 1px solid {badge_border}; color: {badge_color};">
 <span class="badge-icon">{badge_icon_svg}</span>
 <span class="badge-label">{cur_class.upper()}</span>
 <span class="badge-sep">·</span>
@@ -1245,43 +1262,66 @@ if nav_selection == "Overview":
         unsafe_allow_html=True,
     )
 
-    # 2. 4 Essential Metric Cards
+    # 2. 4 Essential Metric Cards (Uncluttered, No Green Square Boxes, No Distracting Help Icons)
+    temp_diff = cur_temp - st.session_state.desired_temp
+    arrow = "↓" if temp_diff < -0.05 else ("↑" if temp_diff > 0.05 else "✓")
+    diff_subtext = f"{arrow} {abs(temp_diff):.1f} °C vs target"
+
+    if cur_class == CLASS_COMFORTABLE:
+        env_subtext = "Within optimal temperature range"
+        status_type = "comfortable"
+    elif cur_class == CLASS_COLD:
+        env_subtext = "Below comfortable temperature"
+        status_type = "cold"
+    else:
+        env_subtext = "Above comfortable temperature"
+        status_type = "hot"
+
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.metric(
-            "Current Room Temp",
-            f"{cur_temp:.2f} °C",
-            delta=f"{cur_temp - st.session_state.desired_temp:+.1f} °C vs target",
-            delta_color="inverse",
-            help="Current indoor thermodynamic state",
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Current Room Temp",
+                value=f"{cur_temp:.1f} °C",
+                subtext=diff_subtext,
+                status_type=status_type,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
         )
     with m2:
-        st.metric(
-            "Desired Target",
-            f"{st.session_state.desired_temp:.1f} °C",
-            delta=f"±{st.session_state.comfort_tolerance:.1f} °C band",
-            delta_color="off",
-            help="Target comfort temperature setpoint",
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Desired Target",
+                value=f"{st.session_state.desired_temp:.1f} °C",
+                subtext=f"Comfort range ±{st.session_state.comfort_tolerance:.1f} °C",
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
         )
     with m3:
-        st.metric(
-            "Outside Temp",
-            f"{st.session_state.outside_temp:.1f} °C",
-            delta=f"Insulation: {st.session_state.insulation_level}",
-            delta_color="off",
-            help="Outdoor ambient temperature influencing heat exchange",
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Outside Temp",
+                value=f"{st.session_state.outside_temp:.1f} °C",
+                subtext=f"Insulation: {st.session_state.insulation_level}",
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
         )
     with m4:
-        st.metric(
-            "Environment Status",
-            cur_class.upper(),
-            delta=status_info["icon"],
-            delta_color="off",
-            help="Classification into Cold, Comfortable, or Hot",
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Environment Status",
+                value=cur_class.upper(),
+                subtext=env_subtext,
+                status_type=status_type,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
         )
 
     # 3. Environmental Temperature Monitoring Visualization
-    st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("Temperature Monitoring & Thermal State")
     ch_col1, ch_col2 = st.columns(2)
     with ch_col1:
@@ -1308,7 +1348,6 @@ if nav_selection == "Overview":
         )
 
     # 4. Agent Architecture Overview
-    st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("Agent Architecture Summary")
     ac1, ac2 = st.columns(2)
     with ac1:
@@ -1337,7 +1376,6 @@ if nav_selection == "Overview":
         )
 
     # 5. Quick-Start Demonstration Scenarios
-    st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("Quick Scenario Launchers")
     sc1, sc2, sc3 = st.columns(3)
     with sc1:
@@ -1511,7 +1549,6 @@ elif nav_selection == "Environment Setup":
             upper_threshold=st.session_state.reflex_upper_slider,
         )
 
-    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("Apply Settings & Reset All Simulations", type="primary", use_container_width=True, key="btn_apply_reset"):
         reset_all_simulations()
         st.success("Configuration applied! All simulations reset with new parameters.")
@@ -1572,7 +1609,6 @@ elif nav_selection == "Utility-Based Agent":
                 "classification": next_st["classification"],
             })
 
-    st.markdown("<br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     with c1:
         if st.button("Run Simulation", key="btn_u_run", use_container_width=True, type="primary"):
@@ -1596,7 +1632,6 @@ elif nav_selection == "Utility-Based Agent":
             st.rerun()
 
     # Decision Reasoning & Utility Scores
-    st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("Decision Explanation & Action Scores")
     if last_dec:
         st.markdown(
@@ -1690,7 +1725,6 @@ elif nav_selection == "Reflex Thermostat":
             rec = reflex_agent.step_environment(reflex_env)
             st.session_state.reflex_simulation_records.append(rec)
 
-    st.markdown("<br>", unsafe_allow_html=True)
     rc1, rc2, rc3 = st.columns(3)
     with rc1:
         if st.button("Run Simulation", key="btn_sec_r_run", use_container_width=True, type="primary"):
@@ -1714,7 +1748,6 @@ elif nav_selection == "Reflex Thermostat":
             st.rerun()
 
     # Threshold Rules Display
-    st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("Condition-Action Rules")
     st.markdown(
         get_reflex_rules_html(
@@ -1792,7 +1825,6 @@ elif nav_selection == "Agent Comparison":
     comp_table_df = eval_res["comparison_df"]
     comp_summary = eval_res["summary"]
 
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(get_comparison_summary_html(comp_summary, dark_mode=dark_mode), unsafe_allow_html=True)
 
     # Key Performance Metrics Cards
