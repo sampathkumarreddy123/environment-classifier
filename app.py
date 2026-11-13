@@ -38,6 +38,7 @@ from comparison import (
     ComparisonRunner,
 )
 from utils import (
+    _clean_html,
     create_agent_temperature_history_chart,
     create_comparison_action_distribution_chart,
     create_comparison_bar_chart,
@@ -247,32 +248,36 @@ dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 # ---------------------------------------------------------
 if dark_mode:
     app_bg = "#101A16"
-    card_bg = "#1B2922"
-    card_sub_bg = "#15221B"
-    text_primary = "#E8F0E8"
-    text_secondary = "#A7B8AA"
-    text_muted = "#8CA08E"
-    forest_green = "#70C98A"
-    primary_green = "#70C98A"
+    card_bg = "#192720"
+    card_sub_bg = "#22382C"
+    text_primary = "#E7F0E8"
+    text_secondary = "#A1B5A5"
+    text_muted = "#7B8F7F"
+    forest_green = "#75B58A"
+    primary_green = "#75B58A"
     muted_teal = "#5BB5B5"
     sage_green = "#9DBA91"
     mint_accent = "#8FD0A8"
-    border_color = "#34483B"
-    header_bg = "#1B2922"
-    header_border = "#34483B"
-    header_text = "#E8F0E8"
-    sidebar_bg = "#101A16"
-    sidebar_border = "#34483B"
+    border_color = "#304438"
+    header_bg = "#192720"
+    header_border = "#304438"
+    header_text = "#E7F0E8"
+    sidebar_bg = "#192720"
+    sidebar_border = "#304438"
     button_hover_bg = "#5A9E6F"
+    logo_box_bg = "#22382C"
+    logo_box_border = "#304438"
+    leaf_color = "#75B58A"
+    thermo_color = "#8FD0A8"
 else:
     app_bg = "#F5F7F0"
     card_bg = "#FFFFFF"
-    card_sub_bg = "#EAF0E5"
+    card_sub_bg = "#EAF2EB"
     text_primary = "#26382D"
-    text_secondary = "#5F7162"
-    text_muted = "#718174"
-    forest_green = "#2E7D52"
-    primary_green = "#2E7D52"
+    text_secondary = "#718174"
+    text_muted = "#8CA08E"
+    forest_green = "#39845A"
+    primary_green = "#39845A"
     muted_teal = "#4D9285"
     sage_green = "#829B78"
     mint_accent = "#B9D7C1"
@@ -282,7 +287,11 @@ else:
     header_text = "#26382D"
     sidebar_bg = "#FFFFFF"
     sidebar_border = "#DCE5D8"
-    button_hover_bg = "#236341"
+    button_hover_bg = "#2E6C49"
+    logo_box_bg = "#EAF2EB"
+    logo_box_border = "#DCE5D8"
+    leaf_color = "#39845A"
+    thermo_color = "#2E7D52"
 
 theme_css = f"""
 <style>
@@ -312,7 +321,7 @@ button[title="Deploy this app"],
 /* 2. Configure Streamlit's Default Header */
 header[data-testid="stHeader"] {{
     background-color: transparent !important;
-    height: 70px !important;
+    height: 72px !important;
     z-index: 999990 !important;
 }}
 
@@ -320,8 +329,8 @@ header[data-testid="stHeader"] {{
 header[data-testid="stHeader"] button[data-testid="stSidebarCollapseButton"],
 header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 [data-testid="stSidebarCollapseButton"] {{
-    margin-top: 10px !important;
-    margin-left: 12px !important;
+    margin-top: 17px !important;
+    margin-left: 14px !important;
     z-index: 1000000 !important;
     color: {header_text} !important;
 }}
@@ -332,15 +341,15 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     top: 0;
     left: 0;
     width: 100%;
-    height: 70px;
+    height: 72px;
     background-color: {header_bg};
-    border-bottom: 1.5px solid {header_border};
+    border-bottom: 1px solid {header_border};
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem 0 4.2rem;
     z-index: 999980;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, {"0.35" if dark_mode else "0.04"});
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"});
     box-sizing: border-box;
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }}
@@ -348,26 +357,31 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 .header-left {{
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     user-select: none;
+    min-width: 0;
 }}
 
-.header-icon {{
-    font-size: 24px;
-    line-height: 1;
+.header-brand-logo {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }}
 
 .header-title-group {{
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    min-width: 0;
 }}
 
 .header-title {{
-    font-size: 1.1rem;
+    font-size: 1.12rem;
     font-weight: 700;
     color: {header_text};
-    letter-spacing: -0.01em;
-    line-height: 1.2;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
     white-space: nowrap;
 }}
 
@@ -383,8 +397,9 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
 .header-right {{
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-right: 140px; /* Leaves clean room for the theme toggle pill */
+    gap: 14px;
+    margin-right: 145px; /* Clean clearance for fixed theme toggle pill */
+    flex-shrink: 0;
 }}
 
 .header-status-badge {{
@@ -400,13 +415,26 @@ header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
     transition: all 0.2s ease;
 }}
 
+.header-status-badge .badge-icon,
+.header-status-badge .badge-temp-icon {{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}}
+
+.header-status-badge .badge-sep {{
+    opacity: 0.5;
+    font-weight: 400;
+    margin: 0 1px;
+}}
+
 /* Dock Theme Toggle switch directly into top right header */
 .st-key-header_theme_toggle,
 div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle),
 div[data-testid="stCheckbox"]:has(input[aria-label*="Light"]),
 div[data-testid="stCheckbox"]:has(input[aria-label*="Dark"]) {{
     position: fixed !important;
-    top: 17px !important;
+    top: 18px !important;
     right: 1.5rem !important;
     z-index: 1000000 !important;
     margin: 0 !important;
@@ -428,7 +456,7 @@ div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label {{
     align-items: center !important;
     gap: 8px !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"}) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.15" if dark_mode else "0.03"}) !important;
 }}
 
 .st-key-header_theme_toggle label:hover,
@@ -445,10 +473,13 @@ div[data-testid="stCheckbox"]:has(.st-key-header_theme_toggle) label p {{
     padding: 0 !important;
     color: {header_text} !important;
     font-size: 13px !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     letter-spacing: 0.02em !important;
     line-height: 1 !important;
     white-space: nowrap !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
 }}
 
 .st-key-header_theme_toggle input[role="switch"]:checked + div,
@@ -466,94 +497,95 @@ div[data-testid="block-container"] {{
 
 /* 5. Sidebar layout starts cleanly below fixed header */
 section[data-testid="stSidebar"] {{
-    top: 70px !important;
-    height: calc(100vh - 70px) !important;
-    border-right: 1.5px solid {sidebar_border} !important;
+    top: 72px !important;
+    height: calc(100vh - 72px) !important;
+    border-right: 1px solid {sidebar_border} !important;
     background-color: {sidebar_bg} !important;
     z-index: 999970 !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSidebarUserContent"] {{
+    padding-top: 1.1rem !important;
+    padding-bottom: 2rem !important;
 }}
 
 section[data-testid="stSidebar"] * {{
     color: {text_primary} !important;
 }}
 
-/* 6. Biophilic Modern Sidebar Navigation Pills */
 /* 6. Biophilic Modern Sidebar Navigation Cards */
 div[data-testid="stRadio"] [role="radiogroup"] {{
     display: flex !important;
     flex-direction: column !important;
-    gap: 6px !important;
+    gap: 7px !important;
     width: 100% !important;
     padding: 2px 0 !important;
 }}
 
 /* Completely hide raw browser radio dots */
-div[data-testid="stRadio"] [role="radiogroup"] label div:first-of-type,
-div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"],
-div[data-testid="stRadio"] input[type="radio"],
-div[data-testid="stRadio"] svg {{
-div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField,
-div[data-testid="stRadio"] [role="radiogroup"] > div {{
-    width: 100% !important;
+div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"] {{
+    display: none !important;
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
 }}
 
-/* Hide ONLY the radio circle, never the text container */
-div[data-testid="stRadio"] label > div > div:first-child:not([data-testid="stMarkdownContainer"]) {{
+div[data-testid="stRadio"] [role="radiogroup"] label > div:first-child:not([data-testid="stMarkdownContainer"]) {{
     display: none !important;
     visibility: hidden !important;
     width: 0 !important;
     height: 0 !important;
     opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }}
 
-/* Hide raw input radio tag */
-div[data-testid="stRadio"] input[type="radio"] {{
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
+div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField,
+div[data-testid="stRadio"] [role="radiogroup"] > div {{
+    width: 100% !important;
 }}
 
 /* Clean clickable navigation cards */
-div[data-testid="stRadio"] [role="radiogroup"] > label {{
 div[data-testid="stRadio"] [role="radiogroup"] label {{
-    background-color: {"#18261F" if dark_mode else "#FFFFFF"} !important;
-    border: 1.5px solid {"#2E4234" if dark_mode else "#E0E8DC"} !important;
-    border: 1.5px solid {"#2E4234" if dark_mode else "#DCE5D8"} !important;
+    background-color: {"#15241C" if dark_mode else "#FFFFFF"} !important;
+    border: 1px solid {border_color} !important;
+    border-left: 4px solid transparent !important;
     border-radius: 8px !important;
-    padding: 10px 14px !important;
+    padding: 9px 12px !important;
     margin: 0 !important;
     cursor: pointer !important;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transition: all 0.2s ease !important;
     display: flex !important;
     align-items: center !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, {"0.15" if dark_mode else "0.03"}) !important;
 }}
 
-div[data-testid="stRadio"] [role="radiogroup"] > label:hover {{
 div[data-testid="stRadio"] [role="radiogroup"] label:hover {{
-    background-color: {"#22382B" if dark_mode else "#F0F5EC"} !important;
-    border-color: {"#70C98A" if dark_mode else "#2E7D52"} !important;
-    transform: translateX(3px) !important;
+    background-color: {"#1D3025" if dark_mode else "#F0F6EE"} !important;
+    border-color: {border_color} !important;
+    border-left-color: {"#5A9E6F" if dark_mode else "#829B78"} !important;
+    transform: translateX(2px) !important;
 }}
 
-div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked),
-div[data-testid="stRadio"] [role="radiogroup"] > label[aria-checked="true"] {{
-/* Selected state: works with React Aria data-selected attribute and checked input */
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
+/* Active navigation state:
+   - Light sage-green background in Light Mode (#EAF2EB)
+   - Muted forest-green background in Dark Mode (#22382C)
+   - Left-side active indicator (4px solid #39845A / #75B58A)
+   - Forest-green / mint-green text and icon
+*/
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
 div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected="true"] label {{
-    background-color: {"#243C2E" if dark_mode else "#E4EFE3"} !important;
-    border: 1.5px solid {"#70C98A" if dark_mode else "#2E7D52"} !important;
-    border-left: 4.5px solid {"#70C98A" if dark_mode else "#2E7D52"} !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.25" if dark_mode else "0.06"}) !important;
+    background-color: {"#22382C" if dark_mode else "#EAF2EB"} !important;
+    border: 1px solid {"#3A5744" if dark_mode else "#C5DAC6"} !important;
+    border-left: 4px solid {primary_green} !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, {"0.2" if dark_mode else "0.05"}) !important;
 }}
 
-div[data-testid="stRadio"] [role="radiogroup"] > label p,
-div[data-testid="stRadio"] [role="radiogroup"] > label span,
-div[data-testid="stRadio"] [role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {{
 /* Ensure inner container fills width */
 div[data-testid="stRadio"] label > div {{
     display: flex !important;
@@ -561,34 +593,139 @@ div[data-testid="stRadio"] label > div {{
     width: 100% !important;
 }}
 
-/* Ensure text inside stMarkdownContainer is visible, properly colored, and readable */
+/* Navigation label typography */
 div[data-testid="stRadio"] [data-testid="stMarkdownContainer"],
 div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
-    display: block !important;
+    display: flex !important;
+    align-items: center !important;
     visibility: visible !important;
     opacity: 1 !important;
-    color: {text_primary} !important;
-    font-size: 14px !important;
+    color: {text_secondary} !important;
+    font-size: 13.5px !important;
     font-weight: 500 !important;
     margin: 0 !important;
     padding: 0 !important;
     line-height: 1.35 !important;
 }}
 
-div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) p,
-div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) span,
-div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {{
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p {{
-    color: {"#8FD0A8" if dark_mode else "#2E7D52"} !important;
+/* Icons inside navigation items */
+div[data-testid="stRadio"] [data-testid="stIconMaterial"],
+div[data-testid="stRadio"] .material-symbols-rounded {{
+    color: {text_secondary} !important;
+    font-size: 19px !important;
+    margin-right: 8px !important;
+    vertical-align: middle !important;
+    transition: color 0.2s ease !important;
+}}
+
+/* Active navigation text and icon */
+div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p,
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p {{
+    color: {primary_green} !important;
     font-weight: 700 !important;
 }}
 
-/* 7. BaseWeb Selectbox (Fixing dark container background) */
+div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stIconMaterial"],
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stIconMaterial"],
+div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) .material-symbols-rounded,
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .material-symbols-rounded {{
+    color: {primary_green} !important;
+}}
+
+/* Sidebar Brand Lockup, Section Captions, and Dividers */
+.sidebar-brand-box {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background-color: {card_sub_bg};
+    border: 1px solid {border_color};
+    border-radius: 9px;
+    margin-bottom: 14px;
+}}
+
+.sidebar-brand-icon {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}}
+
+.sidebar-brand-info {{
+    display: flex;
+    flex-direction: column;
+}}
+
+.sidebar-brand-name {{
+    font-size: 13.5px;
+    font-weight: 700;
+    color: {text_primary};
+    line-height: 1.25;
+}}
+
+.sidebar-brand-sub {{
+    font-size: 10.5px;
+    font-weight: 600;
+    color: {text_secondary};
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}}
+
+.sidebar-section-caption {{
+    font-size: 11px;
+    font-weight: 700;
+    color: {text_secondary};
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 6px;
+    margin-bottom: 8px;
+    padding-left: 2px;
+}}
+
+.sidebar-divider {{
+    height: 1px;
+    background-color: {border_color};
+    margin: 16px 0 12px 0;
+}}
+
+.sidebar-settings-card {{
+    background-color: {card_sub_bg};
+    border: 1px solid {border_color};
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}}
+
+.sidebar-setting-row {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}}
+
+.sidebar-setting-row .setting-k {{
+    color: {text_secondary};
+    font-weight: 500;
+    font-size: 12px;
+}}
+
+.sidebar-setting-row .setting-v {{
+    color: {text_primary};
+    font-weight: 700;
+    text-align: right;
+    font-size: 12px;
+}}
+
+/* 7. BaseWeb Selectbox */
 div[data-testid="stSelectbox"] label,
 div[data-testid="stSelectbox"] label * {{
     color: {text_primary} !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
     font-weight: 600 !important;
 }}
 
@@ -605,6 +742,11 @@ div[data-baseweb="select"] div {{
 div[data-baseweb="select"] > div {{
     border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
+    transition: border-color 0.2s ease !important;
+}}
+
+div[data-baseweb="select"] > div:hover {{
+    border-color: {primary_green} !important;
 }}
 
 div[data-baseweb="select"] span,
@@ -612,12 +754,12 @@ div[data-baseweb="select"] p,
 div[data-baseweb="select"] [role="combobox"] * {{
     color: {text_primary} !important;
     background-color: transparent !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
 }}
 
 div[data-baseweb="select"] svg {{
-    fill: {text_primary} !important;
-    color: {text_primary} !important;
+    fill: {text_secondary} !important;
+    color: {text_secondary} !important;
 }}
 
 /* Selectbox Dropdown Menu Popover */
@@ -634,13 +776,13 @@ li[data-baseweb="menu-item"],
 li[data-baseweb="menu-item"] * {{
     background-color: transparent !important;
     color: {text_primary} !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
 }}
 
 li[data-baseweb="menu-item"]:hover,
 li[data-baseweb="menu-item"][aria-selected="true"] {{
     background-color: {card_sub_bg} !important;
-    color: {primary_green if not dark_mode else "#8FD0A8"} !important;
+    color: {primary_green} !important;
 }}
 
 /* 8. Biophilic Typography and Card styling */
@@ -718,7 +860,6 @@ div[data-testid="stMetric"] {{
     box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.03"}) !important;
 }}
 
-/* Deep targeting of Metric Labels to eliminate washed-out text */
 div[data-testid="stMetricLabel"],
 div[data-testid="stMetricLabel"] *,
 div[data-testid="stMetricLabel"] p,
@@ -733,7 +874,6 @@ div[data-testid="stMetric"] label * {{
     letter-spacing: 0.04em !important;
 }}
 
-/* Deep targeting of Metric Values */
 div[data-testid="stMetricValue"],
 div[data-testid="stMetricValue"] *,
 div[data-testid="stMetricValue"] p,
@@ -745,7 +885,6 @@ div[data-testid="stMetricValue"] div {{
     font-feature-settings: "tnum" 1 !important;
 }}
 
-/* Clean Biophilic Delta Indicators */
 div[data-testid="stMetricDelta"],
 div[data-testid="stMetricDelta"] > div {{
     background-color: {"#24382C" if dark_mode else "#EAF0E5"} !important;
@@ -761,8 +900,8 @@ div[data-testid="stMetricDelta"] > div {{
 div[data-testid="stMetricDelta"] *,
 div[data-testid="stMetricDelta"] span,
 div[data-testid="stMetricDelta"] svg {{
-    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
-    fill: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+    color: {"#75B58A" if dark_mode else "#39845A"} !important;
+    fill: {"#75B58A" if dark_mode else "#39845A"} !important;
     font-size: 12.5px !important;
     font-weight: 600 !important;
 }}
@@ -771,21 +910,21 @@ div[data-testid="stMetricDelta"] svg {{
 div[data-testid="stSlider"] label,
 div[data-testid="stSlider"] label * {{
     color: {text_primary} !important;
-    font-size: 14px !important;
+    font-size: 13.5px !important;
     font-weight: 600 !important;
 }}
 
 div[data-testid="stSlider"] [data-testid="stThumbValue"],
 div[data-testid="stSlider"] [data-testid="stThumbValue"] * {{
     color: {text_primary} !important;
-    font-size: 13.5px !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
 }}
 
 div[data-testid="stSlider"] [data-testid="stTickBarMin"],
 div[data-testid="stSlider"] [data-testid="stTickBarMax"] {{
     color: {text_secondary} !important;
-    font-size: 12px !important;
+    font-size: 11.5px !important;
     font-weight: 500 !important;
 }}
 
@@ -799,20 +938,23 @@ button[kind="primary"],
 .stButton > button[kind="primary"],
 button[data-testid="baseButton-primary"] {{
     background-color: {primary_green} !important;
-    color: #ffffff !important;
+    color: {"#101A16" if dark_mode else "#FFFFFF"} !important;
     border: none !important;
     border-radius: 8px !important;
-    font-size: 14.5px !important;
-    font-weight: 600 !important;
-    padding: 0.5rem 1rem !important;
-    transition: background-color 0.2s ease !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    padding: 0.52rem 1.1rem !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.08"}) !important;
+    transition: all 0.2s ease !important;
 }}
 
 button[kind="primary"]:hover,
 .stButton > button[kind="primary"]:hover,
 button[data-testid="baseButton-primary"]:hover {{
     background-color: {button_hover_bg} !important;
-    color: #ffffff !important;
+    color: {"#101A16" if dark_mode else "#FFFFFF"} !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.3" if dark_mode else "0.14"}) !important;
+    transform: translateY(-1px) !important;
 }}
 
 button[kind="secondary"],
@@ -822,9 +964,9 @@ button[data-testid="baseButton-secondary"] {{
     color: {text_primary} !important;
     border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
-    font-size: 14.5px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
-    padding: 0.5rem 1rem !important;
+    padding: 0.52rem 1.1rem !important;
     transition: all 0.2s ease !important;
 }}
 
@@ -833,7 +975,8 @@ button[kind="secondary"]:hover,
 button[data-testid="baseButton-secondary"]:hover {{
     background-color: {card_sub_bg} !important;
     border-color: {primary_green} !important;
-    color: {text_primary} !important;
+    color: {primary_green} !important;
+    transform: translateY(-1px) !important;
 }}
 
 /* Download Buttons */
@@ -842,9 +985,9 @@ div[data-testid="stDownloadButton"] > button {{
     color: {text_primary} !important;
     border: 1.5px solid {border_color} !important;
     border-radius: 8px !important;
-    font-size: 14.5px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
-    padding: 0.5rem 1rem !important;
+    padding: 0.52rem 1.1rem !important;
 }}
 
 div[data-testid="stDownloadButton"] > button:hover {{
@@ -872,7 +1015,7 @@ div[data-testid="stTable"] {{
     }}
     .header-status-badge {{
         font-size: 11.5px !important;
-        padding: 4px 9px !important;
+        padding: 5px 10px !important;
     }}
     .header-right {{
         margin-right: 125px !important;
@@ -887,11 +1030,11 @@ div[data-testid="stTable"] {{
         display: none !important;
     }}
     .fixed-top-header {{
-        padding-left: 3.6rem !important;
+        padding-left: 3.5rem !important;
         padding-right: 1rem !important;
     }}
     .header-right {{
-        margin-right: 105px !important;
+        margin-right: 100px !important;
     }}
 }}
 </style>
@@ -907,27 +1050,38 @@ cur_temp = current_obs["room_temp"]
 cur_class = current_obs["classification"]
 status_info = STATUS_COLORS.get(cur_class, STATUS_COLORS[CLASS_COMFORTABLE])
 
-if dark_mode:
-    if cur_class == CLASS_COLD:
-        badge_bg = "#162828"
-        badge_border = "#4D9285"
-        badge_color = "#5BB5B5"
-    elif cur_class == CLASS_HOT:
-        badge_bg = "#2A1B1A"
-        badge_border = "#C65B52"
-        badge_color = "#E58B80"
-    else:
-        badge_bg = "#192720"
-        badge_border = "#376B4E"
-        badge_color = "#75C995"
-else:
-    badge_bg = status_info["bg_light"]
-    badge_border = status_info["border"]
-    badge_color = status_info["color"]
+# Minimal line-art SVG logo combining leaf and thermometer
+brand_logo_svg = f"""<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="38" height="38" rx="10" fill="{logo_box_bg}" stroke="{logo_box_border}" stroke-width="1.2"/>
+<path d="M14 28C9 26.5 6.8 22.8 7.3 16.5C7.8 10.2 14.5 8 20 7C20.5 12.5 19 19 14 23.5" stroke="{leaf_color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M7.8 28C10.2 25.8 12.8 23.6 14 23.5" stroke="{leaf_color}" stroke-width="1.9" stroke-linecap="round"/>
+<path d="M25 12.5V21A3.5 3.5 0 1 1 21.8 21V12.5A1.6 1.6 0 0 1 25 12.5Z" stroke="{thermo_color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="23.4" cy="24.4" r="1.5" fill="{thermo_color}"/>
+<line x1="23.4" y1="15.5" x2="23.4" y2="18.2" stroke="{thermo_color}" stroke-width="1.6" stroke-linecap="round"/>
+</svg>"""
+
+# Outline status icon & theme-tailored badge colors
+if cur_class == CLASS_COLD:
+    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>"""
+    badge_bg = "#142525" if dark_mode else "#EBF5F3"
+    badge_border = "#2D5550" if dark_mode else "#A2CFC7"
+    badge_color = "#5BB5B5" if dark_mode else "#2A7366"
+elif cur_class == CLASS_HOT:
+    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>"""
+    badge_bg = "#281B1A" if dark_mode else "#FDF2F0"
+    badge_border = "#5E332E" if dark_mode else "#E58B80"
+    badge_color = "#E58B80" if dark_mode else "#B9493F"
+else:  # CLASS_COMFORTABLE
+    badge_icon_svg = """<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>"""
+    badge_bg = "#1E3127" if dark_mode else "#EAF2EB"
+    badge_border = "#304438" if dark_mode else "#B4D5BE"
+    badge_color = "#75B58A" if dark_mode else "#39845A"
+
+thermo_mini_svg = """<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>"""
 
 header_html = f"""<header class="fixed-top-header">
 <div class="header-left">
-<span class="header-icon">🌿🌡️</span>
+<div class="header-brand-logo">{brand_logo_svg}</div>
 <div class="header-title-group">
 <div class="header-title">Environment Classifier and Demonstrator</div>
 <div class="header-subtitle">Intelligent Room Temperature Control</div>
@@ -935,17 +1089,19 @@ header_html = f"""<header class="fixed-top-header">
 </div>
 <div class="header-right">
 <div class="header-status-badge" style="background-color: {badge_bg}; border: 1.5px solid {badge_border}; color: {badge_color};">
-<span>{status_info['icon']}</span>
-<span>{cur_class.upper()}</span>
-<span style="opacity: 0.9; margin-left: 2px;">{cur_temp:.1f}°C</span>
+<span class="badge-icon">{badge_icon_svg}</span>
+<span class="badge-label">{cur_class.upper()}</span>
+<span class="badge-sep">·</span>
+<span class="badge-temp-icon">{thermo_mini_svg}</span>
+<span class="badge-temp-val">{cur_temp:.1f}°C</span>
 </div>
 </div>
 </header>"""
-st.markdown(header_html, unsafe_allow_html=True)
+st.markdown(_clean_html(header_html), unsafe_allow_html=True)
 
 # Theme Toggle switch (docked via CSS into top right of fixed header)
 toggle_theme = st.toggle(
-    "🌙 Dark" if dark_mode else "☀️ Light",
+    ":material/dark_mode: Dark" if dark_mode else ":material/light_mode: Light",
     key="header_theme_toggle",
     value=dark_mode,
     help="Toggle between Light Mode and Dark Mode",
@@ -968,16 +1124,33 @@ SECTIONS = [
 ]
 
 NAV_ICONS = {
-    "Overview": "🏠",
-    "Environment Setup": "⚙️",
-    "Utility-Based Agent": "🧠",
-    "Reflex Thermostat": "⚡",
-    "Agent Comparison": "⚖️",
-    "Results": "📊",
+    "Overview": ":material/dashboard:",
+    "Environment Setup": ":material/tune:",
+    "Utility-Based Agent": ":material/psychology:",
+    "Reflex Thermostat": ":material/device_thermostat:",
+    "Agent Comparison": ":material/balance:",
+    "Results": ":material/bar_chart:",
 }
 
+sidebar_branding_html = f"""<div class="sidebar-brand-box">
+<div class="sidebar-brand-icon">
+<svg width="28" height="28" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="38" height="38" rx="8" fill="{logo_box_bg}" stroke="{logo_box_border}" stroke-width="1.2"/>
+<path d="M14 28C9 26.5 6.8 22.8 7.3 16.5C7.8 10.2 14.5 8 20 7C20.5 12.5 19 19 14 23.5" stroke="{leaf_color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M7.8 28C10.2 25.8 12.8 23.6 14 23.5" stroke="{leaf_color}" stroke-width="1.9" stroke-linecap="round"/>
+<path d="M25 12.5V21A3.5 3.5 0 1 1 21.8 21V12.5A1.6 1.6 0 0 1 25 12.5Z" stroke="{thermo_color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="23.4" cy="24.4" r="1.5" fill="{thermo_color}"/>
+</svg>
+</div>
+<div class="sidebar-brand-info">
+<div class="sidebar-brand-name">Eco-Tech Control</div>
+<div class="sidebar-brand-sub">Dual-Agent Simulator</div>
+</div>
+</div>
+<div class="sidebar-section-caption">NAVIGATION</div>"""
+
 with st.sidebar:
-    st.markdown("### 🧭 Navigation")
+    st.markdown(_clean_html(sidebar_branding_html), unsafe_allow_html=True)
     nav_selection = st.radio(
         "Select Section",
         options=SECTIONS,
@@ -986,8 +1159,10 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-    st.markdown("---")
-    st.markdown("#### 🎯 Demonstration Scenarios")
+    st.markdown(
+        f'<div class="sidebar-divider"></div><div class="sidebar-section-caption">DEMONSTRATION SCENARIOS</div>',
+        unsafe_allow_html=True,
+    )
     scenario_choice = st.selectbox(
         "Load Preset Scenario",
         options=[
@@ -1001,28 +1176,50 @@ with st.sidebar:
                 2 if st.session_state.active_scenario_id == "comfortable_room" else 3
             )
         ),
+        label_visibility="collapsed",
     )
 
-    if st.button("Apply Selected Scenario", use_container_width=True, key="btn_apply_scenario"):
+    if st.button("Apply Selected Scenario", type="primary", use_container_width=True, key="btn_apply_scenario"):
         if "Scenario 1" in scenario_choice:
             apply_demonstration_scenario("cold_room")
         elif "Scenario 2" in scenario_choice:
             apply_demonstration_scenario("hot_room")
         elif "Scenario 3" in scenario_choice:
             apply_demonstration_scenario("comfortable_room")
-        st.success("Scenario loaded!")
+        st.success("Scenario applied!")
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("#### 📌 Current Settings")
-    st.caption(
-        f"**Target:** {st.session_state.desired_temp:.1f}°C (±{st.session_state.comfort_tolerance:.1f}°C)\n\n"
-        f"**Initial:** {st.session_state.initial_temp:.1f}°C · **Outside:** {st.session_state.outside_temp:.1f}°C\n\n"
-        f"**Insulation:** {st.session_state.insulation_level} · **Steps:** {st.session_state.max_steps}\n\n"
-        f"**Reflex Bounds:** [{st.session_state.reflex_lower_slider:.1f}°C, {st.session_state.reflex_upper_slider:.1f}°C]"
-    )
+    settings_card_html = f"""<div class="sidebar-divider"></div>
+<div class="sidebar-section-caption">CURRENT SETTINGS</div>
+<div class="sidebar-settings-card">
+<div class="sidebar-setting-row">
+<span class="setting-k">Target Temp</span>
+<span class="setting-v">{st.session_state.desired_temp:.1f}°C (±{st.session_state.comfort_tolerance:.1f}°C)</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Initial Temp</span>
+<span class="setting-v">{st.session_state.initial_temp:.1f}°C</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Outside Temp</span>
+<span class="setting-v">{st.session_state.outside_temp:.1f}°C</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Insulation</span>
+<span class="setting-v">{st.session_state.insulation_level}</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Simulation Steps</span>
+<span class="setting-v">{st.session_state.max_steps}</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Reflex Bounds</span>
+<span class="setting-v">[{st.session_state.reflex_lower_slider:.1f}°C, {st.session_state.reflex_upper_slider:.1f}°C]</span>
+</div>
+</div>"""
+    st.markdown(_clean_html(settings_card_html), unsafe_allow_html=True)
 
-    if st.button("🔄 Reset All Simulations", use_container_width=True, key="btn_sidebar_reset"):
+    if st.button("Reset All Simulations", type="secondary", use_container_width=True, key="btn_sidebar_reset"):
         reset_all_simulations()
         st.rerun()
 
