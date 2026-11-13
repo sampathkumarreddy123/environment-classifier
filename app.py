@@ -50,6 +50,8 @@ from utils import (
     create_utility_comparison_chart,
     get_comparison_summary_html,
     get_decision_card_html,
+    get_device_status_panel_html,
+    get_live_room_simulation_html,
     get_overview_metric_card_html,
     get_reflex_rules_html,
     get_status_card_html,
@@ -241,6 +243,36 @@ comparison_runner: ComparisonRunner = st.session_state.comparison_runner
 latest_cfg = _build_comparison_config()
 if comparison_runner.config != latest_cfg:
     comparison_runner.reset(latest_cfg)
+
+
+def perform_agent_step() -> None:
+    current_env: RoomEnvironment = st.session_state.env
+    current_agent: UtilityBasedAgent = st.session_state.agent
+    if current_env.current_step < st.session_state.max_steps:
+        obs = current_env.get_state()
+        dec = current_agent.decide_action(obs)
+        next_st = current_env.step(dec.selected_action)
+        st.session_state.simulation_records.append({
+            "step": current_env.current_step,
+            "room_temp": obs["room_temp"],
+            "outside_temp": obs["outside_temp"],
+            "desired_temp": obs["desired_temp"],
+            "action": dec.selected_action,
+            "predicted_temp": dec.predicted_temp,
+            "actual_temp": next_st["room_temp"],
+            "utility_score": dec.utility_score,
+            "energy_consumed": dec.energy_consumed,
+            "classification": next_st["classification"],
+        })
+
+
+def perform_reflex_step() -> None:
+    current_reflex_env: RoomEnvironment = st.session_state.reflex_env
+    current_reflex_agent: SimpleReflexAgent = st.session_state.reflex_agent
+    if current_reflex_env.current_step < st.session_state.max_steps:
+        rec = current_reflex_agent.step_environment(current_reflex_env)
+        st.session_state.reflex_simulation_records.append(rec)
+
 
 dark_mode: bool = bool(st.session_state.get("dark_mode", False))
 
@@ -531,12 +563,12 @@ div[data-testid="stSidebarHeader"] > div {{
     border: none !important;
 }}
 
-/* Sidebar Content Container: 22px horizontal padding, 16px top padding, independent smooth scrolling */
+/* Sidebar Content Container: 18px horizontal padding, 8px top padding, independent smooth scrolling */
 div[data-testid="stSidebarContent"] {{
-    padding-top: 16px !important;
-    padding-bottom: 24px !important;
-    padding-left: 22px !important;
-    padding-right: 22px !important;
+    padding-top: 8px !important;
+    padding-bottom: 14px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
     height: 100% !important;
     max-height: 100% !important;
     overflow-y: auto !important;
@@ -571,103 +603,157 @@ section[data-testid="stSidebar"] * {{
     color: {text_primary} !important;
 }}
 
-/* 6. Biophilic Modern Sidebar Navigation - Compact & Standardized */
-div[data-testid="stRadio"] [role="radiogroup"] {{
+/* 6. Biophilic Modern Sidebar Navigation - Filled Full-Width Buttons & No Circles */
+/* Force outer Streamlit element containers to expand to 100% full width */
+.st-key-nav_selection,
+div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]),
+div[data-testid="stElementContainer"]:has(.st-key-nav_selection),
+section[data-testid="stSidebar"] div.stRadio,
+section[data-testid="stSidebar"] div[data-testid="stRadio"],
+div[data-testid="stRadio"],
+div[data-testid="stRadio"] > div,
+div[data-testid="stRadio"] div[data-testid="stRadioGroup"],
+div[data-testid="stRadio"] [role="radiogroup"],
+div[data-testid="stRadio"] [class*="ex50key0"] {{
     display: flex !important;
     flex-direction: column !important;
-    gap: 8px !important; /* 7-9px vertical gap */
+    align-items: stretch !important;
+    gap: 5px !important; /* Compact vertical gap */
     width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
 }}
 
-/* Completely hide all radio button circles (outer circle and inner dot) across all Streamlit versions */
-div[data-testid="stRadio"] label > div > div:first-child,
-div[data-testid="stRadioOption"] > div > div:first-child,
-div[data-testid="stRadioGroup"] div[data-testid="stRadioOption"] > div > div:first-child,
+/* Entire radio option wrapper spanning 100% */
+div[data-testid="stRadio"] [class*="ex50key1"],
+div[data-testid="stRadio"] .react-aria-RadioField,
+div[data-testid="stRadio"] [role="radiogroup"] > div,
+div[data-testid="stRadioGroup"] > div {{
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}}
+
+/* Completely hide all radio button circles (outer circle and inner dot) across all Streamlit & React-Aria versions */
 div[data-testid="stRadio"] [class*="ex50key4"],
 div[data-testid="stRadio"] [class*="ex50key5"],
-div[data-testid="stRadio"] [role="radiogroup"] label > div:first-child:not([data-testid="stMarkdownContainer"]),
-div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"],
-div[data-testid="stRadio"] .react-aria-RadioButton {{
+[data-testid="stRadio"] [class*="ex50key4"],
+[data-testid="stRadio"] [class*="ex50key5"],
+[class*="ex50key4"],
+[class*="ex50key5"],
+[data-testid="stRadioOption"] [class*="ex50key4"],
+[data-testid="stRadioOption"] [class*="ex50key5"],
+div[data-testid="stRadio"] [data-testid="stRadioOption"] > div > div:first-child,
+div[data-testid="stRadio"] [data-testid="stRadioOption"] > div > span:first-child,
+[data-testid="stRadioOption"] > div > div:first-child,
+[data-testid="stRadioOption"] > div > span:first-child,
+[data-testid="stRadioOption"] input,
+div[data-testid="stRadio"] input[type="radio"],
+div[data-testid="stRadio"] .react-aria-RadioButton,
+div[data-testid="stRadio"] [role="radio"] > div:first-child {{
     display: none !important;
     visibility: hidden !important;
     width: 0 !important;
     height: 0 !important;
     min-width: 0 !important;
     min-height: 0 !important;
+    max-width: 0 !important;
+    max-height: 0 !important;
     opacity: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     pointer-events: none !important;
+    position: absolute !important;
 }}
 
 /* Zero out any residual flex gap from the hidden circle */
+[data-testid="stRadioOption"] > div,
+[data-testid="stRadioOption"] [class*="ex50key3"],
 div[data-testid="stRadio"] label > div,
-div[data-testid="stRadioOption"] > div {{
+div[data-testid="stRadio"] [data-testid="stRadioOption"] > div {{
     gap: 0 !important;
     width: 100% !important;
+    min-width: 100% !important;
     display: flex !important;
     align-items: center !important;
 }}
 
-div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField,
-div[data-testid="stRadio"] [role="radiogroup"] > div {{
-    width: 100% !important;
-}}
-
-/* Standardized navigation items: 44px height (42-46px), rounded 8px, padding 0 14px */
+/* Filled navigation buttons spanning 100% full width (Default Inactive State) */
+div[data-testid="stRadio"] [data-testid="stRadioOption"],
+div[data-testid="stRadio"] [class*="ex50key2"],
 div[data-testid="stRadio"] [role="radiogroup"] label,
-div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField label,
-div[data-testid="stRadioOption"] {{
-    height: 44px !important;
-    min-height: 44px !important;
-    max-height: 44px !important;
-    background-color: transparent !important;
-    border: 1px solid transparent !important;
+div[data-testid="stRadio"] .react-aria-RadioField label,
+[data-testid="stRadioOption"] {{
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    background-color: {"#1A2821" if dark_mode else "#FFFFFF"} !important;
+    border: 1px solid {border_color} !important;
     border-left: 3.5px solid transparent !important;
     border-radius: 8px !important;
-    padding: 0 14px !important;
+    padding: 0 12px !important;
     margin: 0 !important;
     cursor: pointer !important;
     transition: all 0.15s ease !important;
     display: flex !important;
     align-items: center !important;
     width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, {"0.15" if dark_mode else "0.03"}) !important;
 }}
 
-/* Inactive navigation hover: subtle background */
-div[data-testid="stRadio"] [role="radiogroup"] label:hover {{
-    background-color: {"rgba(117, 181, 138, 0.1)" if dark_mode else "rgba(36, 92, 67, 0.06)"} !important;
-    border-color: transparent !important;
+/* Inactive navigation hover */
+div[data-testid="stRadio"] [data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover,
+div[data-testid="stRadio"] [class*="ex50key2"]:not([data-selected]):not(:has(input:checked)):hover,
+div[data-testid="stRadio"] [role="radiogroup"] label:not([data-selected]):not(:has(input:checked)):hover,
+[data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover {{
+    background-color: {"#24382D" if dark_mode else "#EAF2EB"} !important;
+    border-color: {"#456E52" if dark_mode else "#B4D5BE"} !important;
     border-left-color: {"#5A9E6F" if dark_mode else "#829B78"} !important;
-    transform: translateX(2px) !important;
+    transform: translateX(1px) !important;
 }}
 
-/* Active navigation state:
-   - Soft sage-green background in Light Mode (#EAF2EB)
-   - Muted forest-green background in Dark Mode (#22352A)
-   - Subtle left-side active indicator (3.5px solid #245C43 / #75B58A)
-   - Forest-green / mint text and icon
-   - Medium font weight (600)
-   - Rounded corners (8px)
-*/
+/* Active navigation state: prominent filled sage/forest pill spanning 100% width */
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stRadioOption"],
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stRadioOption"],
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [class*="ex50key2"],
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [class*="ex50key2"],
+div[data-testid="stRadio"] .react-aria-RadioField[data-selected] [data-testid="stRadioOption"],
+div[data-testid="stRadio"] .react-aria-RadioField[data-selected="true"] [data-testid="stRadioOption"],
+div[data-testid="stRadio"] [data-testid="stRadioOption"][data-selected],
+div[data-testid="stRadio"] [data-testid="stRadioOption"][data-selected="true"],
+div[data-testid="stRadio"] [data-testid="stRadioOption"]:has(input:checked),
+div[data-testid="stRadio"] [class*="ex50key2"][data-selected],
+div[data-testid="stRadio"] [class*="ex50key2"][data-selected="true"],
+div[data-testid="stRadio"] [class*="ex50key2"]:has(input:checked),
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected],
-div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected="true"] label,
-div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected] label {{
-    background-color: {"#22352A" if dark_mode else "#EAF2EB"} !important;
-    border: 1px solid {"#2E4738" if dark_mode else "#D5E3D6"} !important;
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
+[data-testid="stRadioOption"][data-selected],
+[data-testid="stRadioOption"][data-selected="true"],
+[data-testid="stRadioOption"]:has(input:checked) {{
+    background-color: {"#244030" if dark_mode else "#E2ECE3"} !important;
+    border: 1px solid {"#3A6348" if dark_mode else "#B0CFB6"} !important;
     border-left: 3.5px solid {primary_green} !important;
-    box-shadow: none !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.05"}) !important;
 }}
 
 /* Navigation label typography */
 div[data-testid="stRadio"] [data-testid="stMarkdownContainer"],
-div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
+div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
+[data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p {{
     display: flex !important;
     align-items: center !important;
     visibility: visible !important;
@@ -679,11 +765,14 @@ div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
     padding: 0 !important;
     line-height: 1 !important;
     white-space: nowrap !important;
+    width: 100% !important;
 }}
 
 /* Icons inside navigation items: 19px outline icons */
 div[data-testid="stRadio"] [data-testid="stIconMaterial"],
-div[data-testid="stRadio"] .material-symbols-rounded {{
+div[data-testid="stRadio"] .material-symbols-rounded,
+[data-testid="stRadioOption"] [data-testid="stIconMaterial"],
+[data-testid="stRadioOption"] .material-symbols-rounded {{
     color: {"#8A9E8E" if dark_mode else "#5F7162"} !important;
     font-size: 19px !important;
     margin-right: 10px !important;
@@ -693,53 +782,67 @@ div[data-testid="stRadio"] .material-symbols-rounded {{
     align-items: center !important;
     justify-content: center !important;
     width: 20px !important;
+    min-width: 20px !important;
 }}
 
 /* Active navigation text and icon */
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stMarkdownContainer"] p,
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stMarkdownContainer"] p,
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p,
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stMarkdownContainer"] p {{
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stMarkdownContainer"] p,
+[data-testid="stRadioOption"][data-selected] [data-testid="stMarkdownContainer"] p,
+[data-testid="stRadioOption"][data-selected="true"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stRadioOption"]:has(input:checked) [data-testid="stMarkdownContainer"] p {{
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     font-weight: 600 !important;
 }}
 
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stIconMaterial"],
+div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) .material-symbols-rounded,
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .material-symbols-rounded,
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-symbols-rounded {{
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-symbols-rounded,
+[data-testid="stRadioOption"][data-selected] [data-testid="stIconMaterial"],
+[data-testid="stRadioOption"][data-selected="true"] [data-testid="stIconMaterial"],
+[data-testid="stRadioOption"]:has(input:checked) [data-testid="stIconMaterial"],
+[data-testid="stRadioOption"][data-selected] .material-symbols-rounded,
+[data-testid="stRadioOption"][data-selected="true"] .material-symbols-rounded,
+[data-testid="stRadioOption"]:has(input:checked) .material-symbols-rounded {{
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
 }}
 
-/* Section Captions and Dividers */
+/* Section Captions and Dividers - Compact */
 .sidebar-section-caption {{
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10.5px;
+    font-weight: 700;
     color: {text_secondary};
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-top: 0;
-    margin-bottom: 12px;
-    padding-left: 2px;
+    margin-bottom: 6px;
+    padding-left: 1px;
 }}
 
 .sidebar-divider {{
     height: 1px;
     background-color: {border_color};
-    margin: 24px 0 14px 0; /* 22-26px section divider spacing */
+    margin: 12px 0 8px 0; /* Compact spacing */
 }}
 
 .sidebar-settings-card {{
     background-color: {card_sub_bg};
     border: 1px solid {border_color};
     border-radius: 8px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    font-size: 12.5px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 5px;
 }}
 
 .sidebar-setting-row {{
@@ -747,13 +850,13 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
     justify-content: space-between;
     align-items: center;
     gap: 8px;
-    padding: 1px 0;
+    padding: 0;
 }}
 
 .sidebar-setting-row .setting-k {{
     color: {text_secondary};
     font-weight: 400;
-    font-size: 12.5px;
+    font-size: 12px;
     text-align: left;
 }}
 
@@ -761,61 +864,34 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
     color: {text_primary};
     font-weight: 600;
     text-align: right;
-    font-size: 12.5px;
+    font-size: 12px;
     font-feature-settings: "tnum" 1;
 }}
 
-/* Sidebar Controls: Scenario Selectbox & Buttons */
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
-    height: 46px !important;
-    min-height: 46px !important;
+/* Sidebar Controls: Scenario Selectbox & Secondary Reset Button */
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"],
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-rac=""] {{
+    height: 40px !important;
+    min-height: 40px !important;
     border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
-}}
-
-section[data-testid="stSidebar"] button[kind="primary"],
-section[data-testid="stSidebar"] button[data-testid="baseButton-primary"],
-section[data-testid="stSidebar"] .stButton > button[kind="primary"] {{
-    height: 46px !important;
-    min-height: 46px !important;
-    border-radius: 8px !important;
-    background-color: {primary_green} !important;
-    color: #FFFFFF !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 100% !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.08"}) !important;
-    transition: all 0.2s ease !important;
-}}
-
-section[data-testid="stSidebar"] button[kind="primary"] p,
-section[data-testid="stSidebar"] button[data-testid="baseButton-primary"] p {{
-    color: #FFFFFF !important;
-    font-weight: 600 !important;
-}}
-
-section[data-testid="stSidebar"] button[kind="primary"]:hover,
-section[data-testid="stSidebar"] button[data-testid="baseButton-primary"]:hover {{
-    background-color: {button_hover_bg} !important;
-    color: #FFFFFF !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.3" if dark_mode else "0.14"}) !important;
+    background-color: {card_bg} !important;
+    border: 1px solid {border_color} !important;
+    color: {text_primary} !important;
 }}
 
 section[data-testid="stSidebar"] button[kind="secondary"],
 section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"],
 section[data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
-    height: 44px !important;
-    min-height: 44px !important;
+    height: 38px !important;
+    min-height: 38px !important;
     border-radius: 8px !important;
     border: 1px solid {border_color} !important;
     background-color: {card_bg} !important;
     color: {text_primary} !important;
-    font-size: 13.5px !important;
+    font-size: 13px !important;
     font-weight: 600 !important;
     display: flex !important;
     align-items: center !important;
@@ -832,7 +908,7 @@ section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"]:hove
     transform: translateY(-1px) !important;
 }}
 
-/* 7. BaseWeb Selectbox */
+/* 7. Selectbox (BaseWeb and Modern React-Aria) */
 div[data-testid="stSelectbox"] label,
 div[data-testid="stSelectbox"] label * {{
     color: {text_primary} !important;
@@ -844,31 +920,41 @@ div[data-baseweb="select"],
 div[data-baseweb="select"] > div,
 div[data-baseweb="select"] [role="combobox"],
 div[data-baseweb="select"] [aria-haspopup="listbox"],
-div[data-baseweb="select"] div {{
+div[data-baseweb="select"] div,
+div[data-testid="stSelectbox"] [role="combobox"],
+div[data-testid="stSelectbox"] div[data-rac=""],
+div[data-testid="stSelectbox"] [class*="equpb2c0"] {{
     background-color: {card_bg} !important;
     border-color: {border_color} !important;
     color: {text_primary} !important;
 }}
 
-div[data-baseweb="select"] > div {{
+div[data-baseweb="select"] > div,
+div[data-testid="stSelectbox"] [role="combobox"],
+div[data-testid="stSelectbox"] div[data-rac=""] {{
     border: 1px solid {border_color} !important;
     border-radius: 8px !important;
     transition: border-color 0.2s ease !important;
 }}
 
-div[data-baseweb="select"] > div:hover {{
+div[data-baseweb="select"] > div:hover,
+div[data-testid="stSelectbox"] [role="combobox"]:hover,
+div[data-testid="stSelectbox"] div[data-rac=""]:hover {{
     border-color: {primary_green} !important;
 }}
 
 div[data-baseweb="select"] span,
 div[data-baseweb="select"] p,
-div[data-baseweb="select"] [role="combobox"] * {{
+div[data-baseweb="select"] [role="combobox"] *,
+div[data-testid="stSelectbox"] [role="combobox"] *,
+div[data-testid="stSelectbox"] div[data-rac=""] * {{
     color: {text_primary} !important;
     background-color: transparent !important;
     font-size: 13.5px !important;
 }}
 
-div[data-baseweb="select"] svg {{
+div[data-baseweb="select"] svg,
+div[data-testid="stSelectbox"] svg {{
     fill: {text_secondary} !important;
     color: {text_secondary} !important;
 }}
@@ -876,7 +962,9 @@ div[data-baseweb="select"] svg {{
 /* Selectbox Dropdown Menu Popover */
 div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
-ul[data-baseweb="menu"] {{
+ul[data-baseweb="menu"],
+div[data-rac=""][role="listbox"],
+div[role="listbox"] {{
     background-color: {card_bg} !important;
     border: 1px solid {border_color} !important;
     border-radius: 8px !important;
@@ -1164,6 +1252,257 @@ div[data-testid="stTable"] {{
         margin-right: 100px !important;
     }}
 }}
+
+/* =========================================================
+   Live Room Environment Simulation & Device Panel Styles
+   ========================================================= */
+
+@keyframes fanSpinAnim {{
+    from {{ transform: rotate(0deg); }}
+    to {{ transform: rotate(360deg); }}
+}}
+@keyframes coldStreamAnim {{
+    0% {{ stroke-dashoffset: 80; opacity: 0.15; }}
+    50% {{ opacity: 0.95; }}
+    100% {{ stroke-dashoffset: 0; opacity: 0.2; }}
+}}
+@keyframes snowflakeDriftAnim {{
+    0% {{ transform: translate(0, 0) rotate(0deg); opacity: 0; }}
+    25% {{ opacity: 0.95; }}
+    80% {{ opacity: 0.85; }}
+    100% {{ transform: translate(130px, 110px) rotate(160deg); opacity: 0; }}
+}}
+@keyframes heatWaveAnim {{
+    0% {{ transform: translateY(0) scaleX(1); opacity: 0.15; }}
+    40% {{ opacity: 0.9; }}
+    80% {{ opacity: 0.7; }}
+    100% {{ transform: translateY(-38px) scaleX(1.15); opacity: 0; }}
+}}
+@keyframes curtainFlutterAnim {{
+    0% {{ transform: skewX(0deg) scaleX(1); }}
+    50% {{ transform: skewX(3.5deg) scaleX(1.03); }}
+    100% {{ transform: skewX(0deg) scaleX(1); }}
+}}
+@keyframes pulseDotAnim {{
+    0%, 100% {{ opacity: 1; transform: scale(1); }}
+    50% {{ opacity: 0.5; transform: scale(1.2); }}
+}}
+
+.room-sim-container {{
+    width: 100%;
+    margin-bottom: 1.2rem;
+    box-sizing: border-box;
+}}
+
+.room-sim-card {{
+    background: {card_bg};
+    border: 1px solid {border_color};
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, {"0.2" if dark_mode else "0.04"});
+    box-sizing: border-box;
+}}
+
+.room-sim-topbar {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid {border_color};
+}}
+
+.room-agent-badge {{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: {text_primary};
+}}
+
+.room-agent-badge .agent-pill {{
+    background: {card_sub_bg};
+    border: 1px solid {border_color};
+    color: {forest_green};
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+}}
+
+.room-sim-readouts {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}}
+
+.room-pill {{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid {border_color};
+    background: {card_sub_bg};
+    color: {text_primary};
+}}
+
+.room-pill.primary {{
+    background: {"#244030" if dark_mode else "#E2ECE3"};
+    border-color: {"#3A6348" if dark_mode else "#B0CFB6"};
+    color: {"#8FD0A8" if dark_mode else "#245C43"};
+}}
+
+/* Mode Status Banner */
+.room-status-banner {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    border: 1px solid transparent;
+}}
+
+.room-status-banner.heating {{
+    background: {"#2E1E12" if dark_mode else "#FDF1E6"};
+    border-color: {"#5E3516" if dark_mode else "#F8CFA9"};
+    color: {"#FFA258" if dark_mode else "#A64B15"};
+}}
+
+.room-status-banner.cooling {{
+    background: {"#12222E" if dark_mode else "#EBF5FB"};
+    border-color: {"#1B435E" if dark_mode else "#BCE0F5"};
+    color: {"#68BFF5" if dark_mode else "#1B6291"};
+}}
+
+.room-status-banner.idle {{
+    background: {card_sub_bg};
+    border-color: {border_color};
+    color: {text_secondary};
+}}
+
+.status-dot {{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulseDotAnim 1.6s ease-in-out infinite;
+}}
+
+.status-dot.orange {{ background: #FF6B35; box-shadow: 0 0 8px #FF6B35; }}
+.status-dot.blue {{ background: #00B4D8; box-shadow: 0 0 8px #00B4D8; }}
+.status-dot.grey {{ background: #94A3B8; animation: none; }}
+
+/* SVG Animation Classes */
+.fan-spin {{
+    transform-origin: 460px 85px;
+    animation: fanSpinAnim 0.75s linear infinite;
+}}
+
+.cool-stream {{
+    stroke-dasharray: 20 8;
+    animation: coldStreamAnim 1.5s linear infinite;
+}}
+.cool-stream-2 {{ animation-delay: 0.3s; }}
+.cool-stream-3 {{ animation-delay: 0.6s; }}
+
+.snowflake {{
+    animation: snowflakeDriftAnim 2.4s ease-in-out infinite;
+}}
+.sf-2 {{ animation-delay: 0.6s; }}
+.sf-3 {{ animation-delay: 1.2s; }}
+.sf-4 {{ animation-delay: 1.8s; }}
+
+.heat-wave {{
+    animation: heatWaveAnim 1.8s ease-out infinite;
+}}
+.hw-2 {{ animation-delay: 0.4s; }}
+.hw-3 {{ animation-delay: 0.8s; }}
+
+.curtain-flutter {{
+    transform-origin: 540px 76px;
+    animation: curtainFlutterAnim 2.8s ease-in-out infinite;
+}}
+
+@media (prefers-reduced-motion: reduce) {{
+    .fan-spin, .cool-stream, .snowflake, .heat-wave, .curtain-flutter, .status-dot {{
+        animation: none !important;
+    }}
+}}
+
+/* Device Panel Grid */
+.device-panel-grid {{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.4rem;
+    box-sizing: border-box;
+}}
+
+.dev-card {{
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    box-sizing: border-box;
+}}
+
+.dev-card:hover {{
+    transform: translateY(-1px);
+}}
+
+.dev-header {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}}
+
+.dev-icon {{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}}
+
+.dev-badge {{
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2.5px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}}
+
+.dev-name {{
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+}}
+
+.dev-subtext {{
+    font-size: 12px;
+    font-weight: 500;
+}}
+
+@media (max-width: 850px) {{
+    .device-panel-grid {{
+        grid-template-columns: repeat(2, 1fr);
+    }}
+}}
+
+@media (max-width: 520px) {{
+    .device-panel-grid {{
+        grid-template-columns: 1fr;
+    }}
+}}
 </style>
 """
 st.markdown(theme_css, unsafe_allow_html=True)
@@ -1243,6 +1582,7 @@ if toggle_theme != dark_mode:
 # ---------------------------------------------------------
 SECTIONS = [
     "Overview",
+    "Live Room Simulation",
     "Environment Setup",
     "Utility-Based Agent",
     "Reflex Thermostat",
@@ -1252,6 +1592,7 @@ SECTIONS = [
 
 NAV_ICONS = {
     "Overview": ":material/dashboard:",
+    "Live Room Simulation": ":material/view_in_ar:",
     "Environment Setup": ":material/tune:",
     "Utility-Based Agent": ":material/psychology:",
     "Reflex Thermostat": ":material/device_thermostat:",
@@ -1259,8 +1600,19 @@ NAV_ICONS = {
     "Results": ":material/bar_chart:",
 }
 
+def _on_sidebar_scenario_change() -> None:
+    choice = st.session_state.get("sidebar_scenario_select", "")
+    if "Scenario 1" in choice:
+        apply_demonstration_scenario("cold_room")
+    elif "Scenario 2" in choice:
+        apply_demonstration_scenario("hot_room")
+    elif "Scenario 3" in choice:
+        apply_demonstration_scenario("comfortable_room")
+    elif "Custom" in choice:
+        st.session_state.active_scenario_id = "custom"
+
+
 with st.sidebar:
-    st.markdown('<div class="sidebar-section-caption">NAVIGATION</div>', unsafe_allow_html=True)
     nav_selection = st.radio(
         "Select Section",
         options=SECTIONS,
@@ -1270,10 +1622,15 @@ with st.sidebar:
     )
 
     st.markdown(
-        f'<div class="sidebar-divider"></div><div class="sidebar-section-caption">DEMONSTRATION SCENARIOS</div>',
+        '<div class="sidebar-divider"></div><div class="sidebar-section-caption">DEMONSTRATION SCENARIOS</div>',
         unsafe_allow_html=True,
     )
-    scenario_choice = st.selectbox(
+    current_scenario_idx = 0 if st.session_state.active_scenario_id == "cold_room" else (
+        1 if st.session_state.active_scenario_id == "hot_room" else (
+            2 if st.session_state.active_scenario_id == "comfortable_room" else 3
+        )
+    )
+    st.selectbox(
         "Load Preset Scenario",
         options=[
             "Scenario 1: Cold Room",
@@ -1281,23 +1638,11 @@ with st.sidebar:
             "Scenario 3: Comfortable Room",
             "Custom Configuration",
         ],
-        index=0 if st.session_state.active_scenario_id == "cold_room" else (
-            1 if st.session_state.active_scenario_id == "hot_room" else (
-                2 if st.session_state.active_scenario_id == "comfortable_room" else 3
-            )
-        ),
+        index=current_scenario_idx,
+        key="sidebar_scenario_select",
+        on_change=_on_sidebar_scenario_change,
         label_visibility="collapsed",
     )
-
-    if st.button("Apply Selected Scenario", type="primary", use_container_width=True, key="btn_apply_scenario"):
-        if "Scenario 1" in scenario_choice:
-            apply_demonstration_scenario("cold_room")
-        elif "Scenario 2" in scenario_choice:
-            apply_demonstration_scenario("hot_room")
-        elif "Scenario 3" in scenario_choice:
-            apply_demonstration_scenario("comfortable_room")
-        st.success("Scenario applied!")
-        st.rerun()
 
     settings_card_html = f"""<div class="sidebar-divider"></div>
 <div class="sidebar-section-caption">CURRENT SETTINGS</div>
@@ -1414,6 +1759,41 @@ if nav_selection == "Overview":
             unsafe_allow_html=True,
         )
 
+    # 2.5 Live Room Environment Simulation
+    st.subheader("Live Room Environment Simulation")
+    if len(st.session_state.simulation_records) > 1:
+        ov_action = st.session_state.simulation_records[-1]["action"]
+    else:
+        ov_action = agent.decide_action(env.get_state()).selected_action
+    
+    ov_fan = (ov_action in [ACTION_HEAT, ACTION_COOL])
+    ov_win = (ov_action == ACTION_OFF and 19.0 <= env.outside_temp <= 25.0)
+
+    st.markdown(
+        get_live_room_simulation_html(
+            current_temp=cur_temp,
+            desired_temp=st.session_state.desired_temp,
+            outside_temp=st.session_state.outside_temp,
+            classification=cur_class,
+            action=ov_action,
+            agent_name="Utility-Based Agent",
+            fan_enabled=ov_fan,
+            window_open=ov_win,
+            comfort_tolerance=st.session_state.comfort_tolerance,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        get_device_status_panel_html(
+            action=ov_action,
+            fan_enabled=ov_fan,
+            window_open=ov_win,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
+
     # 3. Environmental Temperature Monitoring Visualization
     st.subheader("Temperature Monitoring & Thermal State")
     ch_col1, ch_col2 = st.columns(2)
@@ -1489,7 +1869,193 @@ if nav_selection == "Overview":
 
 
 # =========================================================
-# SECTION 2: Environment Setup
+# SECTION 2: Live Room Environment Simulation
+# =========================================================
+elif nav_selection == "Live Room Simulation":
+    st.markdown(
+        """<div class="main-title">Live Room Environment Simulation</div>
+<div class="sub-title">Real-Time Interactive Physical Simulation of Heating, Cooling, Airflow & Natural Ventilation</div>""",
+        unsafe_allow_html=True,
+    )
+
+    # Agent Controller Switcher & Airflow Controls
+    agent_sel_col, fan_col, win_col = st.columns([2, 1, 1])
+    with agent_sel_col:
+        active_sim_agent = st.radio(
+            "Controlling Agent",
+            options=["Utility-Based Agent", "Simple Reflex Thermostat"],
+            horizontal=True,
+            key="sim_active_agent_radio",
+            help="Select which agent controls the room environment and thermal devices.",
+        )
+    with fan_col:
+        fan_mode = st.selectbox(
+            "Ceiling Fan Mode",
+            options=["Auto (Circulate during HVAC)", "Always ON", "Always OFF"],
+            index=0,
+            key="sim_fan_mode_select",
+            help="Controls convective ceiling fan circulation.",
+        )
+    with win_col:
+        window_mode = st.selectbox(
+            "Natural Ventilation",
+            options=["Auto (Eco-ventilation)", "Always OPEN", "Always CLOSED"],
+            index=0,
+            key="sim_window_mode_select",
+            help="Controls window opening for passive outdoor ventilation.",
+        )
+
+    # Derive state according to selected agent
+    if active_sim_agent == "Utility-Based Agent":
+        current_sim_env = env
+        current_agent_obj = agent
+        sim_step = env.current_step
+        curr_obs = env.get_state()
+        curr_temp = curr_obs["room_temp"]
+        curr_desired = curr_obs["desired_temp"]
+        curr_outside = curr_obs["outside_temp"]
+        curr_class = curr_obs["classification"]
+        if len(st.session_state.simulation_records) > 1:
+            curr_action = st.session_state.simulation_records[-1]["action"]
+        else:
+            curr_action = agent.decide_action(curr_obs).selected_action
+        hist_df = env.get_history_df()
+        agent_expl = "Utility-Based Agent evaluates predicted outcomes for HEAT, COOL, and OFF using a thermodynamic simulation model, balancing user comfort against energy consumption and actuator stability."
+    else:
+        current_sim_env = reflex_env
+        current_agent_obj = reflex_agent
+        sim_step = reflex_env.current_step
+        curr_obs = reflex_env.get_state()
+        curr_temp = curr_obs["room_temp"]
+        curr_desired = curr_obs["desired_temp"]
+        curr_outside = curr_obs["outside_temp"]
+        curr_class = curr_obs["classification"]
+        if len(st.session_state.reflex_simulation_records) > 0:
+            curr_action = st.session_state.reflex_simulation_records[-1]["action"]
+        else:
+            curr_action = reflex_agent.select_action(curr_temp)
+        hist_df = reflex_env.get_history_df()
+        agent_expl = f"Simple Reflex Thermostat operates purely on condition-action rules: HEAT when temp < {reflex_agent.lower_threshold:.1f}°C, COOL when temp > {reflex_agent.upper_threshold:.1f}°C, and OFF within the deadband."
+
+    # Fan & Window states
+    if fan_mode == "Auto (Circulate during HVAC)":
+        fan_active = (curr_action in [ACTION_HEAT, ACTION_COOL])
+    elif fan_mode == "Always ON":
+        fan_active = True
+    else:
+        fan_active = False
+
+    if window_mode == "Auto (Eco-ventilation)":
+        window_active = (curr_action == ACTION_OFF and 19.0 <= curr_outside <= 25.0)
+    elif window_mode == "Always OPEN":
+        window_active = True
+    else:
+        window_active = False
+
+    # 1. Main Visual Room Simulator
+    st.markdown(
+        get_live_room_simulation_html(
+            current_temp=curr_temp,
+            desired_temp=curr_desired,
+            outside_temp=curr_outside,
+            classification=curr_class,
+            action=curr_action,
+            agent_name=active_sim_agent,
+            fan_enabled=fan_active,
+            window_open=window_active,
+            comfort_tolerance=st.session_state.comfort_tolerance,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
+
+    # 2. Compact 4-Device Status Panel
+    st.markdown(
+        get_device_status_panel_html(
+            action=curr_action,
+            fan_enabled=fan_active,
+            window_open=window_active,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
+
+    # 3. Interactive Simulation Controls
+    st.subheader("Simulation Controls")
+    ctl1, ctl2, ctl3 = st.columns(3)
+    with ctl1:
+        if st.button("▶ Run Full Simulation", key="btn_sim_run_full", type="primary", use_container_width=True):
+            remaining = st.session_state.max_steps - current_sim_env.current_step
+            if remaining > 0:
+                for _ in range(remaining):
+                    if active_sim_agent == "Utility-Based Agent":
+                        perform_agent_step()
+                    else:
+                        perform_reflex_step()
+                st.rerun()
+            else:
+                st.info("Simulation already complete for this agent. Reset to run again.")
+    with ctl2:
+        if st.button("⏭ Step Forward (+1 Step)", key="btn_sim_step_one", use_container_width=True):
+            if current_sim_env.current_step < st.session_state.max_steps:
+                if active_sim_agent == "Utility-Based Agent":
+                    perform_agent_step()
+                else:
+                    perform_reflex_step()
+                st.rerun()
+            else:
+                st.info("Simulation completed.")
+    with ctl3:
+        if st.button("🔄 Reset Agent Simulation", key="btn_sim_reset_active", use_container_width=True):
+            if active_sim_agent == "Utility-Based Agent":
+                reset_utility_simulation()
+            else:
+                reset_reflex_simulation()
+            st.rerun()
+
+    st.caption("Note: Advancing the simulation updates the physical thermodynamic environment and recalculates the agent's real-time action.")
+
+    # 4. Live Synchronized Thermal Performance Chart
+    st.subheader(f"Thermal State & Action Timeline ({active_sim_agent})")
+    if len(hist_df) > 0:
+        if active_sim_agent == "Utility-Based Agent":
+            st.plotly_chart(
+                create_agent_temperature_history_chart(
+                    df=hist_df,
+                    desired_temp=curr_desired,
+                    comfort_tolerance=st.session_state.comfort_tolerance,
+                    dark_mode=dark_mode,
+                ),
+                use_container_width=True,
+                key="sim_temp_chart_u",
+            )
+        else:
+            st.plotly_chart(
+                create_reflex_temperature_history_chart(
+                    df=hist_df,
+                    lower_thresh=reflex_agent.lower_threshold,
+                    upper_thresh=reflex_agent.upper_threshold,
+                    desired_temp=curr_desired,
+                    comfort_tolerance=st.session_state.comfort_tolerance,
+                    dark_mode=dark_mode,
+                ),
+                use_container_width=True,
+                key="sim_temp_chart_r",
+            )
+
+    # 5. Controlling Agent Decision Insight Card
+    st.markdown(
+        f"""<div class="info-card">
+<b>💡 Controlling Agent Insight ({active_sim_agent}):</b><br>
+{agent_expl}<br>
+<b>Current Step:</b> {sim_step} / {st.session_state.max_steps} · <b>Active Thermal Actuation:</b> <code>{curr_action}</code> · <b>Observed Room Temp:</b> {curr_temp:.2f}°C
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
+# =========================================================
+# SECTION 3: Environment Setup
 # =========================================================
 elif nav_selection == "Environment Setup":
     st.markdown(
@@ -1724,6 +2290,36 @@ elif nav_selection == "Utility-Based Agent":
             reset_utility_simulation()
             st.rerun()
 
+    # Visual Room Environment Simulator (Utility-Based Agent)
+    if last_dec:
+        u_action = last_dec.selected_action
+        u_fan = (u_action in [ACTION_HEAT, ACTION_COOL])
+        u_win = (u_action == ACTION_OFF and 19.0 <= current_state["outside_temp"] <= 25.0)
+        st.markdown(
+            get_live_room_simulation_html(
+                current_temp=current_state["room_temp"],
+                desired_temp=current_state["desired_temp"],
+                outside_temp=current_state["outside_temp"],
+                classification=current_state["classification"],
+                action=u_action,
+                agent_name="Utility-Based Agent",
+                fan_enabled=u_fan,
+                window_open=u_win,
+                comfort_tolerance=st.session_state.comfort_tolerance,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            get_device_status_panel_html(
+                action=u_action,
+                fan_enabled=u_fan,
+                window_open=u_win,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
+        )
+
     # Decision Reasoning & Utility Scores
     st.subheader("Decision Explanation & Action Scores")
     if last_dec:
@@ -1839,6 +2435,35 @@ elif nav_selection == "Reflex Thermostat":
         if st.button("Reset Simulation", key="btn_sec_r_reset", use_container_width=True):
             reset_reflex_simulation()
             st.rerun()
+
+    # Visual Room Environment Simulator (Simple Reflex Thermostat)
+    r_action = r_preview.selected_action
+    r_fan = (r_action in [ACTION_HEAT, ACTION_COOL])
+    r_win = (r_action == ACTION_OFF and 19.0 <= r_state["outside_temp"] <= 25.0)
+    st.markdown(
+        get_live_room_simulation_html(
+            current_temp=r_state["room_temp"],
+            desired_temp=r_state["desired_temp"],
+            outside_temp=r_state["outside_temp"],
+            classification=r_state["classification"],
+            action=r_action,
+            agent_name="Simple Reflex Thermostat",
+            fan_enabled=r_fan,
+            window_open=r_win,
+            comfort_tolerance=st.session_state.comfort_tolerance,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        get_device_status_panel_html(
+            action=r_action,
+            fan_enabled=r_fan,
+            window_open=r_win,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
 
     # Threshold Rules Display
     st.subheader("Condition-Action Rules")

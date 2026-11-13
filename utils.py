@@ -22,11 +22,12 @@ from config import (
 
 def _clean_html(html: str) -> str:
     """
-    Ensure every line of generated HTML is stripped of leading indentation.
-    This guarantees Streamlit's Markdown parser will NEVER treat HTML tags
-    as indented code blocks.
+    Ensure every line of generated HTML is stripped of leading indentation
+    and remove all blank lines so CommonMark never prematurely terminates
+    HTML block parsing.
     """
-    return "\n".join(line.lstrip() for line in html.strip().splitlines())
+    lines = [line.strip() for line in html.splitlines()]
+    return "\n".join(line for line in lines if line)
 
 
 def _get_theme_palette(dark_mode: bool) -> Dict[str, str]:
@@ -1466,3 +1467,493 @@ def create_comparison_classification_chart(
     )
     fig.update_layout(barmode="group", yaxis_range=[0, 108])
     return fig
+
+
+# =========================================================
+# Live Room Environment Simulation & Device Status Panel
+# =========================================================
+
+def get_live_room_simulation_html(
+    current_temp: float,
+    desired_temp: float,
+    outside_temp: float,
+    classification: str,
+    action: str,
+    agent_name: str = "Utility-Based Agent",
+    fan_enabled: bool = True,
+    window_open: bool = False,
+    comfort_tolerance: float = 1.5,
+    dark_mode: bool = False,
+) -> str:
+    """
+    Renders the interactive 2D illustrated architectural room cross-section
+    for the Live Room Environment Simulator, with animated thermal equipment:
+    - Wall-mounted AC unit (Cool airflow streamlines & snowflake drift when COOL)
+    - Electric room heater (Glowing elements & rising heat waves when HEAT)
+    - Ceiling fan (Rotating blades, circulating airflow loops & indicator)
+    - Window with curtains (Open/closed states, billowing drapes & outdoor breeze)
+    - Digital wall thermostat HUD (Real-time live readouts)
+    - Biophilic living plant and responsive ambient atmospheric wash.
+    """
+    p = _get_theme_palette(dark_mode)
+    
+    heater_on = (action == ACTION_HEAT)
+    ac_on = (action == ACTION_COOL)
+    fan_on = fan_enabled
+    win_open = window_open
+
+    # Room interior colors
+    wall_bg = "#16241D" if dark_mode else "#F6F9F5"
+    wall_border = "#2A3F33" if dark_mode else "#D9E3D6"
+    wall_panel_line = "#1F3328" if dark_mode else "#E9EFE7"
+    ceiling_bg = "#111C16" if dark_mode else "#EDF3EB"
+    floor_bg = "#1D2821" if dark_mode else "#E6DEC8"
+    floor_plank = "#25342B" if dark_mode else "#D9CFB8"
+    baseboard_bg = "#142019" if dark_mode else "#D5CCB4"
+
+    # Outdoor sky view depending on outdoor temperature
+    if outside_temp < 18.0:
+        sky_grad_start = "#607D8B"
+        sky_grad_end = "#B0BEC5"
+        tree_leaf_color = "#455A64"
+        sun_cloud_svg = '<path d="M 625,115 Q 640,105 655,115 Q 670,110 680,122 Q 675,135 650,135 Q 625,135 625,115 Z" fill="#ECEFF1" opacity="0.85"/>'
+        outdoor_desc = "Cold Winter Environment"
+    elif outside_temp > 26.0:
+        sky_grad_start = "#FF9800"
+        sky_grad_end = "#FFE082"
+        tree_leaf_color = "#33691E"
+        sun_cloud_svg = '<circle cx="660" cy="115" r="18" fill="#FFB300" opacity="0.9"/><circle cx="660" cy="115" r="24" fill="#FFE082" opacity="0.35"/>'
+        outdoor_desc = "Hot Summer Environment"
+    else:
+        sky_grad_start = "#0288D1"
+        sky_grad_end = "#B3E5FC"
+        tree_leaf_color = "#2E7D32"
+        sun_cloud_svg = '<circle cx="670" cy="110" r="14" fill="#FDD835" opacity="0.9"/><path d="M 605,125 Q 620,115 635,125 Q 650,120 660,130 Q 655,140 630,140 Q 605,140 605,125 Z" fill="#FFFFFF" opacity="0.9"/>'
+        outdoor_desc = "Mild Temperate Environment"
+
+    # Wall Thermostat values
+    temp_diff = current_temp - desired_temp
+    if classification == CLASS_COLD:
+        thermo_temp_color = "#38BDF8"
+        thermo_badge_bg = "#162732" if dark_mode else "#EBF3F7"
+        thermo_badge_color = "#6BA4C8" if dark_mode else "#2A6282"
+        thermo_icon = "❄"
+    elif classification == CLASS_HOT:
+        thermo_temp_color = "#FB923C"
+        thermo_badge_bg = "#2E2216" if dark_mode else "#FDF4E7"
+        thermo_badge_color = "#E8A25B" if dark_mode else "#965C1E"
+        thermo_icon = "🔥"
+    else:
+        thermo_temp_color = "#4ADE80" if dark_mode else "#16A34A"
+        thermo_badge_bg = "#1B2D22" if dark_mode else "#EAF4EC"
+        thermo_badge_color = "#75B58A" if dark_mode else "#245C43"
+        thermo_icon = "🌿"
+
+    # Mode banner texts and styling
+    if action == ACTION_HEAT:
+        banner_class = "heating"
+        banner_icon = "🔥"
+        banner_title = "HEATING ACTIVE"
+        banner_msg = "Room heater: ON · Electric heating elements generating warm thermal airflow"
+        ambient_tint = '<rect x="0" y="45" width="920" height="345" fill="url(#heatAmbientGrad)" pointer-events="none"/>'
+    elif action == ACTION_COOL:
+        banner_class = "cooling"
+        banner_icon = "❄️"
+        banner_title = "COOLING ACTIVE"
+        banner_msg = "Air conditioner: ON · Refrigerant compressor delivering cold air currents"
+        ambient_tint = '<rect x="0" y="45" width="920" height="345" fill="url(#coolAmbientGrad)" pointer-events="none"/>'
+    else:
+        banner_class = "idle"
+        banner_icon = "⚡"
+        banner_title = "SYSTEM IDLE"
+        banner_msg = "Heating: OFF · Cooling: OFF · Room in natural thermal equilibrium"
+        ambient_tint = ''
+
+    # Fan visuals
+    fan_spin_class = "fan-spin" if fan_on else ""
+    fan_led_color = "#10B981" if fan_on else "#64748B"
+    fan_blade_color = "#94A3B8" if dark_mode else "#64748B"
+
+    # Window visuals
+    curtain_class = "curtain-flutter" if win_open else ""
+    curtain_color = "#2D4737" if dark_mode else "#CAD9CB"
+    curtain_shade = "#1D3124" if dark_mode else "#B0C4B2"
+
+    html = f"""<div class="room-sim-container">
+<div class="room-sim-card">
+<div class="room-sim-topbar">
+<div class="room-agent-badge">
+<span>🎮 Controlling Agent:</span>
+<span class="agent-pill">{agent_name}</span>
+</div>
+<div class="room-sim-readouts">
+<span class="room-pill primary"><strong>Room: {current_temp:.1f}°C</strong></span>
+<span class="room-pill">Target: {desired_temp:.1f}°C (±{comfort_tolerance:.1f}°)</span>
+<span class="room-pill">Outside: {outside_temp:.1f}°C</span>
+<span class="room-pill">Mode: {action}</span>
+</div>
+</div>
+
+<div class="room-status-banner {banner_class}">
+<span class="status-dot {'orange' if action == ACTION_HEAT else ('blue' if action == ACTION_COOL else 'grey')}"></span>
+<span><strong>{banner_title}</strong> — {banner_msg}</span>
+</div>
+
+<div class="room-sim-svg-wrap">
+<svg viewBox="0 0 920 480" width="100%" height="auto" style="border-radius: 8px; border: 1px solid {p['border_color']}; background: {wall_bg}; display: block;" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- Gradients -->
+<linearGradient id="wallShade" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="{ceiling_bg}" stop-opacity="0.8"/>
+<stop offset="100%" stop-color="{wall_bg}" stop-opacity="1"/>
+</linearGradient>
+
+<linearGradient id="floorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="{baseboard_bg}"/>
+<stop offset="15%" stop-color="{floor_bg}"/>
+<stop offset="100%" stop-color="{'#131B16' if dark_mode else '#D0C6B0'}"/>
+</linearGradient>
+
+<linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="{sky_grad_start}"/>
+<stop offset="100%" stop-color="{sky_grad_end}"/>
+</linearGradient>
+
+<linearGradient id="coolAirGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" stop-color="#00D2FF" stop-opacity="0.9"/>
+<stop offset="100%" stop-color="#38BDF8" stop-opacity="0.1"/>
+</linearGradient>
+
+<linearGradient id="heatAirGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+<stop offset="0%" stop-color="#FF5722" stop-opacity="0.85"/>
+<stop offset="70%" stop-color="#FFA000" stop-opacity="0.5"/>
+<stop offset="100%" stop-color="#FFD54F" stop-opacity="0.05"/>
+</linearGradient>
+
+<radialGradient id="heatAmbientGrad" cx="800" cy="300" r="450" gradientUnits="userSpaceOnUse">
+<stop offset="0%" stop-color="#FF6B35" stop-opacity="0.18"/>
+<stop offset="60%" stop-color="#FF8C42" stop-opacity="0.06"/>
+<stop offset="100%" stop-color="#FF8C42" stop-opacity="0"/>
+</radialGradient>
+
+<radialGradient id="coolAmbientGrad" cx="180" cy="100" r="450" gradientUnits="userSpaceOnUse">
+<stop offset="0%" stop-color="#00B4D8" stop-opacity="0.18"/>
+<stop offset="60%" stop-color="#38BDF8" stop-opacity="0.06"/>
+<stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
+</radialGradient>
+
+<clipPath id="windowClip">
+<rect x="540" y="80" width="195" height="215" rx="4"/>
+</clipPath>
+</defs>
+
+<!-- 1. Ceiling & Molding -->
+<rect x="0" y="0" width="920" height="45" fill="{ceiling_bg}"/>
+<line x1="0" y1="45" x2="920" y2="45" stroke="{wall_border}" stroke-width="1.8"/>
+
+<!-- 2. Back Wall & Architecture Panels -->
+<rect x="0" y="45" width="920" height="345" fill="url(#wallShade)"/>
+<line x1="330" y1="45" x2="330" y2="390" stroke="{wall_panel_line}" stroke-width="1" stroke-dasharray="4,6"/>
+<line x1="510" y1="45" x2="510" y2="390" stroke="{wall_panel_line}" stroke-width="1" stroke-dasharray="4,6"/>
+
+<!-- 3. Baseboard and Floor -->
+<rect x="0" y="380" width="920" height="14" fill="{baseboard_bg}"/>
+<line x1="0" y1="380" x2="920" y2="380" stroke="{wall_border}" stroke-width="1.5"/>
+<line x1="0" y1="394" x2="920" y2="394" stroke="{wall_border}" stroke-width="1"/>
+<rect x="0" y="394" width="920" height="86" fill="url(#floorGrad)"/>
+
+<!-- Floor Parquet / Plank Perspective Lines -->
+<line x1="0" y1="420" x2="920" y2="420" stroke="{floor_plank}" stroke-width="1" opacity="0.6"/>
+<line x1="0" y1="450" x2="920" y2="450" stroke="{floor_plank}" stroke-width="1" opacity="0.6"/>
+<line x1="120" y1="394" x2="90" y2="480" stroke="{floor_plank}" stroke-width="1" opacity="0.4"/>
+<line x1="300" y1="394" x2="270" y2="480" stroke="{floor_plank}" stroke-width="1" opacity="0.4"/>
+<line x1="480" y1="394" x2="460" y2="480" stroke="{floor_plank}" stroke-width="1" opacity="0.4"/>
+<line x1="660" y1="394" x2="650" y2="480" stroke="{floor_plank}" stroke-width="1" opacity="0.4"/>
+<line x1="820" y1="394" x2="810" y2="480" stroke="{floor_plank}" stroke-width="1" opacity="0.4"/>
+
+<!-- 4. Window & Outdoor Scenery -->
+<g id="window-group">
+<!-- Window Frame Outer Trim -->
+<rect x="532" y="72" width="211" height="231" rx="6" fill="{'#101C16' if dark_mode else '#E2EBE0'}" stroke="{wall_border}" stroke-width="2"/>
+
+<!-- Outdoor Landscape (Clipped inside window) -->
+<g clip-path="url(#windowClip)">
+<rect x="540" y="80" width="195" height="215" fill="url(#skyGrad)"/>
+{sun_cloud_svg}
+<!-- Tree Foliage & Ground Silhouette -->
+<path d="M 535,275 Q 590,260 640,268 Q 690,275 745,265 L 745,300 L 535,300 Z" fill="{'#0F2418' if dark_mode else '#4B7354'}"/>
+<path d="M 550,265 C 550,225 580,215 595,230 C 610,210 635,215 640,240 C 660,230 685,245 680,270 Z" fill="{tree_leaf_color}" opacity="0.95"/>
+</g>
+
+<!-- Window Panes & Opening State -->
+{'<rect x="540" y="80" width="100" height="215" fill="none" stroke="' + wall_border + '" stroke-width="3"/><rect x="635" y="80" width="100" height="215" fill="none" stroke="' + wall_border + '" stroke-width="3"/><line x1="640" y1="80" x2="640" y2="295" stroke="' + wall_border + '" stroke-width="2.5"/><line x1="540" y1="185" x2="735" y2="185" stroke="' + wall_border + '" stroke-width="2.5"/>' if not win_open else
+'<rect x="540" y="80" width="50" height="215" fill="rgba(255,255,255,0.12)" stroke="' + wall_border + '" stroke-width="2.5"/><line x1="590" y1="80" x2="590" y2="295" stroke="' + wall_border + '" stroke-width="3"/><rect x="640" y="80" width="95" height="215" fill="none" stroke="' + wall_border + '" stroke-width="2.5"/>'
+}
+
+<!-- Curtains & Drapery -->
+<rect x="522" y="66" width="231" height="8" rx="3" fill="{'#3B5243' if dark_mode else '#9EADA0'}"/>
+<g class="{curtain_class}">
+<path d="M 522,74 Q 542,180 535,305 L 555,305 Q 562,180 545,74 Z" fill="{curtain_color}"/>
+<path d="M 533,74 Q 547,180 543,305" stroke="{curtain_shade}" stroke-width="1.8" fill="none"/>
+</g>
+<g class="{curtain_class}" style="animation-delay: 0.3s;">
+<path d="M 730,74 Q 722,180 735,305 L 755,305 Q 742,180 753,74 Z" fill="{curtain_color}"/>
+<path d="M 743,74 Q 733,180 745,305" stroke="{curtain_shade}" stroke-width="1.8" fill="none"/>
+</g>
+
+<!-- Fresh Air Streamers Entering Window when Open -->
+{'''
+<g class="curtain-flutter">
+<path d="M 590,140 C 560,170 510,195 440,210" fill="none" stroke="#52B788" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 4" opacity="0.8"/>
+<path d="M 590,175 C 550,200 480,220 410,230" fill="none" stroke="#75B58A" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="8 4" opacity="0.8"/>
+<text x="595" y="130" font-size="11" font-weight="700" fill="#2D8053">FRESH AIR INFLOW</text>
+</g>
+''' if win_open else ''}
+</g>
+
+<!-- 5. Wall-Mounted Air Conditioner (Left Wall) -->
+<g id="ac-unit-group">
+<!-- AC Housing -->
+<rect x="65" y="65" width="225" height="72" rx="8" fill="{'#1A2B22' if dark_mode else '#FFFFFF'}" stroke="{wall_border}" stroke-width="1.8" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.08))"/>
+<!-- Top Intake Grille Lines -->
+<line x1="85" y1="78" x2="270" y2="78" stroke="{'#2B4034' if dark_mode else '#E2E8E0'}" stroke-width="2"/>
+<line x1="85" y1="84" x2="270" y2="84" stroke="{'#2B4034' if dark_mode else '#E2E8E0'}" stroke-width="2"/>
+<!-- Bottom Bevel / Seam -->
+<line x1="65" y1="118" x2="290" y2="118" stroke="{wall_border}" stroke-width="1.2"/>
+<!-- Brand Label -->
+<text x="85" y="104" font-size="10" font-weight="700" fill="{p['text_muted']}" letter-spacing="0.05em">ECO-INVERTER AC</text>
+
+<!-- AC Digital Status Indicator & LED -->
+<circle cx="265" cy="101" r="4.5" fill="{'#00D2FF' if ac_on else '#64748B'}" filter="{'drop-shadow(0 0 6px #00D2FF)' if ac_on else 'none'}"/>
+<text x="248" y="104" font-size="9" font-weight="700" fill="{'#00D2FF' if ac_on else p['text_muted']}">{'ON' if ac_on else 'OFF'}</text>
+
+<!-- Vent Flap -->
+{'<rect x="75" y="122" width="205" height="10" rx="3" fill="#0284C7" transform="rotate(12 75 122)"/>' if ac_on else
+'<rect x="75" y="122" width="205" height="7" rx="2" fill="' + ('#23382C' if dark_mode else '#D0DCD0') + '"/>'
+}
+
+<!-- Cool Airflow Streamlines & Snowflake Particles -->
+{'''
+<g class="cool-airflow-group">
+<path class="cool-stream cool-stream-1" d="M 120,135 C 160,200 230,265 330,300" fill="none" stroke="url(#coolAirGrad)" stroke-width="4.5" stroke-linecap="round"/>
+<path class="cool-stream cool-stream-2" d="M 170,135 C 220,195 290,250 400,285" fill="none" stroke="url(#coolAirGrad)" stroke-width="3.8" stroke-linecap="round"/>
+<path class="cool-stream cool-stream-3" d="M 220,135 C 270,185 350,235 460,265" fill="none" stroke="url(#coolAirGrad)" stroke-width="3" stroke-linecap="round"/>
+<text class="snowflake sf-1" x="180" y="210" font-size="15" fill="#38BDF8">❄</text>
+<text class="snowflake sf-2" x="260" y="260" font-size="17" fill="#7DD3FC">❄</text>
+<text class="snowflake sf-3" x="340" y="230" font-size="13" fill="#BAE6FD">❄</text>
+<text class="snowflake sf-4" x="410" y="290" font-size="15" fill="#38BDF8">❄</text>
+</g>
+''' if ac_on else ''}
+</g>
+
+<!-- 6. Ceiling Fan (Top Center) -->
+<g id="ceiling-fan-group">
+<!-- Ceiling Mount Plate -->
+<rect x="444" y="40" width="32" height="7" rx="2" fill="{'#253A2D' if dark_mode else '#94A3B8'}"/>
+<!-- Downrod -->
+<rect x="457" y="47" width="6" height="38" fill="{'#3B5243' if dark_mode else '#64748B'}"/>
+
+<!-- Motor Hub Body -->
+<circle cx="460" cy="85" r="18" fill="{'#1E3126' if dark_mode else '#CBD5E1'}" stroke="{wall_border}" stroke-width="1.5"/>
+<circle cx="460" cy="85" r="5" fill="{fan_led_color}" filter="{'drop-shadow(0 0 5px #10B981)' if fan_on else 'none'}"/>
+
+<!-- 4 Fan Blades -->
+<g class="fan-blades-group {fan_spin_class}">
+<!-- Blade 1: Left -->
+<path d="M 460,85 C 445,68 375,64 350,78 C 375,92 445,95 460,85 Z" fill="{fan_blade_color}"/>
+<!-- Blade 2: Right -->
+<path d="M 460,85 C 475,68 545,64 570,78 C 545,92 475,95 460,85 Z" fill="{fan_blade_color}"/>
+<!-- Blade 3: Top -->
+<path d="M 460,85 C 442,70 438,0 452,-20 C 466,0 472,70 460,85 Z" fill="{fan_blade_color}"/>
+<!-- Blade 4: Bottom -->
+<path d="M 460,85 C 442,100 438,170 452,190 C 466,170 472,100 460,85 Z" fill="{fan_blade_color}"/>
+</g>
+
+<!-- Circulating Airflow Curves below Fan -->
+{'''
+<g opacity="0.8">
+<path d="M 410,125 Q 460,155 510,125" fill="none" stroke="' + p["sage_green"] + '" stroke-width="2.5" stroke-dasharray="6,4"/>
+<path d="M 385,150 Q 460,190 535,150" fill="none" stroke="' + p["sage_green"] + '" stroke-width="2" stroke-dasharray="6,4"/>
+</g>
+''' if fan_on else ''}
+</g>
+
+<!-- 7. Electric Room Heater (Floor Lower Right) -->
+<g id="heater-group">
+<!-- Base Stand -->
+<rect x="745" y="360" width="105" height="28" rx="6" fill="{'#1A2820' if dark_mode else '#94A3B8'}" stroke="{wall_border}" stroke-width="1.5"/>
+
+<!-- Heater Tower Body -->
+<rect x="755" y="225" width="85" height="145" rx="8" fill="{'#203227' if dark_mode else '#F1F5F0'}" stroke="{wall_border}" stroke-width="2" filter="drop-shadow(0 4px 8px rgba(0,0,0,0.12))"/>
+
+<!-- Heater Brand & Controls -->
+<rect x="765" y="235" width="65" height="16" rx="4" fill="{'#15221B' if dark_mode else '#E2EBE0'}"/>
+<circle cx="818" cy="243" r="3.5" fill="{'#FF5722' if heater_on else '#64748B'}" filter="{'drop-shadow(0 0 6px #FF5722)' if heater_on else 'none'}"/>
+<text x="772" y="246" font-size="8" font-weight="700" fill="{'#FF5722' if heater_on else p['text_muted']}">{'HEAT ON' if heater_on else 'HEAT OFF'}</text>
+
+<!-- Vertical Heating Grille Elements -->
+{'''
+<!-- Active Glowing Heating Elements -->
+<rect x="770" y="260" width="10" height="98" rx="3" fill="#FF5722" filter="drop-shadow(0 0 6px #FF5722)"/>
+<rect x="792" y="260" width="10" height="98" rx="3" fill="#FFA000" filter="drop-shadow(0 0 8px #FFA000)"/>
+<rect x="814" y="260" width="10" height="98" rx="3" fill="#FF5722" filter="drop-shadow(0 0 6px #FF5722)"/>
+
+<!-- Rising Warm Heat Waves -->
+<g class="heat-wave-group">
+<path class="heat-wave hw-1" d="M 770,220 Q 750,170 770,120 T 760,70" fill="none" stroke="url(#heatAirGrad)" stroke-width="4" stroke-linecap="round"/>
+<path class="heat-wave hw-2" d="M 797,220 Q 815,165 795,110 T 805,60" fill="none" stroke="url(#heatAirGrad)" stroke-width="4.5" stroke-linecap="round"/>
+<path class="heat-wave hw-3" d="M 825,220 Q 845,175 825,130 T 835,80" fill="none" stroke="url(#heatAirGrad)" stroke-width="3.5" stroke-linecap="round"/>
+</g>
+''' if heater_on else '''
+<!-- Inactive Dormant Heating Grilles -->
+<rect x="770" y="260" width="10" height="98" rx="3" fill="''' + ('#2D4234' if dark_mode else '#CBD5E1') + '''"/>
+<rect x="792" y="260" width="10" height="98" rx="3" fill="''' + ('#2D4234' if dark_mode else '#CBD5E1') + '''"/>
+<rect x="814" y="260" width="10" height="98" rx="3" fill="''' + ('#2D4234' if dark_mode else '#CBD5E1') + '''"/>
+'''}
+</g>
+
+<!-- 8. Digital Wall Thermostat HUD (Lower Left Wall) -->
+<g id="thermostat-hud">
+<!-- Mounting Glass Frame -->
+<rect x="75" y="195" width="180" height="135" rx="10" fill="{'#17261E' if dark_mode else '#FFFFFF'}" stroke="{wall_border}" stroke-width="2" filter="drop-shadow(0 4px 10px rgba(0,0,0,0.1))"/>
+<!-- Internal Display Bezel -->
+<rect x="85" y="205" width="160" height="115" rx="7" fill="{'#101A15' if dark_mode else '#F0F6EE'}"/>
+
+<!-- Temperature Large Readout -->
+<text x="96" y="244" font-size="28" font-weight="800" fill="{thermo_temp_color}" font-family="system-ui, -apple-system, sans-serif">{current_temp:.1f}°C</text>
+
+<!-- Classification / Condition Pill -->
+<rect x="96" y="254" width="70" height="18" rx="4" fill="{thermo_badge_bg}" stroke="{thermo_badge_color}" stroke-width="1"/>
+<text x="103" y="267" font-size="10.5" font-weight="700" fill="{thermo_badge_color}">{classification.upper()}</text>
+
+<!-- Mode Icon & Label -->
+<text x="175" y="267" font-size="11" font-weight="700" fill="{p['text_secondary']}">{action}</text>
+
+<!-- Small Target & Outdoor Details -->
+<text x="96" y="291" font-size="10.5" font-weight="500" fill="{p['text_muted']}">Target: {desired_temp:.1f}°C (±{comfort_tolerance:.1f}°)</text>
+<text x="96" y="307" font-size="10.5" font-weight="500" fill="{p['text_muted']}">Outdoor: {outside_temp:.1f}°C</text>
+</g>
+
+<!-- 9. Biophilic Living Plant (Floor Left) -->
+<g id="biophilic-plant">
+<!-- Ceramic Planter Pot -->
+<path d="M 42,390 L 52,350 L 82,350 L 92,390 Z" fill="{'#2A3F33' if dark_mode else '#D0DCCF'}" stroke="{wall_border}" stroke-width="1.5"/>
+<ellipse cx="67" cy="350" rx="15" ry="3.5" fill="{'#192820' if dark_mode else '#9FB3A0'}"/>
+<!-- Plant Stems and Leaves -->
+<path d="M 67,350 Q 55,305 35,290 Q 55,300 67,350 Z" fill="{'#4E875B' if dark_mode else '#2D6A4F'}"/>
+<path d="M 67,350 Q 75,295 95,275 Q 85,300 67,350 Z" fill="{'#5F9E6D' if dark_mode else '#40916C'}"/>
+<path d="M 67,350 Q 67,270 65,245 Q 73,275 67,350 Z" fill="{'#75B58A' if dark_mode else '#52B788'}"/>
+<path d="M 67,350 Q 85,320 110,315 Q 92,330 67,350 Z" fill="{'#3A6D47' if dark_mode else '#1B4332'}"/>
+</g>
+
+<!-- 10. Ambient Atmospheric Gradient Overlay -->
+{ambient_tint}
+
+</svg>
+</div>
+</div>
+</div>"""
+    return _clean_html(html)
+
+
+def get_device_status_panel_html(
+    action: str,
+    fan_enabled: bool,
+    window_open: bool,
+    dark_mode: bool = False,
+) -> str:
+    """
+    Renders a compact, high-contrast device monitoring panel displaying
+    the operational status of the 4 simulated room devices:
+    - Room Heater (ON/OFF)
+    - Air Conditioner (ON/OFF)
+    - Ceiling Fan (ON/OFF)
+    - Window (OPEN/CLOSED)
+    """
+    p = _get_theme_palette(dark_mode)
+
+    heater_on = (action == ACTION_HEAT)
+    ac_on = (action == ACTION_COOL)
+    fan_on = fan_enabled
+    win_open = window_open
+
+    # Helper for status pill styling
+    def _dev_card(name: str, status_text: str, is_active: bool, active_color: str, active_bg: str, active_border: str, icon_svg: str, subtext: str) -> str:
+        bg = active_bg if is_active else p["card_bg"]
+        border = active_border if is_active else p["border_color"]
+        badge_bg = active_color if is_active else ("#2A3830" if dark_mode else "#E5EBE3")
+        badge_color = "#FFFFFF" if is_active else p["text_muted"]
+        title_color = active_color if is_active else p["text_primary"]
+
+        return f"""<div class="dev-card" style="background: {bg}; border: 1px solid {border};">
+<div class="dev-header">
+<div class="dev-icon" style="color: {active_color if is_active else p['text_muted']};">
+{icon_svg}
+</div>
+<span class="dev-badge" style="background: {badge_bg}; color: {badge_color};">
+{status_text}
+</span>
+</div>
+<div class="dev-name" style="color: {title_color};">{name}</div>
+<div class="dev-subtext" style="color: {p['text_muted']};">{subtext}</div>
+</div>"""
+
+    # Device 1: Heater
+    heater_icon = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M8 6h8M6 10h12M6 14h12M6 18h12M9 22h6"/></svg>"""
+    heater_html = _dev_card(
+        name="Room Heater",
+        status_text="ON" if heater_on else "OFF",
+        is_active=heater_on,
+        active_color="#E76F51",
+        active_bg="#2E1E12" if dark_mode else "#FDF3EB",
+        active_border="#5E3516" if dark_mode else "#F5C299",
+        icon_svg=heater_icon,
+        subtext="Active Heating" if heater_on else "Standby (Off)",
+    )
+
+    # Device 2: Air Conditioner
+    ac_icon = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="4" rx="2"/><path d="M6 16v2M18 16v2M6 12h12"/></svg>"""
+    ac_html = _dev_card(
+        name="Air Conditioner",
+        status_text="ON" if ac_on else "OFF",
+        is_active=ac_on,
+        active_color="#0284C7",
+        active_bg="#12232E" if dark_mode else "#EBF6FD",
+        active_border="#1B475E" if dark_mode else "#B8DEF5",
+        icon_svg=ac_icon,
+        subtext="Active Cooling" if ac_on else "Standby (Off)",
+    )
+
+    # Device 3: Ceiling Fan
+    fan_icon = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.5-5.5-2.5-7.5-.5S2.5 17 4.5 19s5.5 2.5 7.5.5"/><path d="M12 12c2.5-2 2.5-5.5.5-7.5S7 2.5 5 4.5s-2.5 5.5-.5 7.5"/><path d="M12 12c2 2.5 5.5 2.5 7.5.5s2-5.5 0-7.5-5.5-2.5-7.5-.5"/><circle cx="12" cy="12" r="2"/></svg>"""
+    fan_html = _dev_card(
+        name="Ceiling Fan",
+        status_text="ON" if fan_on else "OFF",
+        is_active=fan_on,
+        active_color="#059669",
+        active_bg="#132B1E" if dark_mode else "#EAF6EE",
+        active_border="#235237" if dark_mode else "#B6E2C5",
+        icon_svg=fan_icon,
+        subtext="Air Circulation Active" if fan_on else "Stationary (Off)",
+    )
+
+    # Device 4: Window
+    window_icon = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18M12 3v18"/></svg>"""
+    window_html = _dev_card(
+        name="Window Ventilation",
+        status_text="OPEN" if win_open else "CLOSED",
+        is_active=win_open,
+        active_color="#16A34A",
+        active_bg="#142B1A" if dark_mode else "#EDF8EF",
+        active_border="#275432" if dark_mode else "#BCE3C4",
+        icon_svg=window_icon,
+        subtext="Natural Fresh Airflow" if win_open else "Sealed Glazing",
+    )
+
+    panel_html = f"""<div class="device-panel-grid">
+{heater_html}
+{ac_html}
+{fan_html}
+{window_html}
+</div>"""
+    return _clean_html(panel_html)
