@@ -477,6 +477,7 @@ section[data-testid="stSidebar"] * {{
     color: {text_primary} !important;
 }}
 
+/* 6. Biophilic Modern Sidebar Navigation Pills */
 /* 6. Biophilic Modern Sidebar Navigation Cards */
 div[data-testid="stRadio"] [role="radiogroup"] {{
     display: flex !important;
@@ -486,6 +487,11 @@ div[data-testid="stRadio"] [role="radiogroup"] {{
     padding: 2px 0 !important;
 }}
 
+/* Completely hide raw browser radio dots */
+div[data-testid="stRadio"] [role="radiogroup"] label div:first-of-type,
+div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"],
+div[data-testid="stRadio"] input[type="radio"],
+div[data-testid="stRadio"] svg {{
 div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField,
 div[data-testid="stRadio"] [role="radiogroup"] > div {{
     width: 100% !important;
@@ -494,6 +500,7 @@ div[data-testid="stRadio"] [role="radiogroup"] > div {{
 /* Hide ONLY the radio circle, never the text container */
 div[data-testid="stRadio"] label > div > div:first-child:not([data-testid="stMarkdownContainer"]) {{
     display: none !important;
+    visibility: hidden !important;
     width: 0 !important;
     height: 0 !important;
     opacity: 0 !important;
@@ -508,8 +515,10 @@ div[data-testid="stRadio"] input[type="radio"] {{
 }}
 
 /* Clean clickable navigation cards */
+div[data-testid="stRadio"] [role="radiogroup"] > label {{
 div[data-testid="stRadio"] [role="radiogroup"] label {{
     background-color: {"#18261F" if dark_mode else "#FFFFFF"} !important;
+    border: 1.5px solid {"#2E4234" if dark_mode else "#E0E8DC"} !important;
     border: 1.5px solid {"#2E4234" if dark_mode else "#DCE5D8"} !important;
     border-radius: 8px !important;
     padding: 10px 14px !important;
@@ -523,12 +532,15 @@ div[data-testid="stRadio"] [role="radiogroup"] label {{
     box-shadow: 0 1px 2px rgba(0, 0, 0, {"0.15" if dark_mode else "0.03"}) !important;
 }}
 
+div[data-testid="stRadio"] [role="radiogroup"] > label:hover {{
 div[data-testid="stRadio"] [role="radiogroup"] label:hover {{
     background-color: {"#22382B" if dark_mode else "#F0F5EC"} !important;
     border-color: {"#70C98A" if dark_mode else "#2E7D52"} !important;
     transform: translateX(3px) !important;
 }}
 
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked),
+div[data-testid="stRadio"] [role="radiogroup"] > label[aria-checked="true"] {{
 /* Selected state: works with React Aria data-selected attribute and checked input */
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
@@ -539,6 +551,9 @@ div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selec
     box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.25" if dark_mode else "0.06"}) !important;
 }}
 
+div[data-testid="stRadio"] [role="radiogroup"] > label p,
+div[data-testid="stRadio"] [role="radiogroup"] > label span,
+div[data-testid="stRadio"] [role="radiogroup"] > label [data-testid="stMarkdownContainer"] p {{
 /* Ensure inner container fills width */
 div[data-testid="stRadio"] label > div {{
     display: flex !important;
@@ -560,6 +575,9 @@ div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
     line-height: 1.35 !important;
 }}
 
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) p,
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) span,
+div[data-testid="stRadio"] [role="radiogroup"] > label:has(input:checked) [data-testid="stMarkdownContainer"] p {{
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p,
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p {{
     color: {"#8FD0A8" if dark_mode else "#2E7D52"} !important;
