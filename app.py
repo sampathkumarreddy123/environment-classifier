@@ -328,12 +328,23 @@ header[data-testid="stHeader"] {{
 
 /* Ensure Streamlit's sidebar collapse/expand button sits cleanly on top left of header */
 header[data-testid="stHeader"] button[data-testid="stSidebarCollapseButton"],
-header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"],
-[data-testid="stSidebarCollapseButton"] {{
+header[data-testid="stHeader"] button[data-testid="baseButton-headerNoPadding"] {{
     margin-top: 17px !important;
     margin-left: 14px !important;
     z-index: 1000000 !important;
     color: {header_text} !important;
+}}
+
+/* Hide collapse button inside sidebar content (removes top-right << in sidebar) */
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
+section[data-testid="stSidebar"] button[data-testid="stSidebarCollapseButton"],
+section[data-testid="stSidebar"] button[kind="header"] {{
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }}
 
 /* 3. Professional Biophilic Fixed Top Header */
@@ -496,52 +507,109 @@ div[data-testid="block-container"] {{
     background-color: {app_bg} !important;
 }}
 
-/* 5. Sidebar layout starts cleanly below fixed header */
+/* 5. Sidebar layout starts cleanly below fixed header without excessive top space */
 section[data-testid="stSidebar"] {{
     top: 72px !important;
     height: calc(100vh - 72px) !important;
+    max-height: calc(100vh - 72px) !important;
     border-right: 1px solid {sidebar_border} !important;
     background-color: {sidebar_bg} !important;
     z-index: 999970 !important;
     transition: background-color 0.2s ease, border-color 0.2s ease;
+    overflow: hidden !important;
 }}
 
-section[data-testid="stSidebar"] div[data-testid="stSidebarUserContent"] {{
-    padding-top: 1.1rem !important;
-    padding-bottom: 2rem !important;
+/* 1. Eliminate Excessive Top Blank Space: hide default empty sidebar header */
+div[data-testid="stSidebarHeader"],
+div[data-testid="stSidebarHeader"] > div {{
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}}
+
+/* Sidebar Content Container: 22px horizontal padding, 16px top padding, independent smooth scrolling */
+div[data-testid="stSidebarContent"] {{
+    padding-top: 16px !important;
+    padding-bottom: 24px !important;
+    padding-left: 22px !important;
+    padding-right: 22px !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}}
+
+/* Clean, subtle scrollbar for sidebar */
+div[data-testid="stSidebarContent"]::-webkit-scrollbar {{
+    width: 5px !important;
+}}
+
+div[data-testid="stSidebarContent"]::-webkit-scrollbar-track {{
+    background: transparent !important;
+}}
+
+div[data-testid="stSidebarContent"]::-webkit-scrollbar-thumb {{
+    background: {"#304438" if dark_mode else "#DCE5D8"} !important;
+    border-radius: 4px !important;
+}}
+
+div[data-testid="stSidebarContent"]::-webkit-scrollbar-thumb:hover {{
+    background: {"#5A9E6F" if dark_mode else "#829B78"} !important;
+}}
+
+div[data-testid="stSidebarUserContent"] {{
+    padding: 0 !important;
+    margin: 0 !important;
 }}
 
 section[data-testid="stSidebar"] * {{
     color: {text_primary} !important;
 }}
 
-/* 6. Biophilic Modern Sidebar Navigation - Calm & Integrated */
+/* 6. Biophilic Modern Sidebar Navigation - Compact & Standardized */
 div[data-testid="stRadio"] [role="radiogroup"] {{
     display: flex !important;
     flex-direction: column !important;
-    gap: 4px !important;
+    gap: 8px !important; /* 7-9px vertical gap */
     width: 100% !important;
-    padding: 2px 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }}
 
-/* Completely hide raw browser radio dots */
-div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"] {{
-    display: none !important;
-    position: absolute !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    pointer-events: none !important;
-}}
-
-div[data-testid="stRadio"] [role="radiogroup"] label > div:first-child:not([data-testid="stMarkdownContainer"]) {{
+/* Completely hide all radio button circles (outer circle and inner dot) across all Streamlit versions */
+div[data-testid="stRadio"] label > div > div:first-child,
+div[data-testid="stRadioOption"] > div > div:first-child,
+div[data-testid="stRadioGroup"] div[data-testid="stRadioOption"] > div > div:first-child,
+div[data-testid="stRadio"] [class*="ex50key4"],
+div[data-testid="stRadio"] [class*="ex50key5"],
+div[data-testid="stRadio"] [role="radiogroup"] label > div:first-child:not([data-testid="stMarkdownContainer"]),
+div[data-testid="stRadio"] [role="radiogroup"] input[type="radio"],
+div[data-testid="stRadio"] .react-aria-RadioButton {{
     display: none !important;
     visibility: hidden !important;
     width: 0 !important;
     height: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
     opacity: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
+    pointer-events: none !important;
+}}
+
+/* Zero out any residual flex gap from the hidden circle */
+div[data-testid="stRadio"] label > div,
+div[data-testid="stRadioOption"] > div {{
+    gap: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
 }}
 
 div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField,
@@ -549,13 +617,18 @@ div[data-testid="stRadio"] [role="radiogroup"] > div {{
     width: 100% !important;
 }}
 
-/* Inactive navigation items: calm, transparent, no heavy individual borders */
-div[data-testid="stRadio"] [role="radiogroup"] label {{
+/* Standardized navigation items: 44px height (42-46px), rounded 8px, padding 0 14px */
+div[data-testid="stRadio"] [role="radiogroup"] label,
+div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField label,
+div[data-testid="stRadioOption"] {{
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
     background-color: transparent !important;
     border: 1px solid transparent !important;
     border-left: 3.5px solid transparent !important;
     border-radius: 8px !important;
-    padding: 8px 12px !important;
+    padding: 0 14px !important;
     margin: 0 !important;
     cursor: pointer !important;
     transition: all 0.15s ease !important;
@@ -565,6 +638,7 @@ div[data-testid="stRadio"] [role="radiogroup"] label {{
     box-sizing: border-box !important;
 }}
 
+/* Inactive navigation hover: subtle background */
 div[data-testid="stRadio"] [role="radiogroup"] label:hover {{
     background-color: {"rgba(117, 181, 138, 0.1)" if dark_mode else "rgba(36, 92, 67, 0.06)"} !important;
     border-color: transparent !important;
@@ -575,23 +649,20 @@ div[data-testid="stRadio"] [role="radiogroup"] label:hover {{
 /* Active navigation state:
    - Soft sage-green background in Light Mode (#EAF2EB)
    - Muted forest-green background in Dark Mode (#22352A)
-   - Left-side active indicator (3.5px solid #245C43 / #75B58A)
-   - Medium-weight text (600)
+   - Subtle left-side active indicator (3.5px solid #245C43 / #75B58A)
+   - Forest-green / mint text and icon
+   - Medium font weight (600)
+   - Rounded corners (8px)
 */
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
-div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected="true"] label {{
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected],
+div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected="true"] label,
+div[data-testid="stRadio"] [role="radiogroup"] .react-aria-RadioField[data-selected] label {{
     background-color: {"#22352A" if dark_mode else "#EAF2EB"} !important;
     border: 1px solid {"#2E4738" if dark_mode else "#D5E3D6"} !important;
     border-left: 3.5px solid {primary_green} !important;
     box-shadow: none !important;
-}}
-
-/* Ensure inner container fills width */
-div[data-testid="stRadio"] label > div {{
-    display: flex !important;
-    align-items: center !important;
-    width: 100% !important;
 }}
 
 /* Navigation label typography */
@@ -601,105 +672,74 @@ div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p {{
     align-items: center !important;
     visibility: visible !important;
     opacity: 1 !important;
-    color: {text_secondary} !important;
+    color: {"#B4C4B5" if dark_mode else "#26382D"} !important;
     font-size: 13.5px !important;
     font-weight: 500 !important;
     margin: 0 !important;
     padding: 0 !important;
-    line-height: 1.35 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
 }}
 
-/* Icons inside navigation items */
+/* Icons inside navigation items: 19px outline icons */
 div[data-testid="stRadio"] [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] .material-symbols-rounded {{
-    color: {text_secondary} !important;
+    color: {"#8A9E8E" if dark_mode else "#5F7162"} !important;
     font-size: 19px !important;
-    margin-right: 8px !important;
+    margin-right: 10px !important;
     vertical-align: middle !important;
     transition: color 0.15s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 20px !important;
 }}
 
 /* Active navigation text and icon */
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p {{
-    color: {primary_green} !important;
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p,
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stMarkdownContainer"] p {{
+    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     font-weight: 600 !important;
 }}
 
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stIconMaterial"],
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stIconMaterial"],
 div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) .material-symbols-rounded,
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .material-symbols-rounded {{
-    color: {primary_green} !important;
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .material-symbols-rounded,
+div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-symbols-rounded {{
+    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
 }}
 
-/* Sidebar Brand Lockup, Section Captions, and Dividers */
-.sidebar-brand-box {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    background-color: {card_sub_bg};
-    border: 1px solid {border_color};
-    border-radius: 9px;
-    margin-bottom: 14px;
-}}
-
-.sidebar-brand-icon {{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}}
-
-.sidebar-brand-info {{
-    display: flex;
-    flex-direction: column;
-}}
-
-.sidebar-brand-name {{
-    font-size: 13.5px;
-    font-weight: 700;
-    color: {text_primary};
-    line-height: 1.25;
-}}
-
-.sidebar-brand-sub {{
-    font-size: 10.5px;
-    font-weight: 600;
-    color: {text_secondary};
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    line-height: 1.2;
-}}
-
+/* Section Captions and Dividers */
 .sidebar-section-caption {{
     font-size: 11px;
     font-weight: 600;
     color: {text_secondary};
     text-transform: uppercase;
-    letter-spacing: 0.03em;
-    margin-top: 6px;
-    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+    margin-top: 0;
+    margin-bottom: 12px;
     padding-left: 2px;
 }}
 
 .sidebar-divider {{
     height: 1px;
     background-color: {border_color};
-    margin: 14px 0 10px 0;
+    margin: 24px 0 14px 0; /* 22-26px section divider spacing */
 }}
 
 .sidebar-settings-card {{
     background-color: {card_sub_bg};
     border: 1px solid {border_color};
     border-radius: 8px;
-    padding: 10px 12px;
+    padding: 12px 14px;
     margin-bottom: 12px;
-    font-size: 12px;
+    font-size: 12.5px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }}
 
 .sidebar-setting-row {{
@@ -707,19 +747,89 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] .mate
     justify-content: space-between;
     align-items: center;
     gap: 8px;
+    padding: 1px 0;
 }}
 
 .sidebar-setting-row .setting-k {{
     color: {text_secondary};
-    font-weight: 500;
-    font-size: 12px;
+    font-weight: 400;
+    font-size: 12.5px;
+    text-align: left;
 }}
 
 .sidebar-setting-row .setting-v {{
     color: {text_primary};
-    font-weight: 700;
+    font-weight: 600;
     text-align: right;
-    font-size: 12px;
+    font-size: 12.5px;
+    font-feature-settings: "tnum" 1;
+}}
+
+/* Sidebar Controls: Scenario Selectbox & Buttons */
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+}}
+
+section[data-testid="stSidebar"] button[kind="primary"],
+section[data-testid="stSidebar"] button[data-testid="baseButton-primary"],
+section[data-testid="stSidebar"] .stButton > button[kind="primary"] {{
+    height: 46px !important;
+    min-height: 46px !important;
+    border-radius: 8px !important;
+    background-color: {primary_green} !important;
+    color: #FFFFFF !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.08"}) !important;
+    transition: all 0.2s ease !important;
+}}
+
+section[data-testid="stSidebar"] button[kind="primary"] p,
+section[data-testid="stSidebar"] button[data-testid="baseButton-primary"] p {{
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+}}
+
+section[data-testid="stSidebar"] button[kind="primary"]:hover,
+section[data-testid="stSidebar"] button[data-testid="baseButton-primary"]:hover {{
+    background-color: {button_hover_bg} !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.3" if dark_mode else "0.14"}) !important;
+}}
+
+section[data-testid="stSidebar"] button[kind="secondary"],
+section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"],
+section[data-testid="stSidebar"] .stButton > button[kind="secondary"] {{
+    height: 44px !important;
+    min-height: 44px !important;
+    border-radius: 8px !important;
+    border: 1px solid {border_color} !important;
+    background-color: {card_bg} !important;
+    color: {text_primary} !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    transition: all 0.2s ease !important;
+}}
+
+section[data-testid="stSidebar"] button[kind="secondary"]:hover,
+section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"]:hover {{
+    background-color: {card_sub_bg} !important;
+    border-color: {primary_green} !important;
+    color: {primary_green} !important;
+    transform: translateY(-1px) !important;
 }}
 
 /* 7. BaseWeb Selectbox */
@@ -1149,25 +1259,8 @@ NAV_ICONS = {
     "Results": ":material/bar_chart:",
 }
 
-sidebar_branding_html = f"""<div class="sidebar-brand-box">
-<div class="sidebar-brand-icon">
-<svg width="28" height="28" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="38" height="38" rx="8" fill="{logo_box_bg}" stroke="{logo_box_border}" stroke-width="1.2"/>
-<path d="M14 28C9 26.5 6.8 22.8 7.3 16.5C7.8 10.2 14.5 8 20 7C20.5 12.5 19 19 14 23.5" stroke="{leaf_color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M7.8 28C10.2 25.8 12.8 23.6 14 23.5" stroke="{leaf_color}" stroke-width="1.9" stroke-linecap="round"/>
-<path d="M25 12.5V21A3.5 3.5 0 1 1 21.8 21V12.5A1.6 1.6 0 0 1 25 12.5Z" stroke="{thermo_color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="23.4" cy="24.4" r="1.5" fill="{thermo_color}"/>
-</svg>
-</div>
-<div class="sidebar-brand-info">
-<div class="sidebar-brand-name">Eco-Tech Control</div>
-<div class="sidebar-brand-sub">Dual-Agent Simulator</div>
-</div>
-</div>
-<div class="sidebar-section-caption">NAVIGATION</div>"""
-
 with st.sidebar:
-    st.markdown(_clean_html(sidebar_branding_html), unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-section-caption">NAVIGATION</div>', unsafe_allow_html=True)
     nav_selection = st.radio(
         "Select Section",
         options=SECTIONS,
