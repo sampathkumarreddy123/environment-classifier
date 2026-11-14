@@ -490,7 +490,12 @@ def get_comparison_summary_html(summary: Dict[str, Any], dark_mode: bool = False
     ties = summary.get("ties", 0)
     headline = summary.get("headline", "")
 
-    if winner == "Utility-Based Agent":
+    if winner == "Simulation Not Run":
+        accent = p["text_muted"]
+        bg = p["card_bg"]
+        border = p["border_color"]
+        badge = "⏸️ SIMULATION NOT RUN"
+    elif winner == "Utility-Based Agent":
         accent = p["util_agent"]
         bg = p["sub_bg"]
         border = p["primary_green"]

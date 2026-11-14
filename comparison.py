@@ -129,16 +129,49 @@ def compute_agent_metrics(df: pd.DataFrame) -> AgentPerformanceMetrics:
             room_size=25.0,
         )
 
-    active_df = df[df["step"] > 0]
+    active_df = df[df["step"] > 0] if ("step" in df.columns and not df.empty) else pd.DataFrame()
     has_active = not active_df.empty
-    eval_df = active_df if has_active else df
     n_steps = len(active_df)
+
+    if not has_active:
+        people_present = bool(df["people_present"].iloc[0]) if not df.empty and "people_present" in df.columns else True
+        num_people = int(df["num_people"].iloc[0]) if not df.empty and "num_people" in df.columns else (2 if people_present else 0)
+        room_size = float(df["room_size"].iloc[0]) if not df.empty and "room_size" in df.columns else 25.0
+        return AgentPerformanceMetrics(
+            total_steps=0,
+            avg_abs_error=0.0,
+            final_temp_error=0.0,
+            comfort_percentage=0.0,
+            comfort_steps=0,
+            overshoot_count=0,
+            total_energy=0.0,
+            avg_energy_per_step=0.0,
+            heating_activations=0,
+            cooling_activations=0,
+            off_steps=0,
+            temp_fluctuations=0.0,
+            unnecessary_action_changes=0,
+            settling_steps=None,
+            settling_label="Simulation Not Run",
+            cold_steps=0,
+            comfortable_steps=0,
+            hot_steps=0,
+            cold_percentage=0.0,
+            comfortable_percentage=0.0,
+            hot_percentage=0.0,
+            total_occupancy_heat=0.0,
+            people_present=people_present,
+            num_people=num_people,
+            room_size=room_size,
+        )
+
+    eval_df = active_df
 
     # Temperature Control
     errors = (eval_df["actual_temp"] - eval_df["desired_temp"]).abs()
     avg_abs_error = round(float(errors.mean()), 3)
     final_temp_error = round(
-        float(abs(df["actual_temp"].iloc[-1] - df["desired_temp"].iloc[-1])), 3
+        float(abs(eval_df["actual_temp"].iloc[-1] - eval_df["desired_temp"].iloc[-1])), 3
     )
 
     # Environment Classification counts & percentages
@@ -289,6 +322,99 @@ def build_comparison_table_df(
     Build the structured performance comparison DataFrame with columns:
     Performance Metric, Utility-Based Agent, Simple Reflex Agent, Better Performing Agent.
     """
+    if util_metrics.total_steps == 0 and refl_metrics.total_steps == 0:
+        not_run = "N/A (Not Run)"
+        none_winner = "None (Simulation Not Run)"
+        occ_u_str = f"Occupied ({util_metrics.num_people} people)" if util_metrics.people_present and util_metrics.num_people > 0 else "Unoccupied (0 people)"
+        occ_r_str = f"Occupied ({refl_metrics.num_people} people)" if refl_metrics.people_present and refl_metrics.num_people > 0 else "Unoccupied (0 people)"
+        rows = [
+            {
+                "Performance Metric": "Average Absolute Temperature Error (°C)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Final Temperature Error (°C)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Time in Comfortable Range (%)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Number of Temperature Overshoots",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Total Energy Consumed (units)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Average Energy per Step (units/step)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Heating Activations (steps)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Cooling Activations (steps)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Temperature Fluctuations (°C/step)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Unnecessary Action Changes (count)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Temperature Settling Behavior",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+            {
+                "Performance Metric": "Room Floor Area (m²)",
+                "Utility-Based Agent": f"{util_metrics.room_size:.1f} m²",
+                "Simple Reflex Agent": f"{refl_metrics.room_size:.1f} m²",
+                "Better Performing Agent": TIE_LABEL,
+            },
+            {
+                "Performance Metric": "Occupancy Status & Count",
+                "Utility-Based Agent": occ_u_str,
+                "Simple Reflex Agent": occ_r_str,
+                "Better Performing Agent": TIE_LABEL,
+            },
+            {
+                "Performance Metric": "Total Occupant Heat Contribution (°C)",
+                "Utility-Based Agent": not_run,
+                "Simple Reflex Agent": not_run,
+                "Better Performing Agent": none_winner,
+            },
+        ]
+        return pd.DataFrame(rows)
+
     rows = [
         {
             "Performance Metric": "Average Absolute Temperature Error (°C)",
@@ -410,15 +536,22 @@ def summarize_comparison(
     """
     Summarize the overall comparison purely from the recorded metric winners.
     """
+    if util_metrics.total_steps == 0 and refl_metrics.total_steps == 0:
+        return {
+            "overall_winner": "Simulation Not Run",
+            "utility_wins": 0,
+            "reflex_wins": 0,
+            "ties": 0,
+            "total_metrics": 0,
+            "headline": "No simulation has been executed yet. Run comparison to benchmark agents.",
+        }
+
     winners = comparison_df["Better Performing Agent"].tolist() if not comparison_df.empty else []
     utility_wins = winners.count(AGENT_UTILITY)
     reflex_wins = winners.count(AGENT_REFLEX)
     ties = winners.count(TIE_LABEL)
 
-    if util_metrics.total_steps == 0:
-        overall_winner = TIE_LABEL
-        headline = "Run the synchronized simulation to compare both agents."
-    elif utility_wins > reflex_wins:
+    if utility_wins > reflex_wins:
         overall_winner = AGENT_UTILITY
         headline = (
             f"Utility-Based Agent led in {utility_wins} of {len(winners)} metrics "
@@ -566,6 +699,11 @@ class ComparisonRunner:
         return int(self.config.max_steps)
 
     @property
+    def has_run(self) -> bool:
+        """Return True if at least 1 active simulation step has been executed."""
+        return self.current_step > 0
+
+    @property
     def is_finished(self) -> bool:
         """Return True when all configured steps have completed."""
         return self.current_step >= self.max_steps
@@ -710,5 +848,6 @@ class ComparisonRunner:
             "reflex_metrics": refl_metrics,
             "comparison_df": comparison_df,
             "summary": summary,
+            "has_run": self.has_run,
         }
 

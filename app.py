@@ -125,6 +125,10 @@ def init_session_state() -> None:
 
     if "comparison_runner" not in st.session_state:
         st.session_state.comparison_runner = ComparisonRunner(_build_comparison_config())
+    if "comparison_has_run" not in st.session_state:
+        st.session_state.comparison_has_run = False
+    if "comparison_results" not in st.session_state:
+        st.session_state.comparison_results = None
 
 
 def _create_configured_environment() -> RoomEnvironment:
@@ -225,6 +229,8 @@ def reset_all_simulations() -> None:
     reset_utility_simulation()
     reset_reflex_simulation()
     st.session_state.comparison_runner = ComparisonRunner(_build_comparison_config())
+    st.session_state.comparison_has_run = False
+    st.session_state.comparison_results = None
 
 
 def apply_demonstration_scenario(scenario_id: str) -> None:
@@ -264,9 +270,9 @@ reflex_env: RoomEnvironment = st.session_state.reflex_env
 reflex_agent: SimpleReflexAgent = st.session_state.reflex_agent
 comparison_runner: ComparisonRunner = st.session_state.comparison_runner
 
-# Synchronize comparison runner with latest configuration
+# Synchronize comparison runner with latest configuration when no simulation is active
 latest_cfg = _build_comparison_config()
-if comparison_runner.config != latest_cfg:
+if not st.session_state.comparison_has_run and comparison_runner.config != latest_cfg:
     comparison_runner.reset(latest_cfg)
 
 
@@ -2309,33 +2315,41 @@ elif nav_selection == "Environment Setup":
         st.markdown("**Reflex Thermostat Thresholds**")
 
         def _sync_reflex_lower() -> None:
-            if st.session_state.reflex_lower_slider >= st.session_state.reflex_upper_slider:
-                st.session_state.reflex_upper_slider = min(
+            val = float(st.session_state.sl_reflex_lower)
+            st.session_state.reflex_lower_slider = val
+            if val >= float(st.session_state.reflex_upper_slider):
+                new_upper = min(
                     float(ReflexThermostatDefaults.MAX_THRESHOLD),
-                    round(float(st.session_state.reflex_lower_slider) + 0.5, 1),
+                    round(val + 0.5, 1),
                 )
+                st.session_state.reflex_upper_slider = new_upper
 
         def _sync_reflex_upper() -> None:
-            if st.session_state.reflex_upper_slider <= st.session_state.reflex_lower_slider:
-                st.session_state.reflex_lower_slider = max(
+            val = float(st.session_state.sl_reflex_upper)
+            st.session_state.reflex_upper_slider = val
+            if val <= float(st.session_state.reflex_lower_slider):
+                new_lower = max(
                     float(ReflexThermostatDefaults.MIN_THRESHOLD),
-                    round(float(st.session_state.reflex_upper_slider) - 0.5, 1),
+                    round(val - 0.5, 1),
                 )
+                st.session_state.reflex_lower_slider = new_lower
 
-        st.slider(
+        st.session_state.reflex_lower_slider = st.slider(
             "Lower Threshold (°C) — Heat below this",
             min_value=float(ReflexThermostatDefaults.MIN_THRESHOLD),
             max_value=float(ReflexThermostatDefaults.MAX_THRESHOLD - 0.5),
+            value=float(st.session_state.reflex_lower_slider),
             step=0.5,
-            key="reflex_lower_slider",
+            key="sl_reflex_lower",
             on_change=_sync_reflex_lower,
         )
-        st.slider(
+        st.session_state.reflex_upper_slider = st.slider(
             "Upper Threshold (°C) — Cool above this",
             min_value=float(ReflexThermostatDefaults.MIN_THRESHOLD + 0.5),
             max_value=float(ReflexThermostatDefaults.MAX_THRESHOLD),
+            value=float(st.session_state.reflex_upper_slider),
             step=0.5,
-            key="reflex_upper_slider",
+            key="sl_reflex_upper",
             on_change=_sync_reflex_upper,
         )
 
@@ -2735,11 +2749,16 @@ elif nav_selection == "Agent Comparison":
     cc1, cc2 = st.columns(2)
     with cc1:
         if st.button("Run Comparison", key="btn_sec_c_run", use_container_width=True, type="primary"):
+            comparison_runner.reset(_build_comparison_config())
             comparison_runner.run_all()
+            st.session_state.comparison_results = comparison_runner.evaluate()
+            st.session_state.comparison_has_run = True
             st.rerun()
     with cc2:
         if st.button("Reset Comparison", key="btn_sec_c_reset", use_container_width=True):
             reset_all_simulations()
+            st.session_state.comparison_has_run = False
+            st.session_state.comparison_results = None
             st.rerun()
 
     # Quick Scenario Presets for Occupancy and Room Area Benchmarks
@@ -2752,6 +2771,8 @@ elif nav_selection == "Agent Comparison":
                 st.session_state.num_people = 0
                 comparison_runner.reset(_build_comparison_config())
                 comparison_runner.run_all()
+                st.session_state.comparison_results = comparison_runner.evaluate()
+                st.session_state.comparison_has_run = True
                 st.rerun()
         with pcol2:
             if st.button("👥 1–2 Occupants (2 People)", key="btn_pre_two", use_container_width=True):
@@ -2759,6 +2780,8 @@ elif nav_selection == "Agent Comparison":
                 st.session_state.num_people = 2
                 comparison_runner.reset(_build_comparison_config())
                 comparison_runner.run_all()
+                st.session_state.comparison_results = comparison_runner.evaluate()
+                st.session_state.comparison_has_run = True
                 st.rerun()
         with pcol3:
             if st.button("👨‍👩‍👧‍👦 Multiple Occupants (6 People)", key="btn_pre_multi", use_container_width=True):
@@ -2766,6 +2789,8 @@ elif nav_selection == "Agent Comparison":
                 st.session_state.num_people = 6
                 comparison_runner.reset(_build_comparison_config())
                 comparison_runner.run_all()
+                st.session_state.comparison_results = comparison_runner.evaluate()
+                st.session_state.comparison_has_run = True
                 st.rerun()
 
         st.markdown("**2. Room Size Scenarios:**")
@@ -2775,22 +2800,32 @@ elif nav_selection == "Agent Comparison":
                 st.session_state.room_size = 12.0
                 comparison_runner.reset(_build_comparison_config())
                 comparison_runner.run_all()
+                st.session_state.comparison_results = comparison_runner.evaluate()
+                st.session_state.comparison_has_run = True
                 st.rerun()
         with scol2:
             if st.button("🏠 Medium Room (25 m²)", key="btn_pre_med", use_container_width=True):
                 st.session_state.room_size = 25.0
                 comparison_runner.reset(_build_comparison_config())
                 comparison_runner.run_all()
+                st.session_state.comparison_results = comparison_runner.evaluate()
+                st.session_state.comparison_has_run = True
                 st.rerun()
         with scol3:
             if st.button("🏢 Large Room (60 m²)", key="btn_pre_large", use_container_width=True):
                 st.session_state.room_size = 60.0
                 comparison_runner.reset(_build_comparison_config())
                 comparison_runner.run_all()
+                st.session_state.comparison_results = comparison_runner.evaluate()
+                st.session_state.comparison_has_run = True
                 st.rerun()
 
-    # Evaluation results
-    eval_res = comparison_runner.evaluate()
+    # Authoritative evaluation results (reads from st.session_state.comparison_results if completed)
+    if st.session_state.comparison_has_run and st.session_state.comparison_results is not None:
+        eval_res = st.session_state.comparison_results
+    else:
+        eval_res = comparison_runner.evaluate()
+
     u_df = eval_res["utility_df"]
     r_df = eval_res["reflex_df"]
     combined_df = eval_res["combined_df"]
@@ -2798,6 +2833,7 @@ elif nav_selection == "Agent Comparison":
     r_metrics = eval_res["reflex_metrics"]
     comp_table_df = eval_res["comparison_df"]
     comp_summary = eval_res["summary"]
+    has_run = bool(eval_res.get("has_run", st.session_state.comparison_has_run))
 
     st.markdown(get_comparison_summary_html(comp_summary, dark_mode=dark_mode), unsafe_allow_html=True)
 
@@ -2806,96 +2842,90 @@ elif nav_selection == "Agent Comparison":
     with k1:
         st.metric(
             "Average Error (MAE)",
-            f"{u_metrics.avg_abs_error:.2f}°C",
-            delta=f"Reflex: {r_metrics.avg_abs_error:.2f}°C",
+            f"{u_metrics.avg_abs_error:.2f}°C" if has_run else "N/A",
+            delta=f"Reflex: {r_metrics.avg_abs_error:.2f}°C" if has_run else "Reflex: N/A",
             delta_color="inverse",
             help="Average absolute difference from desired target temperature.",
         )
     with k2:
         st.metric(
             "Comfort Time %",
-            f"{u_metrics.comfort_percentage:.1f}%",
-            delta=f"Reflex: {r_metrics.comfort_percentage:.1f}%",
+            f"{u_metrics.comfort_percentage:.1f}%" if has_run else "N/A",
+            delta=f"Reflex: {r_metrics.comfort_percentage:.1f}%" if has_run else "Reflex: N/A",
             help="Percentage of time spent within the acceptable comfort range.",
         )
     with k3:
         st.metric(
             "Total Energy Used",
-            f"{u_metrics.total_energy:.1f} units",
-            delta=f"Reflex: {r_metrics.total_energy:.1f} units",
+            f"{u_metrics.total_energy:.1f} units" if has_run else "N/A",
+            delta=f"Reflex: {r_metrics.total_energy:.1f} units" if has_run else "Reflex: N/A",
             delta_color="inverse",
             help="Total energy consumed by heating and cooling actuation.",
         )
     with k4:
         st.metric(
             "Temperature Stability",
-            f"{u_metrics.temp_fluctuations:.2f}°C/step",
-            delta=f"Reflex: {r_metrics.temp_fluctuations:.2f}°C/step",
+            f"{u_metrics.temp_fluctuations:.2f}°C/step" if has_run else "N/A",
+            delta=f"Reflex: {r_metrics.temp_fluctuations:.2f}°C/step" if has_run else "Reflex: N/A",
             delta_color="inverse",
             help="Average step-to-step temperature swing.",
         )
 
-    # 1. Temperature Comparison Chart
-    st.subheader("1. Synchronized Temperature Trajectory")
-    st.plotly_chart(
-        create_comparison_temperature_chart(
-            utility_df=u_df,
-            reflex_df=r_df,
-            desired_temp=cfg.desired_temp,
-            comfort_tolerance=cfg.comfort_tolerance,
-            dark_mode=dark_mode,
-        ),
-        use_container_width=True,
-        key="chart_sec_c_traj",
-    )
+    if has_run:
+        # Comparison Charts (clean visual presentation without redundant stacked headers)
+        st.plotly_chart(
+            create_comparison_temperature_chart(
+                utility_df=u_df,
+                reflex_df=r_df,
+                desired_temp=cfg.desired_temp,
+                comfort_tolerance=cfg.comfort_tolerance,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="chart_sec_c_traj",
+        )
 
-    # 2. Cumulative Energy Consumption Chart
-    st.subheader("2. Cumulative Energy Consumption")
-    st.plotly_chart(
-        create_comparison_energy_chart(
-            utility_df=u_df,
-            reflex_df=r_df,
-            dark_mode=dark_mode,
-        ),
-        use_container_width=True,
-        key="chart_sec_c_energy",
-    )
+        st.plotly_chart(
+            create_comparison_energy_chart(
+                utility_df=u_df,
+                reflex_df=r_df,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="chart_sec_c_energy",
+        )
 
-    # 3. Absolute Temperature Error Over Time Chart
-    st.subheader("3. Absolute Temperature Error Over Time")
-    st.plotly_chart(
-        create_comparison_error_chart(
-            utility_df=u_df,
-            reflex_df=r_df,
-            desired_temp=cfg.desired_temp,
-            dark_mode=dark_mode,
-        ),
-        use_container_width=True,
-        key="chart_sec_c_error",
-    )
+        st.plotly_chart(
+            create_comparison_error_chart(
+                utility_df=u_df,
+                reflex_df=r_df,
+                desired_temp=cfg.desired_temp,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="chart_sec_c_error",
+        )
 
-    # 4. Action Distribution Comparison Chart
-    st.subheader("4. Action Distribution (HEAT / COOL / OFF)")
-    st.plotly_chart(
-        create_comparison_action_distribution_chart(
-            utility_df=u_df,
-            reflex_df=r_df,
-            dark_mode=dark_mode,
-        ),
-        use_container_width=True,
-        key="chart_sec_c_action",
-    )
+        st.plotly_chart(
+            create_comparison_action_distribution_chart(
+                utility_df=u_df,
+                reflex_df=r_df,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="chart_sec_c_action",
+        )
 
-    # 5. Occupancy & Internal Heat Gain Over Time Chart
-    st.subheader("5. Occupancy & Internal Heat Gain Over Time")
-    st.plotly_chart(
-        create_occupancy_heat_chart(
-            combined_df=combined_df,
-            dark_mode=dark_mode,
-        ),
-        use_container_width=True,
-        key="chart_sec_c_occ_heat",
-    )
+        st.plotly_chart(
+            create_occupancy_heat_chart(
+                combined_df=combined_df,
+                dark_mode=dark_mode,
+            ),
+            use_container_width=True,
+            key="chart_sec_c_occ_heat",
+        )
+    else:
+        st.info("💡 **Simulation Not Yet Executed** — Click **Run Comparison** above or select a preset benchmark scenario to generate comparative trajectory, energy, error, and occupancy heat charts.")
 
     # Quantitative Metrics Table
     st.subheader("Performance Comparison Table")
@@ -2912,21 +2942,30 @@ elif nav_selection == "Results":
         unsafe_allow_html=True,
     )
 
-    eval_res = comparison_runner.evaluate()
+    if st.session_state.comparison_has_run and st.session_state.comparison_results is not None:
+        eval_res = st.session_state.comparison_results
+    else:
+        eval_res = comparison_runner.evaluate()
+
     comb_df = eval_res["combined_df"]
     u_df = eval_res["utility_df"]
     r_df = eval_res["reflex_df"]
     comp_table = eval_res["comparison_df"]
     summary = eval_res["summary"]
+    has_run = bool(eval_res.get("has_run", st.session_state.comparison_has_run))
+    n_evaluated_steps = (len(comb_df) - 1) if has_run and not comb_df.empty else 0
 
     # Summary metrics
     s1, s2, s3 = st.columns(3)
     with s1:
-        st.metric("Total Steps Evaluated", f"{len(comb_df) - 1} steps")
+        st.metric("Total Steps Evaluated", f"{n_evaluated_steps} steps")
     with s2:
         st.metric("Best Overall Agent", f"{summary['overall_winner']}")
     with s3:
-        st.metric("Data Status", "Complete (0 NaNs)")
+        st.metric("Data Status", "Complete (0 NaNs)" if has_run else "Pending Execution")
+
+    if not has_run:
+        st.warning("⚠️ **No simulation results available yet.** Please run a simulation from the **Agent Comparison** page first to generate benchmark metrics and enable CSV downloads.")
 
     st.markdown("---")
     st.subheader("Download Simulation Data")
@@ -2935,29 +2974,35 @@ elif nav_selection == "Results":
     with d1:
         st.download_button(
             "📥 Download Combined Comparison CSV",
-            data=comb_df.to_csv(index=False).encode("utf-8"),
+            data=comb_df.to_csv(index=False).encode("utf-8") if has_run else b"",
             file_name="agent_comparison_data.csv",
             mime="text/csv",
             key="dl_comb_csv",
             use_container_width=True,
+            disabled=not has_run,
+            help="Download side-by-side synchronized comparison telemetry across all steps." if has_run else "Run comparison first to enable download.",
         )
     with d2:
         st.download_button(
             "📥 Download Utility Agent CSV",
-            data=u_df.to_csv(index=False).encode("utf-8"),
+            data=u_df.to_csv(index=False).encode("utf-8") if has_run else b"",
             file_name="utility_agent_data.csv",
             mime="text/csv",
             key="dl_u_csv",
             use_container_width=True,
+            disabled=not has_run,
+            help="Download Utility-Based Agent decision log and metrics." if has_run else "Run comparison first to enable download.",
         )
     with d3:
         st.download_button(
             "📥 Download Reflex Thermostat CSV",
-            data=r_df.to_csv(index=False).encode("utf-8"),
+            data=r_df.to_csv(index=False).encode("utf-8") if has_run else b"",
             file_name="reflex_agent_data.csv",
             mime="text/csv",
             key="dl_r_csv",
             use_container_width=True,
+            disabled=not has_run,
+            help="Download Simple Reflex Thermostat step telemetry." if has_run else "Run comparison first to enable download.",
         )
 
     st.markdown("---")
@@ -2965,4 +3010,36 @@ elif nav_selection == "Results":
     st.dataframe(comp_table, use_container_width=True, hide_index=True)
 
     with st.expander("🔍 View Raw Combined Telemetry Data"):
-        st.dataframe(comb_df, use_container_width=True, hide_index=True)
+        if has_run and not comb_df.empty:
+            telemetry_display_cols = {
+                "step": "Step",
+                "outside_temp": "Outside Temp (°C)",
+                "desired_temp": "Target Temp (°C)",
+                "lower_comfort": "Lower Comfort (°C)",
+                "upper_comfort": "Upper Comfort (°C)",
+                "people_present": "People Present",
+                "num_people": "Occupant Count",
+                "room_size": "Room Area (m²)",
+                "delta_occupancy": "Body Heat Gain (°C)",
+                "disturbance": "Disturbance (°C)",
+                "utility_room_temp": "Utility Room Temp (°C)",
+                "utility_action": "Utility Action",
+                "utility_predicted_temp": "Utility Predicted Temp (°C)",
+                "utility_actual_temp": "Utility Next Temp (°C)",
+                "utility_abs_error": "Utility Abs Error (°C)",
+                "utility_score": "Utility Score",
+                "utility_energy_consumed": "Utility Energy Step",
+                "utility_cumulative_energy": "Utility Energy Total",
+                "utility_classification": "Utility Classification",
+                "reflex_room_temp": "Reflex Room Temp (°C)",
+                "reflex_action": "Reflex Action",
+                "reflex_actual_temp": "Reflex Next Temp (°C)",
+                "reflex_abs_error": "Reflex Abs Error (°C)",
+                "reflex_energy_consumed": "Reflex Energy Step",
+                "reflex_cumulative_energy": "Reflex Energy Total",
+                "reflex_classification": "Reflex Classification",
+            }
+            display_df = comb_df.rename(columns=telemetry_display_cols)
+            st.dataframe(display_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("No simulation telemetry recorded yet. Run a comparison from the Agent Comparison page to populate telemetry data.")

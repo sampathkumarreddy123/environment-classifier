@@ -283,7 +283,8 @@ def run_all_tests() -> bool:
     pre_runner = ComparisonRunner(zero_cfg)
     pre_res = pre_runner.evaluate()
     assert pre_res["utility_metrics"].total_steps == 0
-    assert pre_res["summary"]["overall_winner"] == TIE_LABEL
+    assert pre_res["summary"]["overall_winner"] == "Simulation Not Run"
+    assert pre_res["comparison_df"]["Better Performing Agent"].iloc[0] == "None (Simulation Not Run)"
 
     # Non-biased winner check: scenario where Reflex outperforms Utility on comfort/error
     # (Utility configured with extreme weight_energy=5.0 and weight_comfort=0.1, refusing to heat!)
