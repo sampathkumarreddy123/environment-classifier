@@ -99,6 +99,7 @@ def init_session_state() -> None:
         "room_size": float(SimulationDefaults.DEFAULT_ROOM_SIZE),
         "heat_gain_per_person": float(SimulationDefaults.DEFAULT_HEAT_GAIN_PER_PERSON),
         "sim_playback_speed": "Normal (250 ms/step)",
+        "stop_at_target": True,
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -1825,6 +1826,17 @@ with st.sidebar:
     }
     sim_delay = speed_delays.get(selected_speed, 0.25)
 
+    st.markdown(
+        '<div class="sidebar-divider"></div><div class="sidebar-section-caption">AUTO-STOP AT TARGET</div>',
+        unsafe_allow_html=True,
+    )
+    stop_at_target = st.toggle(
+        "Stop When Target Reached",
+        value=bool(st.session_state.get("stop_at_target", True)),
+        key="stop_at_target",
+        help="Halt simulation playback as soon as the room temperature reaches the comfortable target range.",
+    )
+
     occ_summary = f"{st.session_state.num_people} People" if st.session_state.people_present else "Unoccupied (0)"
     settings_card_html = f"""<div class="sidebar-divider"></div>
 <div class="sidebar-section-caption">CURRENT SETTINGS</div>
@@ -2274,110 +2286,126 @@ elif nav_selection == "Live Room Simulation":
             if st.button("▶ Run Full Simulation", key="btn_sim_run_full", type="primary", use_container_width=True):
                 remaining = st.session_state.max_steps - current_sim_env.current_step
                 if remaining > 0:
-                    prog_bar = sim_progress_placeholder.progress(
-                        0.0,
-                        text=f"Starting simulation — Step {current_sim_env.current_step}/{st.session_state.max_steps} ({selected_speed})",
-                    )
-                    for step_idx in range(remaining):
-                        if active_sim_agent == "Utility-Based Agent":
-                            perform_agent_step()
-                        else:
-                            perform_reflex_step()
-
-                        step_obs = current_sim_env.get_state()
-                        step_temp = step_obs["room_temp"]
-                        step_class = step_obs["classification"]
-                        step_desired = step_obs["desired_temp"]
-                        step_outside = step_obs["outside_temp"]
-
-                        if active_sim_agent == "Utility-Based Agent":
-                            step_action = agent.last_decision.selected_action if agent.last_decision else ACTION_OFF
-                            step_pred = agent.last_decision.predicted_temp if agent.last_decision else None
-                        else:
-                            step_action = reflex_agent.last_action or ACTION_OFF
-                            step_pred = None
-
-                        if fan_mode == "Auto (Circulate during HVAC)":
-                            step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
-                        elif fan_mode == "Always ON":
-                            step_fan = True
-                        else:
-                            step_fan = False
-
-                        if window_mode == "Auto (Eco-ventilation)":
-                            step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
-                        elif window_mode == "Always OPEN":
-                            step_win = True
-                        else:
-                            step_win = False
-
-                        progress_ratio = (step_idx + 1) / remaining
-                        prog_bar.progress(
-                            progress_ratio,
-                            text=f"Step {current_sim_env.current_step}/{st.session_state.max_steps} — Temp: {step_temp:.2f}°C ({step_class.upper()}) | Action: {step_action} | Target: {step_desired:.1f}°C",
+                    init_class = current_sim_env.current_classification
+                    if stop_at_target and init_class == CLASS_COMFORTABLE and current_sim_env.current_step > 0:
+                        st.info(f"🎯 Target already achieved ({current_sim_env.current_temp:.2f}°C, COMFORTABLE). Reset or adjust target to simulate again.")
+                    else:
+                        prog_bar = sim_progress_placeholder.progress(
+                            0.0,
+                            text=f"Starting simulation — Step {current_sim_env.current_step}/{st.session_state.max_steps} ({selected_speed})",
                         )
-
-                        sim_room_placeholder.markdown(
-                            get_live_room_simulation_html(
-                                current_temp=step_temp,
-                                desired_temp=step_desired,
-                                outside_temp=step_outside,
-                                classification=step_class,
-                                action=step_action,
-                                agent_name=active_sim_agent,
-                                fan_enabled=step_fan,
-                                window_open=step_win,
-                                comfort_tolerance=st.session_state.comfort_tolerance,
-                                dark_mode=dark_mode,
-                                people_present=st.session_state.people_present,
-                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
-                                room_size=st.session_state.room_size,
-                                heat_gain_per_person=st.session_state.heat_gain_per_person,
-                                predicted_temp=step_pred,
-                                delta_occupancy=current_sim_env.delta_occupancy,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        sim_device_placeholder.markdown(
-                            get_device_status_panel_html(
-                                action=step_action,
-                                fan_enabled=step_fan,
-                                window_open=step_win,
-                                dark_mode=dark_mode,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        step_df = current_sim_env.get_history_df()
-                        if len(step_df) > 0:
+                        target_reached = False
+                        for step_idx in range(remaining):
                             if active_sim_agent == "Utility-Based Agent":
-                                sim_chart_placeholder.plotly_chart(
-                                    create_agent_temperature_history_chart(
-                                        df=step_df,
-                                        desired_temp=step_desired,
-                                        comfort_tolerance=st.session_state.comfort_tolerance,
-                                        dark_mode=dark_mode,
-                                    ),
-                                    use_container_width=True,
-                                    key=f"sim_live_chart_u_{current_sim_env.current_step}",
-                                )
+                                perform_agent_step()
                             else:
-                                sim_chart_placeholder.plotly_chart(
-                                    create_reflex_temperature_history_chart(
-                                        df=step_df,
-                                        lower_thresh=reflex_agent.lower_threshold,
-                                        upper_thresh=reflex_agent.upper_threshold,
-                                        desired_temp=step_desired,
-                                        comfort_tolerance=st.session_state.comfort_tolerance,
-                                        dark_mode=dark_mode,
-                                    ),
-                                    use_container_width=True,
-                                    key=f"sim_live_chart_r_{current_sim_env.current_step}",
-                                )
+                                perform_reflex_step()
 
-                        time.sleep(sim_delay)
+                            step_obs = current_sim_env.get_state()
+                            step_temp = step_obs["room_temp"]
+                            step_class = step_obs["classification"]
+                            step_desired = step_obs["desired_temp"]
+                            step_outside = step_obs["outside_temp"]
 
-                    prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_temp:.2f}°C")
-                    st.rerun()
+                            if active_sim_agent == "Utility-Based Agent":
+                                step_action = agent.last_decision.selected_action if agent.last_decision else ACTION_OFF
+                                step_pred = agent.last_decision.predicted_temp if agent.last_decision else None
+                            else:
+                                step_action = reflex_agent.last_action or ACTION_OFF
+                                step_pred = None
+
+                            if fan_mode == "Auto (Circulate during HVAC)":
+                                step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                            elif fan_mode == "Always ON":
+                                step_fan = True
+                            else:
+                                step_fan = False
+
+                            if window_mode == "Auto (Eco-ventilation)":
+                                step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
+                            elif window_mode == "Always OPEN":
+                                step_win = True
+                            else:
+                                step_win = False
+
+                            progress_ratio = (step_idx + 1) / remaining
+                            prog_bar.progress(
+                                progress_ratio,
+                                text=f"Step {current_sim_env.current_step}/{st.session_state.max_steps} — Temp: {step_temp:.2f}°C ({step_class.upper()}) | Action: {step_action} | Target: {step_desired:.1f}°C",
+                            )
+
+                            sim_room_placeholder.markdown(
+                                get_live_room_simulation_html(
+                                    current_temp=step_temp,
+                                    desired_temp=step_desired,
+                                    outside_temp=step_outside,
+                                    classification=step_class,
+                                    action=step_action,
+                                    agent_name=active_sim_agent,
+                                    fan_enabled=step_fan,
+                                    window_open=step_win,
+                                    comfort_tolerance=st.session_state.comfort_tolerance,
+                                    dark_mode=dark_mode,
+                                    people_present=st.session_state.people_present,
+                                    num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                                    room_size=st.session_state.room_size,
+                                    heat_gain_per_person=st.session_state.heat_gain_per_person,
+                                    predicted_temp=step_pred,
+                                    delta_occupancy=current_sim_env.delta_occupancy,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                            sim_device_placeholder.markdown(
+                                get_device_status_panel_html(
+                                    action=step_action,
+                                    fan_enabled=step_fan,
+                                    window_open=step_win,
+                                    dark_mode=dark_mode,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                            step_df = current_sim_env.get_history_df()
+                            if len(step_df) > 0:
+                                if active_sim_agent == "Utility-Based Agent":
+                                    sim_chart_placeholder.plotly_chart(
+                                        create_agent_temperature_history_chart(
+                                            df=step_df,
+                                            desired_temp=step_desired,
+                                            comfort_tolerance=st.session_state.comfort_tolerance,
+                                            dark_mode=dark_mode,
+                                        ),
+                                        use_container_width=True,
+                                        key=f"sim_live_chart_u_{current_sim_env.current_step}",
+                                    )
+                                else:
+                                    sim_chart_placeholder.plotly_chart(
+                                        create_reflex_temperature_history_chart(
+                                            df=step_df,
+                                            lower_thresh=reflex_agent.lower_threshold,
+                                            upper_thresh=reflex_agent.upper_threshold,
+                                            desired_temp=step_desired,
+                                            comfort_tolerance=st.session_state.comfort_tolerance,
+                                            dark_mode=dark_mode,
+                                        ),
+                                        use_container_width=True,
+                                        key=f"sim_live_chart_r_{current_sim_env.current_step}",
+                                    )
+
+                            time.sleep(sim_delay)
+
+                            if stop_at_target and step_class == CLASS_COMFORTABLE:
+                                target_reached = True
+                                break
+
+                        if target_reached:
+                            prog_bar.progress(
+                                1.0,
+                                text=f"🎯 Target Reached at Step {current_sim_env.current_step}! Temp: {step_temp:.2f}°C ({step_class.upper()}) | Target: {step_desired:.1f}°C — Simulation Stopped.",
+                            )
+                            time.sleep(sim_delay)
+                        else:
+                            prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_temp:.2f}°C")
+                        st.rerun()
                 else:
                     st.info("Simulation already complete for this agent. Reset to run again.")
         with ctl2:
@@ -2805,70 +2833,86 @@ elif nav_selection == "Utility-Based Agent":
             if st.button("Run Simulation", key="btn_u_run", use_container_width=True, type="primary"):
                 remaining = st.session_state.max_steps - env.current_step
                 if remaining > 0:
-                    prog_bar = u_prog_placeholder.progress(
-                        0.0,
-                        text=f"Starting simulation — Step {env.current_step}/{st.session_state.max_steps} ({selected_speed})",
-                    )
-                    for step_idx in range(remaining):
-                        perform_agent_step()
-
-                        step_state = env.get_state()
-                        step_dec = agent.last_decision
-                        step_action = step_dec.selected_action if step_dec else ACTION_OFF
-                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
-                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
-
-                        progress_ratio = (step_idx + 1) / remaining
-                        prog_bar.progress(
-                            progress_ratio,
-                            text=f"Step {env.current_step}/{st.session_state.max_steps} — Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Action: {step_action} | Target: {step_state['desired_temp']:.1f}°C",
+                    init_class = env.current_classification
+                    if stop_at_target and init_class == CLASS_COMFORTABLE and env.current_step > 0:
+                        st.info(f"🎯 Target already achieved ({env.current_temp:.2f}°C, COMFORTABLE). Reset or adjust target to simulate again.")
+                    else:
+                        prog_bar = u_prog_placeholder.progress(
+                            0.0,
+                            text=f"Starting simulation — Step {env.current_step}/{st.session_state.max_steps} ({selected_speed})",
                         )
+                        target_reached = False
+                        for step_idx in range(remaining):
+                            perform_agent_step()
 
-                        u_room_placeholder.markdown(
-                            get_live_room_simulation_html(
-                                current_temp=step_state["room_temp"],
-                                desired_temp=step_state["desired_temp"],
-                                outside_temp=step_state["outside_temp"],
-                                classification=step_state["classification"],
-                                action=step_action,
-                                agent_name="Utility-Based Agent",
-                                fan_enabled=step_fan,
-                                window_open=step_win,
-                                comfort_tolerance=st.session_state.comfort_tolerance,
-                                dark_mode=dark_mode,
-                                people_present=st.session_state.people_present,
-                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
-                                room_size=st.session_state.room_size,
-                                heat_gain_per_person=st.session_state.heat_gain_per_person,
-                                predicted_temp=step_dec.predicted_temp if step_dec else None,
-                                delta_occupancy=env.delta_occupancy,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        u_dev_placeholder.markdown(
-                            get_device_status_panel_html(
-                                action=step_action,
-                                fan_enabled=step_fan,
-                                window_open=step_win,
-                                dark_mode=dark_mode,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        u_step_df = pd.DataFrame(st.session_state.simulation_records)
-                        u_chart_placeholder.plotly_chart(
-                            create_agent_temperature_history_chart(
-                                df=u_step_df,
-                                desired_temp=st.session_state.desired_temp,
-                                comfort_tolerance=st.session_state.comfort_tolerance,
-                                dark_mode=dark_mode,
-                            ),
-                            use_container_width=True,
-                            key=f"live_chart_sec_u_{env.current_step}",
-                        )
-                        time.sleep(sim_delay)
+                            step_state = env.get_state()
+                            step_dec = agent.last_decision
+                            step_action = step_dec.selected_action if step_dec else ACTION_OFF
+                            step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                            step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
 
-                    prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_state['room_temp']:.2f}°C")
-                    st.rerun()
+                            progress_ratio = (step_idx + 1) / remaining
+                            prog_bar.progress(
+                                progress_ratio,
+                                text=f"Step {env.current_step}/{st.session_state.max_steps} — Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Action: {step_action} | Target: {step_state['desired_temp']:.1f}°C",
+                            )
+
+                            u_room_placeholder.markdown(
+                                get_live_room_simulation_html(
+                                    current_temp=step_state["room_temp"],
+                                    desired_temp=step_state["desired_temp"],
+                                    outside_temp=step_state["outside_temp"],
+                                    classification=step_state["classification"],
+                                    action=step_action,
+                                    agent_name="Utility-Based Agent",
+                                    fan_enabled=step_fan,
+                                    window_open=step_win,
+                                    comfort_tolerance=st.session_state.comfort_tolerance,
+                                    dark_mode=dark_mode,
+                                    people_present=st.session_state.people_present,
+                                    num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                                    room_size=st.session_state.room_size,
+                                    heat_gain_per_person=st.session_state.heat_gain_per_person,
+                                    predicted_temp=step_dec.predicted_temp if step_dec else None,
+                                    delta_occupancy=env.delta_occupancy,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                            u_dev_placeholder.markdown(
+                                get_device_status_panel_html(
+                                    action=step_action,
+                                    fan_enabled=step_fan,
+                                    window_open=step_win,
+                                    dark_mode=dark_mode,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                            u_step_df = pd.DataFrame(st.session_state.simulation_records)
+                            u_chart_placeholder.plotly_chart(
+                                create_agent_temperature_history_chart(
+                                    df=u_step_df,
+                                    desired_temp=st.session_state.desired_temp,
+                                    comfort_tolerance=st.session_state.comfort_tolerance,
+                                    dark_mode=dark_mode,
+                                ),
+                                use_container_width=True,
+                                key=f"live_chart_sec_u_{env.current_step}",
+                            )
+                            time.sleep(sim_delay)
+
+                            if stop_at_target and step_state["classification"] == CLASS_COMFORTABLE:
+                                target_reached = True
+                                break
+
+                        if target_reached:
+                            prog_bar.progress(
+                                1.0,
+                                text=f"🎯 Target Reached at Step {env.current_step}! Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Target: {step_state['desired_temp']:.1f}°C — Simulation Stopped.",
+                            )
+                            time.sleep(sim_delay)
+                        else:
+                            prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_state['room_temp']:.2f}°C")
+                        st.rerun()
                 else:
                     st.warning("Simulation complete. Reset to start again.")
         with c2:
@@ -3020,70 +3064,86 @@ elif nav_selection == "Reflex Thermostat":
             if st.button("Run Simulation", key="btn_sec_r_run", use_container_width=True, type="primary"):
                 remaining = st.session_state.max_steps - reflex_env.current_step
                 if remaining > 0:
-                    prog_bar = r_prog_placeholder.progress(
-                        0.0,
-                        text=f"Starting simulation — Step {reflex_env.current_step}/{st.session_state.max_steps} ({selected_speed})",
-                    )
-                    for step_idx in range(remaining):
-                        perform_reflex_step()
-
-                        step_state = reflex_env.get_state()
-                        step_action = reflex_agent.last_action or ACTION_OFF
-                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
-                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
-
-                        progress_ratio = (step_idx + 1) / remaining
-                        prog_bar.progress(
-                            progress_ratio,
-                            text=f"Step {reflex_env.current_step}/{st.session_state.max_steps} — Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Action: {step_action} | Target: {step_state['desired_temp']:.1f}°C",
+                    init_class = reflex_env.current_classification
+                    if stop_at_target and init_class == CLASS_COMFORTABLE and reflex_env.current_step > 0:
+                        st.info(f"🎯 Target already achieved ({reflex_env.current_temp:.2f}°C, COMFORTABLE). Reset or adjust target to simulate again.")
+                    else:
+                        prog_bar = r_prog_placeholder.progress(
+                            0.0,
+                            text=f"Starting simulation — Step {reflex_env.current_step}/{st.session_state.max_steps} ({selected_speed})",
                         )
+                        target_reached = False
+                        for step_idx in range(remaining):
+                            perform_reflex_step()
 
-                        r_room_placeholder.markdown(
-                            get_live_room_simulation_html(
-                                current_temp=step_state["room_temp"],
-                                desired_temp=step_state["desired_temp"],
-                                outside_temp=step_state["outside_temp"],
-                                classification=step_state["classification"],
-                                action=step_action,
-                                agent_name="Simple Reflex Thermostat",
-                                fan_enabled=step_fan,
-                                window_open=step_win,
-                                comfort_tolerance=st.session_state.comfort_tolerance,
-                                dark_mode=dark_mode,
-                                people_present=st.session_state.people_present,
-                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
-                                room_size=st.session_state.room_size,
-                                heat_gain_per_person=st.session_state.heat_gain_per_person,
-                                predicted_temp=None,
-                                delta_occupancy=reflex_env.delta_occupancy,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        r_dev_placeholder.markdown(
-                            get_device_status_panel_html(
-                                action=step_action,
-                                fan_enabled=step_fan,
-                                window_open=step_win,
-                                dark_mode=dark_mode,
-                            ),
-                            unsafe_allow_html=True,
-                        )
-                        r_step_df = pd.DataFrame(st.session_state.reflex_simulation_records)
-                        r_chart_placeholder.plotly_chart(
-                            create_reflex_temperature_history_chart(
-                                df=r_step_df,
-                                lower_threshold=reflex_agent.lower_threshold,
-                                upper_threshold=reflex_agent.upper_threshold,
-                                desired_temp=st.session_state.desired_temp,
-                                dark_mode=dark_mode,
-                            ),
-                            use_container_width=True,
-                            key=f"live_chart_sec_r_{reflex_env.current_step}",
-                        )
-                        time.sleep(sim_delay)
+                            step_state = reflex_env.get_state()
+                            step_action = reflex_agent.last_action or ACTION_OFF
+                            step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                            step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
 
-                    prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_state['room_temp']:.2f}°C")
-                    st.rerun()
+                            progress_ratio = (step_idx + 1) / remaining
+                            prog_bar.progress(
+                                progress_ratio,
+                                text=f"Step {reflex_env.current_step}/{st.session_state.max_steps} — Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Action: {step_action} | Target: {step_state['desired_temp']:.1f}°C",
+                            )
+
+                            r_room_placeholder.markdown(
+                                get_live_room_simulation_html(
+                                    current_temp=step_state["room_temp"],
+                                    desired_temp=step_state["desired_temp"],
+                                    outside_temp=step_state["outside_temp"],
+                                    classification=step_state["classification"],
+                                    action=step_action,
+                                    agent_name="Simple Reflex Thermostat",
+                                    fan_enabled=step_fan,
+                                    window_open=step_win,
+                                    comfort_tolerance=st.session_state.comfort_tolerance,
+                                    dark_mode=dark_mode,
+                                    people_present=st.session_state.people_present,
+                                    num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                                    room_size=st.session_state.room_size,
+                                    heat_gain_per_person=st.session_state.heat_gain_per_person,
+                                    predicted_temp=None,
+                                    delta_occupancy=reflex_env.delta_occupancy,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                            r_dev_placeholder.markdown(
+                                get_device_status_panel_html(
+                                    action=step_action,
+                                    fan_enabled=step_fan,
+                                    window_open=step_win,
+                                    dark_mode=dark_mode,
+                                ),
+                                unsafe_allow_html=True,
+                            )
+                            r_step_df = pd.DataFrame(st.session_state.reflex_simulation_records)
+                            r_chart_placeholder.plotly_chart(
+                                create_reflex_temperature_history_chart(
+                                    df=r_step_df,
+                                    lower_threshold=reflex_agent.lower_threshold,
+                                    upper_threshold=reflex_agent.upper_threshold,
+                                    desired_temp=st.session_state.desired_temp,
+                                    dark_mode=dark_mode,
+                                ),
+                                use_container_width=True,
+                                key=f"live_chart_sec_r_{reflex_env.current_step}",
+                            )
+                            time.sleep(sim_delay)
+
+                            if stop_at_target and step_state["classification"] == CLASS_COMFORTABLE:
+                                target_reached = True
+                                break
+
+                        if target_reached:
+                            prog_bar.progress(
+                                1.0,
+                                text=f"🎯 Target Reached at Step {reflex_env.current_step}! Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Target: {step_state['desired_temp']:.1f}°C — Simulation Stopped.",
+                            )
+                            time.sleep(sim_delay)
+                        else:
+                            prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_state['room_temp']:.2f}°C")
+                        st.rerun()
                 else:
                     st.warning("Simulation complete. Reset to start again.")
         with rc2:
@@ -3268,6 +3328,7 @@ elif nav_selection == "Agent Comparison":
             0.0,
             text=f"Starting synchronized comparison — 0/{total_steps} steps ({selected_speed})",
         )
+        both_reached_target = False
         while not comparison_runner.is_finished:
             step_idx = comparison_runner.current_step
             if not comparison_runner.step_once():
@@ -3276,6 +3337,8 @@ elif nav_selection == "Agent Comparison":
             r_df_live = comparison_runner.refl_env.get_history_df()
             u_temp = u_df_live["actual_temp"].iloc[-1] if not u_df_live.empty else 0.0
             r_temp = r_df_live["actual_temp"].iloc[-1] if not r_df_live.empty else 0.0
+            u_class = u_df_live["classification"].iloc[-1] if not u_df_live.empty else ""
+            r_class = r_df_live["classification"].iloc[-1] if not r_df_live.empty else ""
             u_act = comparison_runner.util_agent.last_decision.selected_action if comparison_runner.util_agent.last_decision else ACTION_OFF
             r_act = comparison_runner.refl_agent.last_action or ACTION_OFF
 
@@ -3297,7 +3360,18 @@ elif nav_selection == "Agent Comparison":
             )
             time.sleep(sim_delay)
 
-        prog_bar.progress(1.0, text=f"Synchronized Comparison Complete ({total_steps} steps) — Computing benchmarks...")
+            if stop_at_target and u_class == CLASS_COMFORTABLE and r_class == CLASS_COMFORTABLE:
+                both_reached_target = True
+                break
+
+        if both_reached_target:
+            prog_bar.progress(
+                1.0,
+                text=f"🎯 Target Reached by Both Agents at Step {comparison_runner.current_step}/{total_steps}! Utility: {u_temp:.2f}°C | Reflex: {r_temp:.2f}°C — Computing benchmarks...",
+            )
+            time.sleep(sim_delay)
+        else:
+            prog_bar.progress(1.0, text=f"Synchronized Comparison Complete ({total_steps} steps) — Computing benchmarks...")
         st.session_state.comparison_results = comparison_runner.evaluate()
         st.session_state.comparison_has_run = True
         st.rerun()
