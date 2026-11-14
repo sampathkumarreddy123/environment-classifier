@@ -20,6 +20,7 @@ Also verifies:
 
 import io
 import sys
+import numpy as np
 import pandas as pd
 
 from comparison import (
@@ -74,7 +75,7 @@ def _verify_runner_invariants(runner: ComparisonRunner, expected_steps: int) -> 
         "Better Performing Agent",
     ]
     assert list(comp_df.columns) == expected_cols
-    assert len(comp_df) == 11
+    assert len(comp_df) == 14
     assert set(comp_df["Better Performing Agent"]).issubset(
         {AGENT_UTILITY, AGENT_REFLEX, TIE_LABEL}
     )
@@ -266,6 +267,8 @@ def run_all_tests() -> bool:
         upper_threshold=24.0,
         max_steps=10,
         random_seed=1,
+        people_present=False,
+        num_people=0,
     )
     zero_runner = ComparisonRunner(zero_cfg)
     zero_runner.run_all()
@@ -311,6 +314,62 @@ def run_all_tests() -> bool:
     assert determine_settling_winner(None, None) == TIE_LABEL
 
     print("✓ Test 8 Passed: Exact metric math, zero-energy/zero-step edge cases, and unbiased winner logic verified.")
+
+    # -------------------------------------------------------------------------
+    # Test 9: Occupancy Scenarios and Room Size Thermal Response Verification
+    # -------------------------------------------------------------------------
+    # 1. Empty Room (0 occupants)
+    cfg_empty = ComparisonConfig(
+        initial_temp=20.0, desired_temp=22.0, outside_temp=20.0,
+        people_present=False, num_people=0, room_size=25.0, max_steps=15
+    )
+    r_empty = ComparisonRunner(cfg_empty)
+    r_empty.run_all()
+    res_empty = _verify_runner_invariants(r_empty, 15)
+    assert res_empty["utility_metrics"].total_occupancy_heat == 0.0
+    assert res_empty["reflex_metrics"].total_occupancy_heat == 0.0
+
+    # 2. Occupied Rooms (1, 2, 5, 10 people)
+    heat_records = {}
+    for n in (1, 2, 5, 10):
+        cfg_occ = ComparisonConfig(
+            initial_temp=20.0, desired_temp=22.0, outside_temp=20.0,
+            people_present=True, num_people=n, room_size=25.0, max_steps=10
+        )
+        r_occ = ComparisonRunner(cfg_occ)
+        r_occ.run_all()
+        res_occ = _verify_runner_invariants(r_occ, 10)
+        expected_heat_per_step = n * 0.08
+        expected_total_heat = round(expected_heat_per_step * 10, 4)
+        assert np.isclose(res_occ["utility_metrics"].total_occupancy_heat, expected_total_heat, atol=1e-3)
+        assert np.isclose(res_occ["reflex_metrics"].total_occupancy_heat, expected_total_heat, atol=1e-3)
+        heat_records[n] = res_occ["utility_metrics"].total_occupancy_heat
+
+    assert heat_records[1] < heat_records[2] < heat_records[5] < heat_records[10], "More occupants must generate strictly more heat."
+
+    # 3. Room Sizes (10 m² small, 25 m² medium, 100 m² large)
+    # With 2 occupants, heat per step in small room (10m²) is 2 * 0.08 * (25/10) = 0.40°C/step
+    # In large room (100m²) it is 2 * 0.08 * (25/100) = 0.04°C/step
+    cfg_small = ComparisonConfig(
+        initial_temp=20.0, desired_temp=22.0, outside_temp=20.0,
+        people_present=True, num_people=2, room_size=10.0, max_steps=5
+    )
+    r_small = ComparisonRunner(cfg_small)
+    r_small.run_all()
+    res_small = _verify_runner_invariants(r_small, 5)
+    assert np.isclose(res_small["utility_metrics"].total_occupancy_heat, 5 * 0.40, atol=1e-3)
+
+    cfg_large = ComparisonConfig(
+        initial_temp=20.0, desired_temp=22.0, outside_temp=20.0,
+        people_present=True, num_people=2, room_size=100.0, max_steps=5
+    )
+    r_large = ComparisonRunner(cfg_large)
+    r_large.run_all()
+    res_large = _verify_runner_invariants(r_large, 5)
+    assert np.isclose(res_large["utility_metrics"].total_occupancy_heat, 5 * 0.04, atol=1e-3)
+    assert res_small["utility_metrics"].total_occupancy_heat > res_large["utility_metrics"].total_occupancy_heat
+
+    print("✓ Test 9 Passed: Empty room (zero heat), occupancy levels (1,2,5,10), and room sizes (small/med/large) verified.")
     print("==========================================================")
     print("ALL PHASE 4 VERIFICATION TESTS PASSED SUCCESSFULLY!")
     print("==========================================================")

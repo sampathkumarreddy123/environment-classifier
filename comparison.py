@@ -53,6 +53,10 @@ class ComparisonConfig:
     weight_overshoot: float = UtilityWeightsDefaults.DEFAULT_WEIGHT_OVERSHOOT
     lower_threshold: float = ReflexThermostatDefaults.DEFAULT_LOWER_THRESHOLD
     upper_threshold: float = ReflexThermostatDefaults.DEFAULT_UPPER_THRESHOLD
+    people_present: bool = SimulationDefaults.DEFAULT_PEOPLE_PRESENT
+    num_people: int = SimulationDefaults.DEFAULT_NUM_PEOPLE
+    room_size: float = SimulationDefaults.DEFAULT_ROOM_SIZE
+    heat_gain_per_person: float = SimulationDefaults.DEFAULT_HEAT_GAIN_PER_PERSON
 
 
 @dataclass
@@ -84,6 +88,11 @@ class AgentPerformanceMetrics:
     cold_percentage: float
     comfortable_percentage: float
     hot_percentage: float
+    # Occupancy & Room Scale
+    total_occupancy_heat: float = 0.0
+    people_present: bool = True
+    num_people: int = 2
+    room_size: float = 25.0
 
 
 def compute_agent_metrics(df: pd.DataFrame) -> AgentPerformanceMetrics:
@@ -114,6 +123,10 @@ def compute_agent_metrics(df: pd.DataFrame) -> AgentPerformanceMetrics:
             cold_percentage=0.0,
             comfortable_percentage=0.0,
             hot_percentage=0.0,
+            total_occupancy_heat=0.0,
+            people_present=True,
+            num_people=2,
+            room_size=25.0,
         )
 
     active_df = df[df["step"] > 0]
@@ -136,6 +149,12 @@ def compute_agent_metrics(df: pd.DataFrame) -> AgentPerformanceMetrics:
     cold_pct = round((cold_steps / denom) * 100.0, 1) if denom > 0 else 0.0
     comfy_pct = round((comfortable_steps / denom) * 100.0, 1) if denom > 0 else 0.0
     hot_pct = round((hot_steps / denom) * 100.0, 1) if denom > 0 else 0.0
+
+    # Occupancy & Room Scale summary
+    total_occupancy_heat = round(float(eval_df["delta_occupancy"].sum()), 3) if "delta_occupancy" in eval_df.columns else 0.0
+    people_present = bool(df["people_present"].iloc[0]) if "people_present" in df.columns else True
+    num_people = int(df["num_people"].iloc[0]) if "num_people" in df.columns else (2 if people_present else 0)
+    room_size = float(df["room_size"].iloc[0]) if "room_size" in df.columns else 25.0
 
     # Overshoots: comfort boundary crossings across consecutive simulation steps
     overshoots = 0
@@ -222,6 +241,10 @@ def compute_agent_metrics(df: pd.DataFrame) -> AgentPerformanceMetrics:
         cold_percentage=cold_pct,
         comfortable_percentage=comfy_pct,
         hot_percentage=hot_pct,
+        total_occupancy_heat=total_occupancy_heat,
+        people_present=people_present,
+        num_people=num_people,
+        room_size=room_size,
     )
 
 
@@ -357,6 +380,24 @@ def build_comparison_table_df(
                 util_metrics.settling_steps, refl_metrics.settling_steps
             ),
         },
+        {
+            "Performance Metric": "Room Floor Area (m²)",
+            "Utility-Based Agent": f"{util_metrics.room_size:.1f} m²",
+            "Simple Reflex Agent": f"{refl_metrics.room_size:.1f} m²",
+            "Better Performing Agent": TIE_LABEL,
+        },
+        {
+            "Performance Metric": "Occupancy Status & Count",
+            "Utility-Based Agent": f"{'Occupied (' + str(util_metrics.num_people) + ' people)' if util_metrics.people_present and util_metrics.num_people > 0 else 'Unoccupied (0 people)'}",
+            "Simple Reflex Agent": f"{'Occupied (' + str(refl_metrics.num_people) + ' people)' if refl_metrics.people_present and refl_metrics.num_people > 0 else 'Unoccupied (0 people)'}",
+            "Better Performing Agent": TIE_LABEL,
+        },
+        {
+            "Performance Metric": "Total Occupant Heat Contribution (°C)",
+            "Utility-Based Agent": f"+{util_metrics.total_occupancy_heat:.2f} °C",
+            "Simple Reflex Agent": f"+{refl_metrics.total_occupancy_heat:.2f} °C",
+            "Better Performing Agent": TIE_LABEL,
+        },
     ]
     return pd.DataFrame(rows)
 
@@ -433,6 +474,10 @@ class ComparisonRunner:
             disturbance_level=cfg.disturbance_level,
             comfort_tolerance=cfg.comfort_tolerance,
             random_seed=cfg.random_seed,
+            people_present=cfg.people_present,
+            num_people=cfg.num_people,
+            room_size=cfg.room_size,
+            heat_gain_per_person=cfg.heat_gain_per_person,
         )
         self.refl_env = RoomEnvironment(
             initial_temp=cfg.initial_temp,
@@ -444,6 +489,10 @@ class ComparisonRunner:
             disturbance_level=cfg.disturbance_level,
             comfort_tolerance=cfg.comfort_tolerance,
             random_seed=cfg.random_seed,
+            people_present=cfg.people_present,
+            num_people=cfg.num_people,
+            room_size=cfg.room_size,
+            heat_gain_per_person=cfg.heat_gain_per_person,
         )
 
         self.util_agent = UtilityBasedAgent(
@@ -462,6 +511,7 @@ class ComparisonRunner:
         lower_c = round(cfg.desired_temp - cfg.comfort_tolerance, 2)
         upper_c = round(cfg.desired_temp + cfg.comfort_tolerance, 2)
         init_err = round(abs(float(u_init["room_temp"]) - float(u_init["desired_temp"])), 3)
+        eff_people = cfg.num_people if cfg.people_present else 0
 
         self.utility_records: List[Dict[str, Any]] = [{
             "step": 0,
@@ -479,6 +529,10 @@ class ComparisonRunner:
             "cumulative_energy": 0.0,
             "disturbance": 0.0,
             "classification": str(u_init["classification"]),
+            "people_present": cfg.people_present,
+            "num_people": eff_people,
+            "room_size": cfg.room_size,
+            "delta_occupancy": 0.0,
         }]
 
         self.reflex_records: List[Dict[str, Any]] = [{
@@ -495,6 +549,10 @@ class ComparisonRunner:
             "cumulative_energy": 0.0,
             "disturbance": 0.0,
             "classification": str(r_init["classification"]),
+            "people_present": cfg.people_present,
+            "num_people": eff_people,
+            "room_size": cfg.room_size,
+            "delta_occupancy": 0.0,
         }]
 
     @property
@@ -528,6 +586,8 @@ class ComparisonRunner:
         lower_c = round(self.config.desired_temp - self.config.comfort_tolerance, 2)
         upper_c = round(self.config.desired_temp + self.config.comfort_tolerance, 2)
 
+        eff_people = self.config.num_people if self.config.people_present else 0
+
         # 1. Utility-Based Agent step
         u_obs = self.util_env.get_state()
         u_dec = self.util_agent.decide_action(u_obs)
@@ -548,6 +608,10 @@ class ComparisonRunner:
             "cumulative_energy": round(self.util_agent.total_energy_consumed, 2),
             "disturbance": round(disturbance, 4),
             "classification": str(u_next["classification"]),
+            "people_present": self.config.people_present,
+            "num_people": eff_people,
+            "room_size": self.config.room_size,
+            "delta_occupancy": float(u_next.get("delta_occupancy", 0.0)),
         })
 
         # 2. Simple Reflex Agent step (identical disturbance!)
@@ -566,6 +630,10 @@ class ComparisonRunner:
             "cumulative_energy": float(r_rec["cumulative_energy"]),
             "disturbance": round(disturbance, 4),
             "classification": str(r_rec["classification"]),
+            "people_present": self.config.people_present,
+            "num_people": eff_people,
+            "room_size": self.config.room_size,
+            "delta_occupancy": float(r_rec.get("delta_occupancy", 0.0)),
         })
 
         return True
@@ -603,6 +671,10 @@ class ComparisonRunner:
             "desired_temp": u_df["desired_temp"],
             "lower_comfort": u_df["lower_comfort"],
             "upper_comfort": u_df["upper_comfort"],
+            "people_present": u_df.get("people_present", True),
+            "num_people": u_df.get("num_people", 2),
+            "room_size": u_df.get("room_size", 25.0),
+            "delta_occupancy": u_df.get("delta_occupancy", 0.0),
             "disturbance": u_df["disturbance"],
             "utility_room_temp": u_df["room_temp"],
             "utility_action": u_df["action"],

@@ -40,6 +40,10 @@ HISTORY_COLUMNS = [
     "energy_consumed",
     "cumulative_energy",
     "classification",
+    "people_present",
+    "num_people",
+    "room_size",
+    "delta_occupancy",
 ]
 
 
@@ -261,6 +265,10 @@ class SimpleReflexAgent:
             "energy_consumed": float(decision.energy_consumed),
             "cumulative_energy": round(self.total_energy_consumed, 2),
             "classification": str(next_state["classification"]),
+            "people_present": bool(next_state.get("people_present", True)),
+            "num_people": int(next_state.get("num_people", 2)),
+            "room_size": float(next_state.get("room_size", 25.0)),
+            "delta_occupancy": float(next_state.get("delta_occupancy", 0.0)),
         }
         self.simulation_history.append(record)
         return record

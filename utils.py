@@ -1484,6 +1484,12 @@ def get_live_room_simulation_html(
     window_open: bool = False,
     comfort_tolerance: float = 1.5,
     dark_mode: bool = False,
+    people_present: bool = True,
+    num_people: int = 2,
+    room_size: float = 25.0,
+    heat_gain_per_person: float = 0.08,
+    predicted_temp: Optional[float] = None,
+    delta_occupancy: Optional[float] = None,
 ) -> str:
     """
     Renders the interactive 2D illustrated architectural room cross-section
@@ -1493,6 +1499,7 @@ def get_live_room_simulation_html(
     - Ceiling fan (Rotating blades, circulating airflow loops & indicator)
     - Window with curtains (Open/closed states, billowing drapes & outdoor breeze)
     - Digital wall thermostat HUD (Real-time live readouts)
+    - Living room lounge & occupancy visualization (Silhouettes with metabolic heat aura or unoccupied state)
     - Biophilic living plant and responsive ambient atmospheric wash.
     """
     p = _get_theme_palette(dark_mode)
@@ -1501,6 +1508,15 @@ def get_live_room_simulation_html(
     ac_on = (action == ACTION_COOL)
     fan_on = fan_enabled
     win_open = window_open
+
+    # Occupancy calculation
+    is_occ = bool(people_present) and (int(num_people) > 0)
+    actual_people = int(num_people) if is_occ else 0
+    safe_room_size = max(8.0, float(room_size))
+    if delta_occupancy is not None:
+        eff_occ_heat = float(delta_occupancy)
+    else:
+        eff_occ_heat = (actual_people * float(heat_gain_per_person) * (25.0 / safe_room_size)) if is_occ else 0.0
 
     # Room interior colors
     wall_bg = "#16241D" if dark_mode else "#F6F9F5"
@@ -1579,6 +1595,121 @@ def get_live_room_simulation_html(
     curtain_color = "#2D4737" if dark_mode else "#CAD9CB"
     curtain_shade = "#1D3124" if dark_mode else "#B0C4B2"
 
+    # Occupancy pills
+    occ_pill_text = f"👥 {actual_people} Occupant{'s' if actual_people != 1 else ''} (+{eff_occ_heat:.2f}°C)" if is_occ else "🚫 Unoccupied (0.00°C)"
+    pred_pill = f'<span class="room-pill primary">🔮 Next: {predicted_temp:.1f}°C</span>' if predicted_temp is not None else ""
+
+    # Occupancy and Lounge Visuals
+    sofa_bg = "#233529" if dark_mode else "#DCE5D8"
+    sofa_cushion = "#2A3E31" if dark_mode else "#CFDBD0"
+    sofa_leg = "#1A261E" if dark_mode else "#8C9B8E"
+    person_fill = "#75B58A" if dark_mode else "#39845A"
+    person_head = "#A1C9AC" if dark_mode else "#266040"
+    badge_bg = "#1B2A21" if dark_mode else "#FFFFFF"
+    badge_border = "#304438" if dark_mode else "#CBD7C8"
+
+    if is_occ:
+        people_svg_parts = [
+            f'''
+            <!-- Person 1 (Seated Left) -->
+            <g id="person-1">
+              <circle cx="345" cy="320" r="32" fill="#FF7043" opacity="0.14"/>
+              <circle cx="345" cy="295" r="12" fill="{person_head}"/>
+              <path d="M 326,340 C 326,315 364,315 364,340 Z" fill="{person_fill}"/>
+              <rect x="330" y="340" width="30" height="22" rx="4" fill="{person_fill}" opacity="0.9"/>
+            </g>
+            '''
+        ]
+        if actual_people >= 2:
+            people_svg_parts.append(f'''
+            <!-- Person 2 (Seated Right) -->
+            <g id="person-2">
+              <circle cx="435" cy="320" r="32" fill="#FF7043" opacity="0.14"/>
+              <circle cx="435" cy="295" r="12" fill="{person_head}"/>
+              <path d="M 416,340 C 416,315 454,315 454,340 Z" fill="{person_fill}"/>
+              <rect x="420" y="340" width="30" height="22" rx="4" fill="{person_fill}" opacity="0.9"/>
+            </g>
+            ''')
+        if actual_people >= 3:
+            people_svg_parts.append(f'''
+            <!-- Person 3 (Standing Right) -->
+            <g id="person-3">
+              <circle cx="508" cy="315" r="28" fill="#FF7043" opacity="0.14"/>
+              <circle cx="508" cy="282" r="11" fill="{person_head}"/>
+              <path d="M 494,332 C 494,302 522,302 522,332 Z" fill="{person_fill}"/>
+              <rect x="498" y="332" width="20" height="58" rx="3" fill="{person_fill}" opacity="0.9"/>
+            </g>
+            ''')
+
+        extra_count_badge = ""
+        if actual_people > 3:
+            extra_count_badge = f'''
+            <rect x="472" y="278" width="40" height="20" rx="5" fill="#E65100" stroke="#FFE082" stroke-width="1" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))"/>
+            <text x="492" y="292" text-anchor="middle" font-size="11" font-weight="800" fill="#FFFFFF">+{actual_people - 2}</text>
+            '''
+
+        occ_visual_svg = f'''
+        <!-- 9.5 Living Space Lounge & Occupancy Visualization -->
+        <g id="occupancy-lounge">
+          <!-- Wooden Couch Legs -->
+          <line x1="305" y1="392" x2="300" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+          <line x1="335" y1="392" x2="335" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+          <line x1="445" y1="392" x2="445" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+          <line x1="475" y1="392" x2="480" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- Couch Backrest -->
+          <rect x="295" y="325" width="190" height="45" rx="7" fill="{sofa_bg}" stroke="{wall_border}" stroke-width="1.5"/>
+
+          <!-- Couch Seat Base & Cushions -->
+          <rect x="288" y="358" width="204" height="34" rx="6" fill="{sofa_cushion}" stroke="{wall_border}" stroke-width="1.5"/>
+          <line x1="390" y1="358" x2="390" y2="392" stroke="{wall_border}" stroke-width="1.2" stroke-dasharray="2,2"/>
+
+          <!-- Left and Right Armrests -->
+          <rect x="280" y="340" width="16" height="48" rx="5" fill="{sofa_bg}" stroke="{wall_border}" stroke-width="1.5"/>
+          <rect x="484" y="340" width="16" height="48" rx="5" fill="{sofa_bg}" stroke="{wall_border}" stroke-width="1.5"/>
+
+          <!-- People Silhouettes -->
+          {"".join(people_svg_parts)}
+
+          <!-- Occupancy HUD Status Floating Badge -->
+          <g id="occupancy-active-banner">
+            <rect x="285" y="236" width="210" height="34" rx="7" fill="{badge_bg}" stroke="{badge_border}" stroke-width="1.5" filter="drop-shadow(0 2px 6px rgba(0,0,0,0.06))"/>
+            <text x="390" y="251" text-anchor="middle" font-size="11" font-weight="700" fill="{p['text_primary']}">👥 {actual_people} Occupant{'s' if actual_people > 1 else ''} ({safe_room_size:.0f} m²)</text>
+            <text x="390" y="264" text-anchor="middle" font-size="9.5" font-weight="600" fill="#E65100">🔥 Internal Metabolic Heat: +{eff_occ_heat:.2f}°C/step</text>
+            {extra_count_badge}
+          </g>
+        </g>
+        '''
+    else:
+        occ_visual_svg = f'''
+        <!-- 9.5 Living Space Lounge & Occupancy Visualization (Unoccupied) -->
+        <g id="occupancy-lounge">
+          <!-- Wooden Couch Legs -->
+          <line x1="305" y1="392" x2="300" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+          <line x1="335" y1="392" x2="335" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+          <line x1="445" y1="392" x2="445" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+          <line x1="475" y1="392" x2="480" y2="408" stroke="{sofa_leg}" stroke-width="3" stroke-linecap="round"/>
+
+          <!-- Couch Backrest -->
+          <rect x="295" y="325" width="190" height="45" rx="7" fill="{sofa_bg}" stroke="{wall_border}" stroke-width="1.5"/>
+
+          <!-- Couch Seat Base & Cushions -->
+          <rect x="288" y="358" width="204" height="34" rx="6" fill="{sofa_cushion}" stroke="{wall_border}" stroke-width="1.5"/>
+          <line x1="390" y1="358" x2="390" y2="392" stroke="{wall_border}" stroke-width="1.2" stroke-dasharray="2,2"/>
+
+          <!-- Left and Right Armrests -->
+          <rect x="280" y="340" width="16" height="48" rx="5" fill="{sofa_bg}" stroke="{wall_border}" stroke-width="1.5"/>
+          <rect x="484" y="340" width="16" height="48" rx="5" fill="{sofa_bg}" stroke="{wall_border}" stroke-width="1.5"/>
+
+          <!-- Unoccupied Status Floating Badge -->
+          <g id="occupancy-empty-banner">
+            <rect x="290" y="266" width="200" height="36" rx="7" fill="{badge_bg}" stroke="{badge_border}" stroke-width="1.5" filter="drop-shadow(0 2px 6px rgba(0,0,0,0.06))"/>
+            <text x="390" y="282" text-anchor="middle" font-size="11.5" font-weight="700" fill="{p['text_muted']}">🚫 Room Unoccupied (0 People)</text>
+            <text x="390" y="296" text-anchor="middle" font-size="9.5" font-weight="500" fill="{p['text_muted']}">Zero Metabolic Heat Gain (0.00°C/step) · {safe_room_size:.0f} m²</text>
+          </g>
+        </g>
+        '''
+
     html = f"""<div class="room-sim-container">
 <div class="room-sim-card">
 <div class="room-sim-topbar">
@@ -1590,6 +1721,9 @@ def get_live_room_simulation_html(
 <span class="room-pill primary"><strong>Room: {current_temp:.1f}°C</strong></span>
 <span class="room-pill">Target: {desired_temp:.1f}°C (±{comfort_tolerance:.1f}°)</span>
 <span class="room-pill">Outside: {outside_temp:.1f}°C</span>
+<span class="room-pill">{occ_pill_text}</span>
+<span class="room-pill">📐 {safe_room_size:.0f} m²</span>
+{pred_pill}
 <span class="room-pill">Mode: {action}</span>
 </div>
 </div>
@@ -1846,6 +1980,8 @@ def get_live_room_simulation_html(
 <path d="M 67,350 Q 85,320 110,315 Q 92,330 67,350 Z" fill="{'#3A6D47' if dark_mode else '#1B4332'}"/>
 </g>
 
+{occ_visual_svg}
+
 <!-- 10. Ambient Atmospheric Gradient Overlay -->
 {ambient_tint}
 
@@ -1957,3 +2093,73 @@ def get_device_status_panel_html(
 {window_html}
 </div>"""
     return _clean_html(panel_html)
+
+
+def create_occupancy_heat_chart(
+    combined_df: pd.DataFrame,
+    dark_mode: bool = False,
+    title: str = "Occupancy & Internal Heat Gain Over Time",
+) -> go.Figure:
+    """
+    Renders a synchronized dual-axis chart of occupant metabolic heat contribution (°C/step)
+    and cumulative internal heat added across the simulation timeline.
+    """
+    p = _get_theme_palette(dark_mode)
+    fig = go.Figure()
+
+    if combined_df is not None and not combined_df.empty:
+        steps = combined_df["step"].tolist()
+        
+        # Step-by-step occupancy heat gain
+        occ_heat = combined_df["delta_occupancy"].tolist() if "delta_occupancy" in combined_df.columns else [0.0] * len(steps)
+        cum_occ_heat = [round(sum(occ_heat[: i + 1]), 4) for i in range(len(occ_heat))]
+
+        # Bar: Heat contribution per step
+        fig.add_trace(
+            go.Bar(
+                x=steps,
+                y=occ_heat,
+                name="Occupant Heat Gain (°C/step)",
+                marker=dict(color="#FF7043", opacity=0.8),
+                hovertemplate="Step %{x}<br>Heat: +%{y:.3f} °C/step<extra></extra>",
+            )
+        )
+
+        # Line: Cumulative heat added
+        fig.add_trace(
+            go.Scatter(
+                x=steps,
+                y=cum_occ_heat,
+                name="Cumulative Occupancy Heat (°C)",
+                mode="lines+markers",
+                line=dict(color="#D84315", width=2.5),
+                marker=dict(size=4),
+                hovertemplate="Step %{x}<br>Cumulative: +%{y:.2f} °C<extra></extra>",
+                yaxis="y2",
+            )
+        )
+
+    fig = _apply_standard_chart_layout(
+        fig,
+        title_text=title,
+        xaxis_title="Simulation Step",
+        yaxis_title="Step Heat Gain (°C/step)",
+        dark_mode=dark_mode,
+        height=340,
+    )
+
+    fig.update_layout(
+        yaxis2=dict(
+            title=dict(
+                text="Cumulative Added Heat (°C)",
+                font=dict(color="#D84315", size=12),
+            ),
+            tickfont=dict(color="#D84315", size=11),
+            overlaying="y",
+            side="right",
+            showgrid=False,
+        )
+    )
+
+    return fig
+

@@ -48,6 +48,7 @@ from utils import (
     create_reflex_temperature_history_chart,
     create_temperature_gauge,
     create_utility_comparison_chart,
+    create_occupancy_heat_chart,
     get_comparison_summary_html,
     get_decision_card_html,
     get_device_status_panel_html,
@@ -91,6 +92,10 @@ def init_session_state() -> None:
         "reflex_lower_slider": float(ReflexThermostatDefaults.DEFAULT_LOWER_THRESHOLD),
         "reflex_upper_slider": float(ReflexThermostatDefaults.DEFAULT_UPPER_THRESHOLD),
         "active_scenario_id": "custom",
+        "people_present": bool(SimulationDefaults.DEFAULT_PEOPLE_PRESENT),
+        "num_people": int(SimulationDefaults.DEFAULT_NUM_PEOPLE),
+        "room_size": float(SimulationDefaults.DEFAULT_ROOM_SIZE),
+        "heat_gain_per_person": float(SimulationDefaults.DEFAULT_HEAT_GAIN_PER_PERSON),
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -133,6 +138,10 @@ def _create_configured_environment() -> RoomEnvironment:
         cooling_power=float(st.session_state.cooling_power),
         disturbance_level=float(st.session_state.disturbance_level),
         random_seed=int(st.session_state.random_seed),
+        people_present=bool(st.session_state.people_present),
+        num_people=int(st.session_state.num_people) if st.session_state.people_present else 0,
+        room_size=float(st.session_state.room_size),
+        heat_gain_per_person=float(st.session_state.heat_gain_per_person),
     )
 
 
@@ -154,6 +163,10 @@ def _build_comparison_config() -> ComparisonConfig:
         weight_overshoot=float(st.session_state.weight_overshoot),
         lower_threshold=float(st.session_state.reflex_lower_slider),
         upper_threshold=float(st.session_state.reflex_upper_slider),
+        people_present=bool(st.session_state.people_present),
+        num_people=int(st.session_state.num_people) if st.session_state.people_present else 0,
+        room_size=float(st.session_state.room_size),
+        heat_gain_per_person=float(st.session_state.heat_gain_per_person),
     )
 
 
@@ -177,6 +190,10 @@ def reset_utility_simulation() -> None:
         "utility_score": 0.0,
         "energy_consumed": 0.0,
         "classification": init_obs["classification"],
+        "people_present": init_obs.get("people_present", st.session_state.people_present),
+        "num_people": init_obs.get("num_people", st.session_state.num_people),
+        "room_size": init_obs.get("room_size", st.session_state.room_size),
+        "delta_occupancy": init_obs.get("delta_occupancy", 0.0),
     }]
 
 
@@ -197,6 +214,10 @@ def reset_reflex_simulation() -> None:
         "energy_consumed": 0.0,
         "cumulative_energy": 0.0,
         "classification": init_obs["classification"],
+        "people_present": init_obs.get("people_present", st.session_state.people_present),
+        "num_people": init_obs.get("num_people", st.session_state.num_people),
+        "room_size": init_obs.get("room_size", st.session_state.room_size),
+        "delta_occupancy": init_obs.get("delta_occupancy", 0.0),
     }]
 
 
@@ -227,6 +248,10 @@ def apply_demonstration_scenario(scenario_id: str) -> None:
     st.session_state.weight_energy = sc.weight_energy
     st.session_state.weight_stability = sc.weight_stability
     st.session_state.weight_overshoot = sc.weight_overshoot
+    if hasattr(sc, "people_present"):
+        st.session_state.people_present = sc.people_present
+        st.session_state.num_people = sc.num_people
+        st.session_state.room_size = sc.room_size
     reset_all_simulations()
 
 
@@ -263,6 +288,10 @@ def perform_agent_step() -> None:
             "utility_score": dec.utility_score,
             "energy_consumed": dec.energy_consumed,
             "classification": next_st["classification"],
+            "people_present": next_st.get("people_present", current_env.people_present),
+            "num_people": next_st.get("num_people", current_env.num_people),
+            "room_size": next_st.get("room_size", current_env.room_size),
+            "delta_occupancy": next_st.get("delta_occupancy", current_env.delta_occupancy),
         })
 
 
@@ -1608,6 +1637,10 @@ def _on_sidebar_scenario_change() -> None:
         apply_demonstration_scenario("hot_room")
     elif "Scenario 3" in choice:
         apply_demonstration_scenario("comfortable_room")
+    elif "Scenario 4" in choice:
+        apply_demonstration_scenario("occupied_meeting")
+    elif "Scenario 5" in choice:
+        apply_demonstration_scenario("empty_office")
     elif "Custom" in choice:
         st.session_state.active_scenario_id = "custom"
 
@@ -1625,17 +1658,22 @@ with st.sidebar:
         '<div class="sidebar-divider"></div><div class="sidebar-section-caption">DEMONSTRATION SCENARIOS</div>',
         unsafe_allow_html=True,
     )
-    current_scenario_idx = 0 if st.session_state.active_scenario_id == "cold_room" else (
-        1 if st.session_state.active_scenario_id == "hot_room" else (
-            2 if st.session_state.active_scenario_id == "comfortable_room" else 3
-        )
-    )
+    scenario_map = {
+        "cold_room": 0,
+        "hot_room": 1,
+        "comfortable_room": 2,
+        "occupied_meeting": 3,
+        "empty_office": 4,
+    }
+    current_scenario_idx = scenario_map.get(st.session_state.active_scenario_id, 5)
     st.selectbox(
         "Load Preset Scenario",
         options=[
             "Scenario 1: Cold Room",
             "Scenario 2: Hot Room",
             "Scenario 3: Comfortable Room",
+            "Scenario 4: Occupied Meeting (8 People)",
+            "Scenario 5: Unoccupied Office (0 People)",
             "Custom Configuration",
         ],
         index=current_scenario_idx,
@@ -1644,6 +1682,7 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
+    occ_summary = f"{st.session_state.num_people} People" if st.session_state.people_present else "Unoccupied (0)"
     settings_card_html = f"""<div class="sidebar-divider"></div>
 <div class="sidebar-section-caption">CURRENT SETTINGS</div>
 <div class="sidebar-settings-card">
@@ -1658,6 +1697,14 @@ with st.sidebar:
 <div class="sidebar-setting-row">
 <span class="setting-k">Outside Temp</span>
 <span class="setting-v">{st.session_state.outside_temp:.1f}°C</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Occupancy</span>
+<span class="setting-v">{occ_summary}</span>
+</div>
+<div class="sidebar-setting-row">
+<span class="setting-k">Room Area</span>
+<span class="setting-v">{st.session_state.room_size:.0f} m²</span>
 </div>
 <div class="sidebar-setting-row">
 <span class="setting-k">Insulation</span>
@@ -1759,12 +1806,61 @@ if nav_selection == "Overview":
             unsafe_allow_html=True,
         )
 
+    # 2.2 Occupancy & Thermal Mass Secondary Metrics
+    u_preview = agent.decide_action(env.get_state())
+    om1, om2, om3, om4 = st.columns(4)
+    with om1:
+        occ_str = f"{st.session_state.num_people} Occupants" if st.session_state.people_present else "Unoccupied"
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Room Occupancy",
+                value=occ_str,
+                subtext="Sensible metabolic body heat active" if st.session_state.people_present else "Zero occupant heat (0.00°C)",
+                status_type="comfortable" if st.session_state.people_present else None,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
+        )
+    with om2:
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Room Floor Area",
+                value=f"{st.session_state.room_size:.0f} m²",
+                subtext=f"Thermal scale: {25.0 / st.session_state.room_size:.2f}x (baseline: 25 m²)",
+                status_type=None,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
+        )
+    with om3:
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Body Heat Rate",
+                value=f"+{env.delta_occupancy:.2f} °C",
+                subtext="Heat gain per simulation step",
+                status_type="hot" if env.delta_occupancy > 0 else None,
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
+        )
+    with om4:
+        st.markdown(
+            get_overview_metric_card_html(
+                label="Predicted Next Temp",
+                value=f"{u_preview.predicted_temp:.1f} °C",
+                subtext=f"Forecast under {u_preview.selected_action}",
+                status_type="comfortable" if env.classify_temperature(u_preview.predicted_temp) == CLASS_COMFORTABLE else ("cold" if u_preview.predicted_temp < st.session_state.desired_temp else "hot"),
+                dark_mode=dark_mode,
+            ),
+            unsafe_allow_html=True,
+        )
+
     # 2.5 Live Room Environment Simulation
     st.subheader("Live Room Environment Simulation")
     if len(st.session_state.simulation_records) > 1:
         ov_action = st.session_state.simulation_records[-1]["action"]
     else:
-        ov_action = agent.decide_action(env.get_state()).selected_action
+        ov_action = u_preview.selected_action
     
     ov_fan = (ov_action in [ACTION_HEAT, ACTION_COOL])
     ov_win = (ov_action == ACTION_OFF and 19.0 <= env.outside_temp <= 25.0)
@@ -1781,6 +1877,12 @@ if nav_selection == "Overview":
             window_open=ov_win,
             comfort_tolerance=st.session_state.comfort_tolerance,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
+            room_size=st.session_state.room_size,
+            heat_gain_per_person=st.session_state.heat_gain_per_person,
+            predicted_temp=u_preview.predicted_temp,
+            delta_occupancy=env.delta_occupancy,
         ),
         unsafe_allow_html=True,
     )
@@ -1953,6 +2055,7 @@ elif nav_selection == "Live Room Simulation":
         window_active = False
 
     # 1. Main Visual Room Simulator
+    pred_temp = agent.decide_action(curr_obs).predicted_temp if active_sim_agent == "Utility-Based Agent" else None
     st.markdown(
         get_live_room_simulation_html(
             current_temp=curr_temp,
@@ -1965,6 +2068,12 @@ elif nav_selection == "Live Room Simulation":
             window_open=window_active,
             comfort_tolerance=st.session_state.comfort_tolerance,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
+            room_size=st.session_state.room_size,
+            heat_gain_per_person=st.session_state.heat_gain_per_person,
+            predicted_temp=pred_temp,
+            delta_occupancy=current_sim_env.delta_occupancy,
         ),
         unsafe_allow_html=True,
     )
@@ -2067,7 +2176,7 @@ elif nav_selection == "Environment Setup":
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("#### 🌡️ Temperature & Environment")
+        st.markdown("#### 🌡️ Temperature Settings")
         st.session_state.initial_temp = st.slider(
             "Initial Room Temperature (°C)",
             min_value=float(SimulationDefaults.MIN_INITIAL_TEMP),
@@ -2105,6 +2214,50 @@ elif nav_selection == "Environment Setup":
             help="Outdoor ambient temperature.",
         )
 
+        st.markdown("#### 👥 Occupancy & Room Configuration")
+        st.session_state.people_present = st.toggle(
+            "People Present in Room",
+            value=bool(st.session_state.people_present),
+            key="tog_people_present",
+            help="Toggle occupant presence. When OFF, internal body heat is 0.00°C and Utility Agent activates energy setback mode.",
+        )
+        
+        # Disabled when room is unoccupied
+        occ_disabled = not st.session_state.people_present
+        current_num_people = int(st.session_state.num_people) if st.session_state.num_people >= 1 else 2
+        st.session_state.num_people = st.slider(
+            "Number of People (1–15)",
+            min_value=int(SimulationDefaults.MIN_PEOPLE),
+            max_value=int(SimulationDefaults.MAX_PEOPLE),
+            value=current_num_people,
+            step=1,
+            disabled=occ_disabled,
+            key="sl_num_people",
+            help="Active only when People Present = Yes. Each occupant adds ~0.08°C metabolic heat at reference 25m².",
+        )
+
+        st.session_state.room_size = st.slider(
+            "Room Floor Area (m²)",
+            min_value=float(SimulationDefaults.MIN_ROOM_SIZE),
+            max_value=float(SimulationDefaults.MAX_ROOM_SIZE),
+            value=float(st.session_state.room_size),
+            step=1.0,
+            key="sl_room_size",
+            help="Floor area in m². Larger rooms have greater thermal mass, slowing temperature changes from HVAC and body heat.",
+        )
+
+        # Dynamic physical feedback note
+        eff_p = st.session_state.num_people if st.session_state.people_present else 0
+        eff_occ_calc = (eff_p * float(st.session_state.heat_gain_per_person) * (25.0 / max(8.0, st.session_state.room_size)))
+        thermal_scale_calc = 25.0 / max(8.0, st.session_state.room_size)
+        st.info(
+            f"💡 **Thermal Physics Summary:** Metabolic Heat Gain = **+{eff_occ_calc:.3f} °C/step** "
+            f"({'Active' if st.session_state.people_present else 'Unoccupied (0.00°C)'}) · "
+            f"Room Thermal Scale = **{thermal_scale_calc:.2f}x** (Baseline: 25 m², 2.5m ceiling height)."
+        )
+
+    with col2:
+        st.markdown("#### 🏗️ Building & HVAC Settings")
         ins_opts = ["Poor", "Medium", "Good"]
         st.session_state.insulation_level = st.selectbox(
             "Room Insulation Level",
@@ -2112,6 +2265,33 @@ elif nav_selection == "Environment Setup":
             index=ins_opts.index(st.session_state.insulation_level),
             key="sb_insulation",
             help="Determines the rate of heat exchange with outside air.",
+        )
+        st.session_state.heater_power = st.slider(
+            "Heater Power (°C/step at 25m²)",
+            min_value=0.5,
+            max_value=3.0,
+            value=float(st.session_state.heater_power),
+            step=0.1,
+            key="sl_heater_power",
+            help="Maximum temperature rise delivered by heating unit at 25m².",
+        )
+        st.session_state.cooling_power = st.slider(
+            "Cooling Power (°C/step at 25m²)",
+            min_value=0.5,
+            max_value=3.0,
+            value=float(st.session_state.cooling_power),
+            step=0.1,
+            key="sl_cooling_power",
+            help="Maximum temperature drop delivered by AC unit at 25m².",
+        )
+        st.session_state.disturbance_level = st.slider(
+            "Disturbance Noise Level (σ)",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(st.session_state.disturbance_level),
+            step=0.05,
+            key="sl_disturbance",
+            help="Standard deviation of environmental thermal noise.",
         )
         st.session_state.max_steps = st.slider(
             "Simulation Steps",
@@ -2239,7 +2419,9 @@ elif nav_selection == "Utility-Based Agent":
     )
 
     # Clean metric cards
-    m1, m2, m3, m4 = st.columns(4)
+    pred_val_str = f"{last_dec.predicted_temp:.2f} °C" if last_dec else f"{current_state['room_temp']:.2f} °C"
+    occ_val_str = f"{st.session_state.num_people} People" if st.session_state.people_present else "Unoccupied"
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     with m1:
         st.metric("Current Room Temp", f"{current_state['room_temp']:.2f} °C")
     with m2:
@@ -2247,7 +2429,11 @@ elif nav_selection == "Utility-Based Agent":
     with m3:
         st.metric("Outside Temp", f"{current_state['outside_temp']:.1f} °C")
     with m4:
-        st.metric("Simulation Step", f"{env.current_step} / {st.session_state.max_steps}")
+        st.metric("Room Area", f"{st.session_state.room_size:.0f} m²")
+    with m5:
+        st.metric("Occupancy", occ_val_str, delta=f"+{env.delta_occupancy:.2f}°C" if env.delta_occupancy > 0 else "0.00°C")
+    with m6:
+        st.metric("Predicted Next", pred_val_str)
 
     # Simulation Controls
     def perform_agent_step() -> None:
@@ -2266,6 +2452,10 @@ elif nav_selection == "Utility-Based Agent":
                 "utility_score": dec.utility_score,
                 "energy_consumed": dec.energy_consumed,
                 "classification": next_st["classification"],
+                "people_present": next_st.get("people_present", env.people_present),
+                "num_people": next_st.get("num_people", env.num_people),
+                "room_size": next_st.get("room_size", env.room_size),
+                "delta_occupancy": next_st.get("delta_occupancy", env.delta_occupancy),
             })
 
     c1, c2, c3 = st.columns(3)
@@ -2307,6 +2497,12 @@ elif nav_selection == "Utility-Based Agent":
                 window_open=u_win,
                 comfort_tolerance=st.session_state.comfort_tolerance,
                 dark_mode=dark_mode,
+                people_present=st.session_state.people_present,
+                num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                room_size=st.session_state.room_size,
+                heat_gain_per_person=st.session_state.heat_gain_per_person,
+                predicted_temp=last_dec.predicted_temp,
+                delta_occupancy=env.delta_occupancy,
             ),
             unsafe_allow_html=True,
         )
@@ -2398,14 +2594,19 @@ elif nav_selection == "Reflex Thermostat":
     )
 
     # Clean metric cards
-    rm1, rm2, rm3, rm4 = st.columns(4)
+    r_occ_str = f"{st.session_state.num_people} People" if st.session_state.people_present else "Unoccupied"
+    rm1, rm2, rm3, rm4, rm5, rm6 = st.columns(6)
     with rm1:
         st.metric("Current Room Temp", f"{r_state['room_temp']:.2f} °C")
     with rm2:
-        st.metric("Lower Threshold (Heat below)", f"{reflex_agent.lower_threshold:.1f} °C")
+        st.metric("Lower Threshold", f"{reflex_agent.lower_threshold:.1f} °C")
     with rm3:
-        st.metric("Upper Threshold (Cool above)", f"{reflex_agent.upper_threshold:.1f} °C")
+        st.metric("Upper Threshold", f"{reflex_agent.upper_threshold:.1f} °C")
     with rm4:
+        st.metric("Room Area", f"{st.session_state.room_size:.0f} m²")
+    with rm5:
+        st.metric("Occupancy", r_occ_str, delta=f"+{reflex_env.delta_occupancy:.2f}°C" if reflex_env.delta_occupancy > 0 else "0.00°C")
+    with rm6:
         st.metric("Selected Action", f"{r_preview.selected_action}")
 
     # Simulation Controls
@@ -2452,6 +2653,12 @@ elif nav_selection == "Reflex Thermostat":
             window_open=r_win,
             comfort_tolerance=st.session_state.comfort_tolerance,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
+            room_size=st.session_state.room_size,
+            heat_gain_per_person=st.session_state.heat_gain_per_person,
+            predicted_temp=None,
+            delta_occupancy=reflex_env.delta_occupancy,
         ),
         unsafe_allow_html=True,
     )
@@ -2517,9 +2724,11 @@ elif nav_selection == "Agent Comparison":
     )
 
     cfg = comparison_runner.config
+    eff_occ_comp = (cfg.num_people * cfg.heat_gain_per_person * 25.0 / max(8.0, cfg.room_size)) if cfg.people_present else 0.0
+    occ_str = f"{cfg.num_people} Occupants (+{eff_occ_comp:.2f}°C/step)" if cfg.people_present else "Unoccupied (0.00°C/step)"
     st.caption(
         f"**Synchronized Setup:** Initial Temp: {cfg.initial_temp:.1f}°C · Target: {cfg.desired_temp:.1f}°C (±{cfg.comfort_tolerance:.1f}°C) · "
-        f"Outside Temp: {cfg.outside_temp:.1f}°C · Insulation: {cfg.insulation_level} · Seed: {cfg.random_seed}"
+        f"Outside Temp: {cfg.outside_temp:.1f}°C · Room Size: {cfg.room_size:.0f} m² · Occupancy: {occ_str} · Insulation: {cfg.insulation_level} · Seed: {cfg.random_seed}"
     )
 
     # Controls
@@ -2532,6 +2741,53 @@ elif nav_selection == "Agent Comparison":
         if st.button("Reset Comparison", key="btn_sec_c_reset", use_container_width=True):
             reset_all_simulations()
             st.rerun()
+
+    # Quick Scenario Presets for Occupancy and Room Area Benchmarks
+    with st.expander("⚡ Quick Benchmark Scenarios (Occupancy Levels & Room Sizes)", expanded=False):
+        st.markdown("**1. Occupancy Scenarios:**")
+        pcol1, pcol2, pcol3 = st.columns(3)
+        with pcol1:
+            if st.button("🚫 Empty Room (0 Occupants)", key="btn_pre_empty", use_container_width=True):
+                st.session_state.people_present = False
+                st.session_state.num_people = 0
+                comparison_runner.reset(_build_comparison_config())
+                comparison_runner.run_all()
+                st.rerun()
+        with pcol2:
+            if st.button("👥 1–2 Occupants (2 People)", key="btn_pre_two", use_container_width=True):
+                st.session_state.people_present = True
+                st.session_state.num_people = 2
+                comparison_runner.reset(_build_comparison_config())
+                comparison_runner.run_all()
+                st.rerun()
+        with pcol3:
+            if st.button("👨‍👩‍👧‍👦 Multiple Occupants (6 People)", key="btn_pre_multi", use_container_width=True):
+                st.session_state.people_present = True
+                st.session_state.num_people = 6
+                comparison_runner.reset(_build_comparison_config())
+                comparison_runner.run_all()
+                st.rerun()
+
+        st.markdown("**2. Room Size Scenarios:**")
+        scol1, scol2, scol3 = st.columns(3)
+        with scol1:
+            if st.button("📦 Small Room (12 m²)", key="btn_pre_small", use_container_width=True):
+                st.session_state.room_size = 12.0
+                comparison_runner.reset(_build_comparison_config())
+                comparison_runner.run_all()
+                st.rerun()
+        with scol2:
+            if st.button("🏠 Medium Room (25 m²)", key="btn_pre_med", use_container_width=True):
+                st.session_state.room_size = 25.0
+                comparison_runner.reset(_build_comparison_config())
+                comparison_runner.run_all()
+                st.rerun()
+        with scol3:
+            if st.button("🏢 Large Room (60 m²)", key="btn_pre_large", use_container_width=True):
+                st.session_state.room_size = 60.0
+                comparison_runner.reset(_build_comparison_config())
+                comparison_runner.run_all()
+                st.rerun()
 
     # Evaluation results
     eval_res = comparison_runner.evaluate()
@@ -2628,6 +2884,17 @@ elif nav_selection == "Agent Comparison":
         ),
         use_container_width=True,
         key="chart_sec_c_action",
+    )
+
+    # 5. Occupancy & Internal Heat Gain Over Time Chart
+    st.subheader("5. Occupancy & Internal Heat Gain Over Time")
+    st.plotly_chart(
+        create_occupancy_heat_chart(
+            combined_df=combined_df,
+            dark_mode=dark_mode,
+        ),
+        use_container_width=True,
+        key="chart_sec_c_occ_heat",
     )
 
     # Quantitative Metrics Table

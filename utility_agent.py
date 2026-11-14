@@ -42,6 +42,9 @@ class ActionEvaluation:
     weighted_stability: float
     weighted_overshoot: float
     utility: float
+    delta_occupancy: float = 0.0
+    room_scale: float = 1.0
+    occupancy_comfort_factor: float = 1.0
 
 
 @dataclass
@@ -57,6 +60,10 @@ class AgentDecision:
     energy_consumed: float
     reason: str
     action_evaluations: Dict[str, ActionEvaluation] = field(default_factory=dict)
+    people_present: bool = True
+    num_people: int = 2
+    room_size: float = 25.0
+    delta_occupancy: float = 0.0
 
 
 class UtilityBasedAgent:
@@ -136,27 +143,38 @@ class UtilityBasedAgent:
         action: str,
         heater_power: float,
         cooling_power: float,
+        people_present: bool = True,
+        num_people: int = 2,
+        room_size: float = 25.0,
+        heat_gain_per_person: float = 0.08,
     ) -> float:
         """
         Predict the next room temperature for a candidate action using the
-        physical thermodynamic model of the environment.
+        physical thermodynamic model of the environment, incorporating room size
+        and internal heat gain from occupants.
 
         Model:
             delta_ambient = k * (outside_temp - current_temp)
-            delta_hvac = +heater_power (if HEAT), -cooling_power (if COOL), 0 (if OFF)
-            predicted_temp = current_temp + delta_ambient + delta_hvac
+            room_scale = 25.0 / room_size
+            delta_hvac = (+heater_power if HEAT, -cooling_power if COOL, 0 if OFF) * room_scale
+            delta_occupancy = num_people * heat_gain_per_person * room_scale (0 if unoccupied)
+            predicted_temp = current_temp + delta_ambient + delta_hvac + delta_occupancy
         """
         k = INSULATION_FACTORS.get(insulation_level, 0.07)
         delta_ambient = k * (outside_temp - current_temp)
+        room_scale = 25.0 / max(float(room_size), 1.0)
 
         if action == ACTION_HEAT:
-            delta_hvac = heater_power
+            delta_hvac = float(heater_power) * room_scale
         elif action == ACTION_COOL:
-            delta_hvac = -cooling_power
+            delta_hvac = -float(cooling_power) * room_scale
         else:
             delta_hvac = 0.0
 
-        return current_temp + delta_ambient + delta_hvac
+        effective_occupants = int(num_people) if people_present else 0
+        delta_occupancy = effective_occupants * float(heat_gain_per_person) * room_scale
+
+        return current_temp + delta_ambient + delta_hvac + delta_occupancy
 
     def evaluate_action(
         self,
@@ -168,9 +186,15 @@ class UtilityBasedAgent:
         heater_power: float,
         cooling_power: float,
         comfort_tolerance: float,
+        people_present: bool = True,
+        num_people: int = 2,
+        room_size: float = 25.0,
+        heat_gain_per_person: float = 0.08,
     ) -> ActionEvaluation:
         """
         Compute the individual penalty factors and total utility for a single candidate action.
+        Balances temperature comfort, energy consumption, occupancy-related comfort requirements,
+        and stability across room dimensions.
         """
         # 1. Predict future temperature
         predicted_temp = self.predict_temperature(
@@ -180,7 +204,15 @@ class UtilityBasedAgent:
             action=action,
             heater_power=heater_power,
             cooling_power=cooling_power,
+            people_present=people_present,
+            num_people=num_people,
+            room_size=room_size,
+            heat_gain_per_person=heat_gain_per_person,
         )
+
+        effective_occupants = int(num_people) if people_present else 0
+        room_scale = 25.0 / max(float(room_size), 1.0)
+        delta_occupancy = effective_occupants * float(heat_gain_per_person) * room_scale
 
         # 2. Factor 1: Temperature Comfort Penalty (|predicted - desired|)
         comfort_penalty = abs(predicted_temp - desired_temp)
@@ -201,11 +233,16 @@ class UtilityBasedAgent:
         else:
             overshoot_penalty = 0.0
 
+        # Occupancy comfort factor:
+        # If people are present, comfort is prioritized (1.0).
+        # If unoccupied, setback mode allows energy conservation (comfort factor 0.3).
+        occupancy_comfort_factor = 1.0 if (people_present and effective_occupants > 0) else 0.3
+
         # Weighted components
-        weighted_comfort = self.weight_comfort * comfort_penalty
+        weighted_comfort = self.weight_comfort * occupancy_comfort_factor * comfort_penalty
         weighted_energy = self.weight_energy * energy_cost
         weighted_stability = self.weight_stability * instability_penalty
-        weighted_overshoot = self.weight_overshoot * overshoot_penalty
+        weighted_overshoot = self.weight_overshoot * occupancy_comfort_factor * overshoot_penalty
 
         # Net utility: Utility(action) = - Comfort - Energy - Instability - Overshoot
         total_utility = -(
@@ -224,6 +261,9 @@ class UtilityBasedAgent:
             weighted_stability=round(weighted_stability, 3),
             weighted_overshoot=round(weighted_overshoot, 3),
             utility=round(total_utility, 3),
+            delta_occupancy=round(delta_occupancy, 3),
+            room_scale=round(room_scale, 3),
+            occupancy_comfort_factor=round(occupancy_comfort_factor, 2),
         )
 
     def decide_action(self, observation: Dict[str, Any]) -> AgentDecision:
@@ -232,12 +272,13 @@ class UtilityBasedAgent:
         1. Observe current room temperature.
         2. Read desired temperature.
         3. Observe outside temperature and insulation.
-        4. Generate possible actions (HEAT, COOL, OFF).
-        5. Predict resulting temperature for each action.
-        6. Calculate utility of each predicted outcome.
-        7. Select action with maximum utility.
-        8. Prepare applied action and energy tracking.
-        9. Record and return decision summary.
+        4. Observe occupancy status and room size.
+        5. Generate possible actions (HEAT, COOL, OFF).
+        6. Predict resulting temperature for each action.
+        7. Calculate utility of each predicted outcome.
+        8. Select action with maximum utility.
+        9. Prepare applied action and energy tracking.
+        10. Record and return decision summary.
         """
         current_temp = float(observation["room_temp"])
         desired_temp = float(observation["desired_temp"])
@@ -246,6 +287,10 @@ class UtilityBasedAgent:
         heater_power = float(observation.get("heater_power", 1.5))
         cooling_power = float(observation.get("cooling_power", 1.5))
         comfort_tolerance = float(observation.get("comfort_tolerance", 1.5))
+        people_present = bool(observation.get("people_present", True))
+        num_people = int(observation.get("num_people", 2)) if people_present else 0
+        room_size = float(observation.get("room_size", 25.0))
+        heat_gain_per_person = float(observation.get("heat_gain_per_person", 0.08))
         step = int(observation.get("step", len(self.action_history)))
 
         # Evaluate all candidate actions
@@ -260,6 +305,10 @@ class UtilityBasedAgent:
                 heater_power=heater_power,
                 cooling_power=cooling_power,
                 comfort_tolerance=comfort_tolerance,
+                people_present=people_present,
+                num_people=num_people,
+                room_size=room_size,
+                heat_gain_per_person=heat_gain_per_person,
             )
 
         # Select action that maximizes net utility
@@ -275,6 +324,9 @@ class UtilityBasedAgent:
             desired_temp=desired_temp,
             outside_temp=outside_temp,
             tolerance=comfort_tolerance,
+            people_present=people_present,
+            num_people=num_people,
+            room_size=room_size,
         )
 
         step_energy = self.energy_costs[selected_action]
@@ -292,6 +344,10 @@ class UtilityBasedAgent:
             energy_consumed=step_energy,
             reason=reason,
             action_evaluations=evaluations,
+            people_present=people_present,
+            num_people=num_people,
+            room_size=room_size,
+            delta_occupancy=selected_eval.delta_occupancy,
         )
         self.last_decision = decision
 
@@ -307,6 +363,10 @@ class UtilityBasedAgent:
             "energy_consumed": step_energy,
             "cumulative_energy": round(self.total_energy_consumed, 2),
             "reason": reason,
+            "people_present": people_present,
+            "num_people": num_people,
+            "room_size": room_size,
+            "delta_occupancy": selected_eval.delta_occupancy,
             "u_heat": evaluations[ACTION_HEAT].utility,
             "u_cool": evaluations[ACTION_COOL].utility,
             "u_off": evaluations[ACTION_OFF].utility,
@@ -323,28 +383,51 @@ class UtilityBasedAgent:
         desired_temp: float,
         outside_temp: float,
         tolerance: float,
+        people_present: bool = True,
+        num_people: int = 2,
+        room_size: float = 25.0,
     ) -> str:
         """Construct natural language justification for the selected action."""
         pred = selected_eval.predicted_temp
         util = selected_eval.utility
         delta_to_target = abs(pred - desired_temp)
+        delta_occ = selected_eval.delta_occupancy
 
         if selected_action == ACTION_HEAT:
-            reason = (
-                f"Heating yields highest utility ({util:.2f}) by warming room to {pred:.1f}°C "
-                f"(within {delta_to_target:.1f}°C of target {desired_temp:.1f}°C), outweighing "
-                f"the energy cost ({selected_eval.weighted_energy:.2f})."
-            )
-        elif selected_action == ACTION_COOL:
-            reason = (
-                f"Cooling yields highest utility ({util:.2f}) by lowering temperature to {pred:.1f}°C "
-                f"(within {delta_to_target:.1f}°C of target {desired_temp:.1f}°C), offsetting the cooling power cost."
-            )
-        else:  # ACTION_OFF
-            if delta_to_target <= tolerance:
+            if people_present and num_people > 0:
                 reason = (
-                    f"HVAC OFF yields highest utility ({util:.2f}) because the room naturally remains "
-                    f"comfortable ({pred:.1f}°C), eliminating active energy consumption (cost: 0)."
+                    f"Heating yields highest utility ({util:.2f}) in the {room_size:.0f}m² room "
+                    f"with {num_people} occupant(s) (+{delta_occ:.2f}°C body heat), warming room to {pred:.1f}°C "
+                    f"(within {delta_to_target:.1f}°C of target {desired_temp:.1f}°C), outweighing "
+                    f"the energy cost ({selected_eval.weighted_energy:.2f})."
+                )
+            else:
+                reason = (
+                    f"Heating yields highest utility ({util:.2f}) in the unoccupied {room_size:.0f}m² room, "
+                    f"maintaining thermal boundaries near target {desired_temp:.1f}°C."
+                )
+        elif selected_action == ACTION_COOL:
+            if people_present and num_people > 0:
+                reason = (
+                    f"Cooling yields highest utility ({util:.2f}) by counteracting heat from {num_people} occupant(s) "
+                    f"(+{delta_occ:.2f}°C) and outside warmth ({outside_temp:.1f}°C) in the {room_size:.0f}m² room "
+                    f"to lower temperature to {pred:.1f}°C near target {desired_temp:.1f}°C."
+                )
+            else:
+                reason = (
+                    f"Cooling yields highest utility ({util:.2f}) in the {room_size:.0f}m² room, preventing excessive "
+                    f"heat buildup ({pred:.1f}°C) above safe setback boundaries."
+                )
+        else:  # ACTION_OFF
+            if not people_present or num_people == 0:
+                reason = (
+                    f"Room is unoccupied (0 occupants). HVAC OFF yields highest utility ({util:.2f}) by conserving "
+                    f"energy (cost: 0) while allowing temperature ({pred:.1f}°C) to drift within acceptable setback boundaries."
+                )
+            elif delta_to_target <= tolerance:
+                reason = (
+                    f"HVAC OFF yields highest utility ({util:.2f}) because the {room_size:.0f}m² room with {num_people} "
+                    f"occupant(s) naturally remains comfortable ({pred:.1f}°C), eliminating active energy consumption (cost: 0)."
                 )
             else:
                 reason = (

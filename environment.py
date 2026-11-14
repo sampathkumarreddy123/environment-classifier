@@ -36,6 +36,10 @@ class RoomEnvironment:
         disturbance_level: float = SimulationDefaults.DEFAULT_DISTURBANCE,
         comfort_tolerance: float = SimulationDefaults.DEFAULT_COMFORT_TOLERANCE,
         random_seed: Optional[int] = None,
+        people_present: bool = False,
+        num_people: int = 0,
+        room_size: float = SimulationDefaults.DEFAULT_ROOM_SIZE,
+        heat_gain_per_person: float = SimulationDefaults.DEFAULT_HEAT_GAIN_PER_PERSON,
     ) -> None:
         """
         Initialize the room simulation environment.
@@ -50,6 +54,10 @@ class RoomEnvironment:
             disturbance_level: Standard deviation of stochastic noise (°C).
             comfort_tolerance: Half-width of comfort range around desired_temp (°C).
             random_seed: Optional random seed for reproducible disturbance sampling.
+            people_present: Whether occupants are present in the room (bool).
+            num_people: Number of people inside the room (int).
+            room_size: Room floor area in m² (float).
+            heat_gain_per_person: Metabolic heat gain per person per step at reference size (°C).
         """
         self.initial_temp = float(initial_temp)
         self.desired_temp = float(desired_temp)
@@ -60,6 +68,14 @@ class RoomEnvironment:
         self.disturbance_level = float(disturbance_level)
         self.comfort_tolerance = float(comfort_tolerance)
         self.random_seed = random_seed
+
+        # Occupancy & Room configuration
+        self.people_present = bool(people_present)
+        self.num_people = int(num_people) if self.people_present else 0
+        self.room_size = float(room_size)
+        self.heat_gain_per_person = float(heat_gain_per_person)
+        # Thermal mass scaling: room_scale = A_ref / A_room (Volume = Area * 2.5m)
+        self.room_scale = SimulationDefaults.REFERENCE_ROOM_SIZE / max(self.room_size, 1.0)
 
         self._rng = np.random.default_rng(random_seed)
 
@@ -78,6 +94,7 @@ class RoomEnvironment:
             action=ACTION_OFF,
             delta_ambient=0.0,
             delta_hvac=0.0,
+            delta_occupancy=0.0,
             disturbance=0.0,
         )
 
@@ -90,6 +107,10 @@ class RoomEnvironment:
         new_heater_power: Optional[float] = None,
         new_cooling_power: Optional[float] = None,
         new_disturbance_level: Optional[float] = None,
+        new_people_present: Optional[bool] = None,
+        new_num_people: Optional[int] = None,
+        new_room_size: Optional[float] = None,
+        new_heat_gain_per_person: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Reset the environment to time step 0, optionally updating configuration.
@@ -112,6 +133,17 @@ class RoomEnvironment:
             self.cooling_power = float(new_cooling_power)
         if new_disturbance_level is not None:
             self.disturbance_level = float(new_disturbance_level)
+        if new_people_present is not None:
+            self.people_present = bool(new_people_present)
+        if new_num_people is not None:
+            self.num_people = int(new_num_people) if self.people_present else 0
+        if not self.people_present:
+            self.num_people = 0
+        if new_room_size is not None:
+            self.room_size = float(new_room_size)
+            self.room_scale = SimulationDefaults.REFERENCE_ROOM_SIZE / max(self.room_size, 1.0)
+        if new_heat_gain_per_person is not None:
+            self.heat_gain_per_person = float(new_heat_gain_per_person)
 
         if self.random_seed is not None:
             self._rng = np.random.default_rng(self.random_seed)
@@ -126,6 +158,7 @@ class RoomEnvironment:
             action=ACTION_OFF,
             delta_ambient=0.0,
             delta_hvac=0.0,
+            delta_occupancy=0.0,
             disturbance=0.0,
         )
 
@@ -163,6 +196,23 @@ class RoomEnvironment:
     def is_comfortable(self) -> bool:
         """Return True if current temperature is within comfortable range."""
         return self.current_classification == CLASS_COMFORTABLE
+
+    @property
+    def delta_occupancy(self) -> float:
+        """Sensible metabolic body heat added per step under current occupancy and room scale (°C)."""
+        if not self.people_present:
+            return 0.0
+        return float(self.num_people) * self.heat_gain_per_person * self.room_scale
+
+    @property
+    def delta_hvac_heat(self) -> float:
+        """Heating thermal response scaled by room thermal mass (°C)."""
+        return self.heater_power * self.room_scale
+
+    @property
+    def delta_hvac_cool(self) -> float:
+        """Cooling thermal response scaled by room thermal mass (°C)."""
+        return self.cooling_power * self.room_scale
 
     def step(
         self,
@@ -202,15 +252,19 @@ class RoomEnvironment:
         # 1. Passive heat exchange through walls/windows
         delta_ambient = self.k_loss * (self.outside_temp - self.current_temp)
 
-        # 2. Active HVAC influence
+        # 2. Active HVAC influence (scaled by room thermal capacitance)
         if action == ACTION_HEAT:
-            delta_hvac = self.heater_power
+            delta_hvac = self.heater_power * self.room_scale
         elif action == ACTION_COOL:
-            delta_hvac = -self.cooling_power
+            delta_hvac = -self.cooling_power * self.room_scale
         else:
             delta_hvac = 0.0
 
-        # 3. Random environmental disturbance (e.g. open door, solar spike, body heat)
+        # 3. Internal heat gain from occupants (0 if unoccupied)
+        effective_occupants = self.num_people if self.people_present else 0
+        delta_occupancy = effective_occupants * self.heat_gain_per_person * self.room_scale
+
+        # 4. Random environmental disturbance (e.g. open door, solar spike)
         if disturbance is not None:
             applied_disturbance = float(disturbance)
         elif self.disturbance_level > 0.0:
@@ -218,8 +272,8 @@ class RoomEnvironment:
         else:
             applied_disturbance = 0.0
 
-        # 4. Update temperature
-        total_delta = delta_ambient + delta_hvac + applied_disturbance
+        # 5. Update temperature
+        total_delta = delta_ambient + delta_hvac + delta_occupancy + applied_disturbance
         new_temp = self.current_temp + total_delta
 
         # Update tracking
@@ -233,6 +287,7 @@ class RoomEnvironment:
             action=action,
             delta_ambient=delta_ambient,
             delta_hvac=delta_hvac,
+            delta_occupancy=delta_occupancy,
             disturbance=applied_disturbance,
         )
 
@@ -245,10 +300,12 @@ class RoomEnvironment:
         action: str,
         delta_ambient: float,
         delta_hvac: float,
+        delta_occupancy: float,
         disturbance: float,
     ) -> None:
         """Internal helper to store snapshot of current state."""
         classification = self.classify_temperature(temp)
+        effective_occupants = self.num_people if self.people_present else 0
         self.history.append({
             "step": step,
             "room_temp": round(temp, 2),
@@ -259,13 +316,19 @@ class RoomEnvironment:
             "action": action,
             "delta_ambient": round(delta_ambient, 3),
             "delta_hvac": round(delta_hvac, 3),
+            "delta_occupancy": round(delta_occupancy, 3),
             "disturbance": round(disturbance, 3),
+            "people_present": self.people_present,
+            "num_people": effective_occupants,
+            "room_size": round(self.room_size, 1),
             "classification": classification,
             "is_comfortable": classification == CLASS_COMFORTABLE,
         })
 
     def get_state(self) -> Dict[str, Any]:
         """Return the current observable state of the environment."""
+        effective_occupants = self.num_people if self.people_present else 0
+        delta_occ = effective_occupants * self.heat_gain_per_person * self.room_scale
         return {
             "step": self.current_step,
             "room_temp": round(self.current_temp, 2),
@@ -278,6 +341,12 @@ class RoomEnvironment:
             "heater_power": self.heater_power,
             "cooling_power": self.cooling_power,
             "disturbance_level": self.disturbance_level,
+            "people_present": self.people_present,
+            "num_people": effective_occupants,
+            "room_size": round(self.room_size, 1),
+            "room_scale": round(self.room_scale, 3),
+            "heat_gain_per_person": self.heat_gain_per_person,
+            "delta_occupancy": round(delta_occ, 3),
         }
 
     def get_history_df(self) -> pd.DataFrame:

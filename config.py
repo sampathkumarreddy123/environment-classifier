@@ -46,6 +46,20 @@ class SimulationDefaults:
     MAX_DISTURBANCE: float = 2.0
     DEFAULT_DISTURBANCE: float = 0.2
 
+    # Occupancy settings
+    DEFAULT_PEOPLE_PRESENT: bool = True
+    MIN_PEOPLE: int = 1
+    MAX_PEOPLE: int = 15
+    DEFAULT_NUM_PEOPLE: int = 2
+    DEFAULT_HEAT_GAIN_PER_PERSON: float = 0.08  # °C heat gain per person per step at reference area
+
+    # Room configuration (Area in m²)
+    MIN_ROOM_SIZE: float = 8.0
+    MAX_ROOM_SIZE: float = 100.0
+    DEFAULT_ROOM_SIZE: float = 25.0
+    REFERENCE_ROOM_SIZE: float = 25.0  # Baseline calibration room size
+    ASSUMED_CEILING_HEIGHT: float = 2.5  # Assumed ceiling height in meters (Volume = Area * 2.5 m)
+
 
 @dataclass(frozen=True)
 class UtilityWeightsDefaults:
@@ -102,6 +116,9 @@ class DemonstrationScenario:
     weight_energy: float
     weight_stability: float
     weight_overshoot: float
+    people_present: bool = True
+    num_people: int = 2
+    room_size: float = 25.0
 
 
 # Preconfigured academic demonstration scenarios
@@ -127,6 +144,9 @@ DEMO_SCENARIOS: Dict[str, DemonstrationScenario] = {
         weight_energy=0.5,
         weight_stability=0.2,
         weight_overshoot=1.0,
+        people_present=True,
+        num_people=2,
+        room_size=25.0,
     ),
     "hot_room": DemonstrationScenario(
         id="hot_room",
@@ -149,6 +169,9 @@ DEMO_SCENARIOS: Dict[str, DemonstrationScenario] = {
         weight_energy=0.5,
         weight_stability=0.2,
         weight_overshoot=1.0,
+        people_present=True,
+        num_people=3,
+        room_size=25.0,
     ),
     "comfortable_room": DemonstrationScenario(
         id="comfortable_room",
@@ -171,6 +194,59 @@ DEMO_SCENARIOS: Dict[str, DemonstrationScenario] = {
         weight_energy=0.5,
         weight_stability=0.2,
         weight_overshoot=1.0,
+        people_present=True,
+        num_people=1,
+        room_size=25.0,
+    ),
+    "occupied_meeting": DemonstrationScenario(
+        id="occupied_meeting",
+        name="Scenario 4: High Occupancy Meeting",
+        tag="High Internal Heat Gain",
+        description="A 35 m² conference room with 8 occupants generating internal body heat. Demonstrates how the utility-based agent proactively cools to offset occupant thermal load, whereas reflex thermostats lag.",
+        initial_temp=21.0,
+        desired_temp=21.5,
+        outside_temp=27.0,
+        insulation_level="Medium",
+        comfort_tolerance=1.5,
+        heater_power=1.5,
+        cooling_power=1.5,
+        disturbance_level=0.15,
+        max_steps=50,
+        random_seed=42,
+        lower_threshold=20.0,
+        upper_threshold=23.0,
+        weight_comfort=1.0,
+        weight_energy=0.5,
+        weight_stability=0.2,
+        weight_overshoot=1.0,
+        people_present=True,
+        num_people=8,
+        room_size=35.0,
+    ),
+    "empty_office": DemonstrationScenario(
+        id="empty_office",
+        name="Scenario 5: Unoccupied Office",
+        tag="Energy Setback & Zero Occupancy",
+        description="An empty 25 m² office (0 occupants) during warm weather. Demonstrates how the intelligent agent saves energy via setback drift when no people are present.",
+        initial_temp=22.0,
+        desired_temp=22.0,
+        outside_temp=33.0,
+        insulation_level="Medium",
+        comfort_tolerance=1.5,
+        heater_power=1.5,
+        cooling_power=1.5,
+        disturbance_level=0.15,
+        max_steps=50,
+        random_seed=42,
+        lower_threshold=20.5,
+        upper_threshold=23.5,
+        weight_comfort=1.0,
+        weight_energy=0.5,
+        weight_stability=0.2,
+        weight_overshoot=1.0,
+        people_present=False,
+        num_people=0,
+        room_size=25.0,
     ),
 }
 
