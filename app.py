@@ -12,6 +12,8 @@ Sections:
 6. Results
 """
 
+import time
+
 import pandas as pd
 import streamlit as st
 
@@ -96,6 +98,7 @@ def init_session_state() -> None:
         "num_people": int(SimulationDefaults.DEFAULT_NUM_PEOPLE),
         "room_size": float(SimulationDefaults.DEFAULT_ROOM_SIZE),
         "heat_gain_per_person": float(SimulationDefaults.DEFAULT_HEAT_GAIN_PER_PERSON),
+        "sim_playback_speed": "Normal (250 ms/step)",
     }
     for key, val in defaults.items():
         if key not in st.session_state:
@@ -337,6 +340,15 @@ if dark_mode:
     logo_box_border = "#304438"
     leaf_color = "#75B58A"
     thermo_color = "#8FD0A8"
+    dropdown_bg = "#172B24"
+    dropdown_option_bg = "#172B24"
+    dropdown_text_primary = "#E8F1E9"
+    dropdown_text_secondary = "#B5C9BA"
+    dropdown_selected_bg = "#28543F"
+    dropdown_selected_text = "#FFFFFF"
+    dropdown_hover_bg = "#244A38"
+    dropdown_border = "#456B55"
+    dropdown_focus = "#72B58A"
 else:
     app_bg = "#F5F7F0"
     card_bg = "#FFFFFF"
@@ -360,6 +372,15 @@ else:
     logo_box_border = "#DCE5D8"
     leaf_color = "#245C43"
     thermo_color = "#4D9285"
+    dropdown_bg = "#FFFFFF"
+    dropdown_option_bg = "#FFFFFF"
+    dropdown_text_primary = "#243B30"
+    dropdown_text_secondary = "#5F7162"
+    dropdown_selected_bg = "#E4F0E5"
+    dropdown_selected_text = "#243B30"
+    dropdown_hover_bg = "#EDF5ED"
+    dropdown_border = "#D6E4D6"
+    dropdown_focus = "#245C43"
 
 theme_css = f"""
 <style>
@@ -907,14 +928,13 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"],
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-rac=""] {{
-    height: 40px !important;
     min-height: 40px !important;
     border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
-    background-color: {card_bg} !important;
-    border: 1px solid {border_color} !important;
-    color: {text_primary} !important;
+    background-color: {dropdown_bg} !important;
+    border: 1.5px solid {dropdown_border} !important;
+    color: {dropdown_text_primary} !important;
 }}
 
 section[data-testid="stSidebar"] button[kind="secondary"],
@@ -943,7 +963,7 @@ section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"]:hove
     transform: translateY(-1px) !important;
 }}
 
-/* 7. Selectbox (BaseWeb and Modern React-Aria) */
+/* 7. Selectbox & Dropdown Popovers (Full Theme Consistency & High Contrast) */
 div[data-testid="stSelectbox"] label,
 div[data-testid="stSelectbox"] label * {{
     color: {text_primary} !important;
@@ -951,72 +971,167 @@ div[data-testid="stSelectbox"] label * {{
     font-weight: 600 !important;
 }}
 
-div[data-baseweb="select"],
-div[data-baseweb="select"] > div,
-div[data-baseweb="select"] [role="combobox"],
-div[data-baseweb="select"] [aria-haspopup="listbox"],
-div[data-baseweb="select"] div,
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 div[data-testid="stSelectbox"] [role="combobox"],
-div[data-testid="stSelectbox"] div[data-rac=""],
-div[data-testid="stSelectbox"] [class*="equpb2c0"] {{
-    background-color: {card_bg} !important;
-    border-color: {border_color} !important;
-    color: {text_primary} !important;
-}}
-
-div[data-baseweb="select"] > div,
-div[data-testid="stSelectbox"] [role="combobox"],
-div[data-testid="stSelectbox"] div[data-rac=""] {{
-    border: 1px solid {border_color} !important;
+div[data-baseweb="select"] > div {{
+    background-color: {dropdown_bg} !important;
+    background: {dropdown_bg} !important;
+    border: 1.5px solid {dropdown_border} !important;
     border-radius: 8px !important;
-    transition: border-color 0.2s ease !important;
+    color: {dropdown_text_primary} !important;
+    min-height: 40px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
 }}
 
-div[data-baseweb="select"] > div:hover,
-div[data-testid="stSelectbox"] [role="combobox"]:hover,
-div[data-testid="stSelectbox"] div[data-rac=""]:hover {{
-    border-color: {primary_green} !important;
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
+div[data-testid="stSelectbox"] [role="combobox"]:hover {{
+    border-color: {dropdown_focus} !important;
 }}
 
-div[data-baseweb="select"] span,
-div[data-baseweb="select"] p,
-div[data-baseweb="select"] [role="combobox"] *,
-div[data-testid="stSelectbox"] [role="combobox"] *,
-div[data-testid="stSelectbox"] div[data-rac=""] * {{
-    color: {text_primary} !important;
-    background-color: transparent !important;
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+div[data-testid="stSelectbox"] [role="combobox"]:focus,
+div[data-testid="stSelectbox"] [role="combobox"]:focus-within {{
+    border-color: {dropdown_focus} !important;
+    box-shadow: 0 0 0 2px {dropdown_focus}50 !important;
+    outline: none !important;
+}}
+
+div[data-testid="stSelectbox"] [data-baseweb="select"] span,
+div[data-testid="stSelectbox"] [data-baseweb="select"] p,
+div[data-testid="stSelectbox"] [data-baseweb="select"] div,
+div[data-testid="stSelectbox"] [role="combobox"] span,
+div[data-testid="stSelectbox"] [role="combobox"] p,
+div[data-testid="stSelectbox"] [role="combobox"] div,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] * {{
+    color: {dropdown_text_primary} !important;
     font-size: 13.5px !important;
+    font-weight: 500 !important;
+    background: transparent !important;
+    background-color: transparent !important;
 }}
 
+div[data-testid="stSelectbox"] svg,
 div[data-baseweb="select"] svg,
-div[data-testid="stSelectbox"] svg {{
-    fill: {text_secondary} !important;
-    color: {text_secondary} !important;
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg {{
+    fill: {dropdown_text_secondary} !important;
+    color: {dropdown_text_secondary} !important;
 }}
 
 /* Selectbox Dropdown Menu Popover */
 div[data-baseweb="popover"],
 div[data-baseweb="popover"] > div,
+div[data-testid="stSelectboxVirtualDropdown"],
 ul[data-baseweb="menu"],
-div[data-rac=""][role="listbox"],
+ul[role="listbox"],
 div[role="listbox"] {{
-    background-color: {card_bg} !important;
-    border: 1px solid {border_color} !important;
+    background-color: {dropdown_bg} !important;
+    background: {dropdown_bg} !important;
+    border: 1.5px solid {dropdown_border} !important;
     border-radius: 8px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, {"0.35" if dark_mode else "0.08"}) !important;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, {"0.55" if dark_mode else "0.15"}) !important;
+    z-index: 9999999 !important;
+    max-height: 320px !important;
+    overflow-y: auto !important;
+    padding: 4px !important;
 }}
 
+/* Dropdown items / options */
 li[data-baseweb="menu-item"],
-li[data-baseweb="menu-item"] * {{
-    background-color: transparent !important;
-    color: {text_primary} !important;
+li[role="option"],
+ul[role="listbox"] > li,
+div[role="listbox"] [role="option"],
+div[data-testid="stSelectboxVirtualDropdown"] li {{
+    background-color: {dropdown_option_bg} !important;
+    background: {dropdown_option_bg} !important;
+    color: {dropdown_text_primary} !important;
     font-size: 13.5px !important;
+    font-weight: 450 !important;
+    padding: 10px 14px !important;
+    margin: 2px 0 !important;
+    border-radius: 6px !important;
+    min-height: 38px !important;
+    height: auto !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    line-height: 1.4 !important;
+    cursor: pointer !important;
+    transition: background-color 0.15s ease, color 0.15s ease !important;
+    display: flex !important;
+    align-items: center !important;
 }}
 
+/* Inner text of options */
+li[data-baseweb="menu-item"] *,
+li[role="option"] *,
+ul[role="listbox"] > li *,
+div[role="listbox"] [role="option"] *,
+div[data-testid="stSelectboxVirtualDropdown"] li * {{
+    color: {dropdown_text_primary} !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}}
+
+/* Hover state */
 li[data-baseweb="menu-item"]:hover,
-li[data-baseweb="menu-item"][aria-selected="true"] {{
-    background-color: {card_sub_bg} !important;
-    color: {primary_green} !important;
+li[role="option"]:hover,
+ul[role="listbox"] > li:hover,
+div[role="listbox"] [role="option"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"] li:hover {{
+    background-color: {dropdown_hover_bg} !important;
+    background: {dropdown_hover_bg} !important;
+    color: {dropdown_selected_text if dark_mode else dropdown_text_primary} !important;
+}}
+
+li[data-baseweb="menu-item"]:hover *,
+li[role="option"]:hover *,
+ul[role="listbox"] > li:hover *,
+div[role="listbox"] [role="option"]:hover * {{
+    color: {dropdown_selected_text if dark_mode else dropdown_text_primary} !important;
+}}
+
+/* Selected option state */
+li[data-baseweb="menu-item"][aria-selected="true"],
+li[role="option"][aria-selected="true"],
+li[data-baseweb="menu-item"][aria-checked="true"],
+li[role="option"][aria-checked="true"],
+ul[role="listbox"] > li[aria-selected="true"],
+div[role="listbox"] [role="option"][aria-selected="true"],
+div[data-testid="stSelectboxVirtualDropdown"] li[aria-selected="true"] {{
+    background-color: {dropdown_selected_bg} !important;
+    background: {dropdown_selected_bg} !important;
+    color: {dropdown_selected_text} !important;
+    font-weight: 600 !important;
+}}
+
+li[data-baseweb="menu-item"][aria-selected="true"] *,
+li[role="option"][aria-selected="true"] *,
+ul[role="listbox"] > li[aria-selected="true"] *,
+div[role="listbox"] [role="option"][aria-selected="true"] *,
+div[data-testid="stSelectboxVirtualDropdown"] li[aria-selected="true"] * {{
+    color: {dropdown_selected_text} !important;
+    font-weight: 600 !important;
+}}
+
+/* Scrollbar for Dropdown Popover */
+div[data-baseweb="popover"] ::-webkit-scrollbar,
+ul[role="listbox"]::-webkit-scrollbar,
+ul[data-baseweb="menu"]::-webkit-scrollbar {{
+    width: 6px !important;
+    height: 6px !important;
+}}
+
+div[data-baseweb="popover"] ::-webkit-scrollbar-track,
+ul[role="listbox"]::-webkit-scrollbar-track {{
+    background: {dropdown_bg} !important;
+    border-radius: 4px !important;
+}}
+
+div[data-baseweb="popover"] ::-webkit-scrollbar-thumb,
+ul[role="listbox"]::-webkit-scrollbar-thumb {{
+    background: {dropdown_border} !important;
+    border-radius: 4px !important;
 }}
 
 /* 8. Biophilic Typography and Card styling */
@@ -1688,6 +1803,28 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
+    st.markdown(
+        '<div class="sidebar-divider"></div><div class="sidebar-section-caption">PLAYBACK SPEED</div>',
+        unsafe_allow_html=True,
+    )
+    speed_options = ["Normal (250 ms/step)", "Slow (500 ms/step)", "Fast (100 ms/step)"]
+    current_speed = st.session_state.get("sim_playback_speed", "Normal (250 ms/step)")
+    speed_idx = speed_options.index(current_speed) if current_speed in speed_options else 0
+    selected_speed = st.selectbox(
+        "Simulation Playback Speed",
+        options=speed_options,
+        index=speed_idx,
+        key="sim_playback_speed",
+        label_visibility="collapsed",
+        help="Timestep delay during real-time progressive simulation playback.",
+    )
+    speed_delays = {
+        "Slow (500 ms/step)": 0.50,
+        "Normal (250 ms/step)": 0.25,
+        "Fast (100 ms/step)": 0.10,
+    }
+    sim_delay = speed_delays.get(selected_speed, 0.25)
+
     occ_summary = f"{st.session_state.num_people} People" if st.session_state.people_present else "Unoccupied (0)"
     settings_card_html = f"""<div class="sidebar-divider"></div>
 <div class="sidebar-section-caption">CURRENT SETTINGS</div>
@@ -2062,7 +2199,8 @@ elif nav_selection == "Live Room Simulation":
 
     # 1. Main Visual Room Simulator
     pred_temp = agent.decide_action(curr_obs).predicted_temp if active_sim_agent == "Utility-Based Agent" else None
-    st.markdown(
+    sim_room_placeholder = st.empty()
+    sim_room_placeholder.markdown(
         get_live_room_simulation_html(
             current_temp=curr_temp,
             desired_temp=curr_desired,
@@ -2085,7 +2223,8 @@ elif nav_selection == "Live Room Simulation":
     )
 
     # 2. Compact 4-Device Status Panel
-    st.markdown(
+    sim_device_placeholder = st.empty()
+    sim_device_placeholder.markdown(
         get_device_status_panel_html(
             action=curr_action,
             fan_enabled=fan_active,
@@ -2095,46 +2234,15 @@ elif nav_selection == "Live Room Simulation":
         unsafe_allow_html=True,
     )
 
-    # 3. Interactive Simulation Controls
-    st.subheader("Simulation Controls")
-    ctl1, ctl2, ctl3 = st.columns(3)
-    with ctl1:
-        if st.button("▶ Run Full Simulation", key="btn_sim_run_full", type="primary", use_container_width=True):
-            remaining = st.session_state.max_steps - current_sim_env.current_step
-            if remaining > 0:
-                for _ in range(remaining):
-                    if active_sim_agent == "Utility-Based Agent":
-                        perform_agent_step()
-                    else:
-                        perform_reflex_step()
-                st.rerun()
-            else:
-                st.info("Simulation already complete for this agent. Reset to run again.")
-    with ctl2:
-        if st.button("⏭ Step Forward (+1 Step)", key="btn_sim_step_one", use_container_width=True):
-            if current_sim_env.current_step < st.session_state.max_steps:
-                if active_sim_agent == "Utility-Based Agent":
-                    perform_agent_step()
-                else:
-                    perform_reflex_step()
-                st.rerun()
-            else:
-                st.info("Simulation completed.")
-    with ctl3:
-        if st.button("🔄 Reset Agent Simulation", key="btn_sim_reset_active", use_container_width=True):
-            if active_sim_agent == "Utility-Based Agent":
-                reset_utility_simulation()
-            else:
-                reset_reflex_simulation()
-            st.rerun()
-
-    st.caption("Note: Advancing the simulation updates the physical thermodynamic environment and recalculates the agent's real-time action.")
+    # 3. Interactive Simulation Controls & Visual Timeline
+    controls_container = st.container()
 
     # 4. Live Synchronized Thermal Performance Chart
     st.subheader(f"Thermal State & Action Timeline ({active_sim_agent})")
+    sim_chart_placeholder = st.empty()
     if len(hist_df) > 0:
         if active_sim_agent == "Utility-Based Agent":
-            st.plotly_chart(
+            sim_chart_placeholder.plotly_chart(
                 create_agent_temperature_history_chart(
                     df=hist_df,
                     desired_temp=curr_desired,
@@ -2145,7 +2253,7 @@ elif nav_selection == "Live Room Simulation":
                 key="sim_temp_chart_u",
             )
         else:
-            st.plotly_chart(
+            sim_chart_placeholder.plotly_chart(
                 create_reflex_temperature_history_chart(
                     df=hist_df,
                     lower_thresh=reflex_agent.lower_threshold,
@@ -2157,6 +2265,140 @@ elif nav_selection == "Live Room Simulation":
                 use_container_width=True,
                 key="sim_temp_chart_r",
             )
+
+    with controls_container:
+        st.subheader("Simulation Controls")
+        sim_progress_placeholder = st.empty()
+        ctl1, ctl2, ctl3 = st.columns(3)
+        with ctl1:
+            if st.button("▶ Run Full Simulation", key="btn_sim_run_full", type="primary", use_container_width=True):
+                remaining = st.session_state.max_steps - current_sim_env.current_step
+                if remaining > 0:
+                    prog_bar = sim_progress_placeholder.progress(
+                        0.0,
+                        text=f"Starting simulation — Step {current_sim_env.current_step}/{st.session_state.max_steps} ({selected_speed})",
+                    )
+                    for step_idx in range(remaining):
+                        if active_sim_agent == "Utility-Based Agent":
+                            perform_agent_step()
+                        else:
+                            perform_reflex_step()
+
+                        step_obs = current_sim_env.get_state()
+                        step_temp = step_obs["room_temp"]
+                        step_class = step_obs["classification"]
+                        step_desired = step_obs["desired_temp"]
+                        step_outside = step_obs["outside_temp"]
+
+                        if active_sim_agent == "Utility-Based Agent":
+                            step_action = agent.last_decision.selected_action if agent.last_decision else ACTION_OFF
+                            step_pred = agent.last_decision.predicted_temp if agent.last_decision else None
+                        else:
+                            step_action = reflex_agent.last_action or ACTION_OFF
+                            step_pred = None
+
+                        if fan_mode == "Auto (Circulate during HVAC)":
+                            step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        elif fan_mode == "Always ON":
+                            step_fan = True
+                        else:
+                            step_fan = False
+
+                        if window_mode == "Auto (Eco-ventilation)":
+                            step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
+                        elif window_mode == "Always OPEN":
+                            step_win = True
+                        else:
+                            step_win = False
+
+                        progress_ratio = (step_idx + 1) / remaining
+                        prog_bar.progress(
+                            progress_ratio,
+                            text=f"Step {current_sim_env.current_step}/{st.session_state.max_steps} — Temp: {step_temp:.2f}°C ({step_class.upper()}) | Action: {step_action} | Target: {step_desired:.1f}°C",
+                        )
+
+                        sim_room_placeholder.markdown(
+                            get_live_room_simulation_html(
+                                current_temp=step_temp,
+                                desired_temp=step_desired,
+                                outside_temp=step_outside,
+                                classification=step_class,
+                                action=step_action,
+                                agent_name=active_sim_agent,
+                                fan_enabled=step_fan,
+                                window_open=step_win,
+                                comfort_tolerance=st.session_state.comfort_tolerance,
+                                dark_mode=dark_mode,
+                                people_present=st.session_state.people_present,
+                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                                room_size=st.session_state.room_size,
+                                heat_gain_per_person=st.session_state.heat_gain_per_person,
+                                predicted_temp=step_pred,
+                                delta_occupancy=current_sim_env.delta_occupancy,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        sim_device_placeholder.markdown(
+                            get_device_status_panel_html(
+                                action=step_action,
+                                fan_enabled=step_fan,
+                                window_open=step_win,
+                                dark_mode=dark_mode,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        step_df = current_sim_env.get_history_df()
+                        if len(step_df) > 0:
+                            if active_sim_agent == "Utility-Based Agent":
+                                sim_chart_placeholder.plotly_chart(
+                                    create_agent_temperature_history_chart(
+                                        df=step_df,
+                                        desired_temp=step_desired,
+                                        comfort_tolerance=st.session_state.comfort_tolerance,
+                                        dark_mode=dark_mode,
+                                    ),
+                                    use_container_width=True,
+                                    key=f"sim_live_chart_u_{current_sim_env.current_step}",
+                                )
+                            else:
+                                sim_chart_placeholder.plotly_chart(
+                                    create_reflex_temperature_history_chart(
+                                        df=step_df,
+                                        lower_thresh=reflex_agent.lower_threshold,
+                                        upper_thresh=reflex_agent.upper_threshold,
+                                        desired_temp=step_desired,
+                                        comfort_tolerance=st.session_state.comfort_tolerance,
+                                        dark_mode=dark_mode,
+                                    ),
+                                    use_container_width=True,
+                                    key=f"sim_live_chart_r_{current_sim_env.current_step}",
+                                )
+
+                        time.sleep(sim_delay)
+
+                    prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_temp:.2f}°C")
+                    st.rerun()
+                else:
+                    st.info("Simulation already complete for this agent. Reset to run again.")
+        with ctl2:
+            if st.button("⏭ Step Forward (+1 Step)", key="btn_sim_step_one", use_container_width=True):
+                if current_sim_env.current_step < st.session_state.max_steps:
+                    if active_sim_agent == "Utility-Based Agent":
+                        perform_agent_step()
+                    else:
+                        perform_reflex_step()
+                    st.rerun()
+                else:
+                    st.info("Simulation completed.")
+        with ctl3:
+            if st.button("🔄 Reset Agent Simulation", key="btn_sim_reset_active", use_container_width=True):
+                if active_sim_agent == "Utility-Based Agent":
+                    reset_utility_simulation()
+                else:
+                    reset_reflex_simulation()
+                st.rerun()
+
+        st.caption("Note: Advancing the simulation updates the physical thermodynamic environment and recalculates the agent's real-time action.")
 
     # 5. Controlling Agent Decision Insight Card
     st.markdown(
@@ -2472,63 +2714,47 @@ elif nav_selection == "Utility-Based Agent":
                 "delta_occupancy": next_st.get("delta_occupancy", env.delta_occupancy),
             })
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        if st.button("Run Simulation", key="btn_u_run", use_container_width=True, type="primary"):
-            remaining = st.session_state.max_steps - env.current_step
-            if remaining > 0:
-                for _ in range(remaining):
-                    perform_agent_step()
-                st.rerun()
-            else:
-                st.warning("Simulation complete. Reset to start again.")
-    with c2:
-        if st.button("Step 1 Step", key="btn_u_step", use_container_width=True):
-            if env.current_step < st.session_state.max_steps:
-                perform_agent_step()
-                st.rerun()
-            else:
-                st.warning("Simulation complete. Reset to start again.")
-    with c3:
-        if st.button("Reset Simulation", key="btn_u_reset", use_container_width=True):
-            reset_utility_simulation()
-            st.rerun()
+    # Simulation Controls & Live Visuals
+    u_controls_container = st.container()
 
     # Visual Room Environment Simulator (Utility-Based Agent)
-    if last_dec:
-        u_action = last_dec.selected_action
-        u_fan = (u_action in [ACTION_HEAT, ACTION_COOL])
-        u_win = (u_action == ACTION_OFF and 19.0 <= current_state["outside_temp"] <= 25.0)
-        st.markdown(
-            get_live_room_simulation_html(
-                current_temp=current_state["room_temp"],
-                desired_temp=current_state["desired_temp"],
-                outside_temp=current_state["outside_temp"],
-                classification=current_state["classification"],
-                action=u_action,
-                agent_name="Utility-Based Agent",
-                fan_enabled=u_fan,
-                window_open=u_win,
-                comfort_tolerance=st.session_state.comfort_tolerance,
-                dark_mode=dark_mode,
-                people_present=st.session_state.people_present,
-                num_people=st.session_state.num_people if st.session_state.people_present else 0,
-                room_size=st.session_state.room_size,
-                heat_gain_per_person=st.session_state.heat_gain_per_person,
-                predicted_temp=last_dec.predicted_temp,
-                delta_occupancy=env.delta_occupancy,
-            ),
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            get_device_status_panel_html(
-                action=u_action,
-                fan_enabled=u_fan,
-                window_open=u_win,
-                dark_mode=dark_mode,
-            ),
-            unsafe_allow_html=True,
-        )
+    st.subheader("Live Room Environment Simulation")
+    u_preview = agent.decide_action(current_state)
+    u_init_action = last_dec.selected_action if last_dec else u_preview.selected_action
+    u_init_fan = (u_init_action in [ACTION_HEAT, ACTION_COOL])
+    u_init_win = (u_init_action == ACTION_OFF and 19.0 <= current_state["outside_temp"] <= 25.0)
+    u_room_placeholder = st.empty()
+    u_room_placeholder.markdown(
+        get_live_room_simulation_html(
+            current_temp=current_state["room_temp"],
+            desired_temp=current_state["desired_temp"],
+            outside_temp=current_state["outside_temp"],
+            classification=current_state["classification"],
+            action=u_init_action,
+            agent_name="Utility-Based Agent",
+            fan_enabled=u_init_fan,
+            window_open=u_init_win,
+            comfort_tolerance=st.session_state.comfort_tolerance,
+            dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
+            room_size=st.session_state.room_size,
+            heat_gain_per_person=st.session_state.heat_gain_per_person,
+            predicted_temp=last_dec.predicted_temp if last_dec else u_preview.predicted_temp,
+            delta_occupancy=env.delta_occupancy,
+        ),
+        unsafe_allow_html=True,
+    )
+    u_dev_placeholder = st.empty()
+    u_dev_placeholder.markdown(
+        get_device_status_panel_html(
+            action=u_init_action,
+            fan_enabled=u_init_fan,
+            window_open=u_init_win,
+            dark_mode=dark_mode,
+        ),
+        unsafe_allow_html=True,
+    )
 
     # Decision Reasoning & Utility Scores
     st.subheader("Decision Explanation & Action Scores")
@@ -2559,7 +2785,8 @@ elif nav_selection == "Utility-Based Agent":
     # Temperature Trajectory Chart
     st.subheader("Temperature History")
     sim_df = pd.DataFrame(st.session_state.simulation_records)
-    st.plotly_chart(
+    u_chart_placeholder = st.empty()
+    u_chart_placeholder.plotly_chart(
         create_agent_temperature_history_chart(
             df=sim_df,
             desired_temp=st.session_state.desired_temp,
@@ -2569,6 +2796,92 @@ elif nav_selection == "Utility-Based Agent":
         use_container_width=True,
         key="chart_sec_u_history",
     )
+
+    with u_controls_container:
+        st.subheader("Simulation Controls")
+        u_prog_placeholder = st.empty()
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("Run Simulation", key="btn_u_run", use_container_width=True, type="primary"):
+                remaining = st.session_state.max_steps - env.current_step
+                if remaining > 0:
+                    prog_bar = u_prog_placeholder.progress(
+                        0.0,
+                        text=f"Starting simulation — Step {env.current_step}/{st.session_state.max_steps} ({selected_speed})",
+                    )
+                    for step_idx in range(remaining):
+                        perform_agent_step()
+
+                        step_state = env.get_state()
+                        step_dec = agent.last_decision
+                        step_action = step_dec.selected_action if step_dec else ACTION_OFF
+                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
+
+                        progress_ratio = (step_idx + 1) / remaining
+                        prog_bar.progress(
+                            progress_ratio,
+                            text=f"Step {env.current_step}/{st.session_state.max_steps} — Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Action: {step_action} | Target: {step_state['desired_temp']:.1f}°C",
+                        )
+
+                        u_room_placeholder.markdown(
+                            get_live_room_simulation_html(
+                                current_temp=step_state["room_temp"],
+                                desired_temp=step_state["desired_temp"],
+                                outside_temp=step_state["outside_temp"],
+                                classification=step_state["classification"],
+                                action=step_action,
+                                agent_name="Utility-Based Agent",
+                                fan_enabled=step_fan,
+                                window_open=step_win,
+                                comfort_tolerance=st.session_state.comfort_tolerance,
+                                dark_mode=dark_mode,
+                                people_present=st.session_state.people_present,
+                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                                room_size=st.session_state.room_size,
+                                heat_gain_per_person=st.session_state.heat_gain_per_person,
+                                predicted_temp=step_dec.predicted_temp if step_dec else None,
+                                delta_occupancy=env.delta_occupancy,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        u_dev_placeholder.markdown(
+                            get_device_status_panel_html(
+                                action=step_action,
+                                fan_enabled=step_fan,
+                                window_open=step_win,
+                                dark_mode=dark_mode,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        u_step_df = pd.DataFrame(st.session_state.simulation_records)
+                        u_chart_placeholder.plotly_chart(
+                            create_agent_temperature_history_chart(
+                                df=u_step_df,
+                                desired_temp=st.session_state.desired_temp,
+                                comfort_tolerance=st.session_state.comfort_tolerance,
+                                dark_mode=dark_mode,
+                            ),
+                            use_container_width=True,
+                            key=f"live_chart_sec_u_{env.current_step}",
+                        )
+                        time.sleep(sim_delay)
+
+                    prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_state['room_temp']:.2f}°C")
+                    st.rerun()
+                else:
+                    st.warning("Simulation complete. Reset to start again.")
+        with c2:
+            if st.button("Step 1 Step", key="btn_u_step", use_container_width=True):
+                if env.current_step < st.session_state.max_steps:
+                    perform_agent_step()
+                    st.rerun()
+                else:
+                    st.warning("Simulation complete. Reset to start again.")
+        with c3:
+            if st.button("Reset Simulation", key="btn_u_reset", use_container_width=True):
+                reset_utility_simulation()
+                st.rerun()
 
     # Telemetry Log
     if not sim_df.empty:
@@ -2629,33 +2942,16 @@ elif nav_selection == "Reflex Thermostat":
             rec = reflex_agent.step_environment(reflex_env)
             st.session_state.reflex_simulation_records.append(rec)
 
-    rc1, rc2, rc3 = st.columns(3)
-    with rc1:
-        if st.button("Run Simulation", key="btn_sec_r_run", use_container_width=True, type="primary"):
-            remaining = st.session_state.max_steps - reflex_env.current_step
-            if remaining > 0:
-                for _ in range(remaining):
-                    perform_reflex_step()
-                st.rerun()
-            else:
-                st.warning("Simulation complete. Reset to start again.")
-    with rc2:
-        if st.button("Step 1 Step", key="btn_sec_r_step", use_container_width=True):
-            if reflex_env.current_step < st.session_state.max_steps:
-                perform_reflex_step()
-                st.rerun()
-            else:
-                st.warning("Simulation complete. Reset to start again.")
-    with rc3:
-        if st.button("Reset Simulation", key="btn_sec_r_reset", use_container_width=True):
-            reset_reflex_simulation()
-            st.rerun()
+    # Simulation Controls & Live Visuals
+    r_controls_container = st.container()
 
     # Visual Room Environment Simulator (Simple Reflex Thermostat)
+    st.subheader("Live Room Environment Simulation")
     r_action = r_preview.selected_action
     r_fan = (r_action in [ACTION_HEAT, ACTION_COOL])
     r_win = (r_action == ACTION_OFF and 19.0 <= r_state["outside_temp"] <= 25.0)
-    st.markdown(
+    r_room_placeholder = st.empty()
+    r_room_placeholder.markdown(
         get_live_room_simulation_html(
             current_temp=r_state["room_temp"],
             desired_temp=r_state["desired_temp"],
@@ -2676,7 +2972,8 @@ elif nav_selection == "Reflex Thermostat":
         ),
         unsafe_allow_html=True,
     )
-    st.markdown(
+    r_dev_placeholder = st.empty()
+    r_dev_placeholder.markdown(
         get_device_status_panel_html(
             action=r_action,
             fan_enabled=r_fan,
@@ -2702,7 +2999,8 @@ elif nav_selection == "Reflex Thermostat":
     # Temperature Trajectory Chart
     st.subheader("Temperature History")
     r_df = pd.DataFrame(st.session_state.reflex_simulation_records)
-    st.plotly_chart(
+    r_chart_placeholder = st.empty()
+    r_chart_placeholder.plotly_chart(
         create_reflex_temperature_history_chart(
             df=r_df,
             lower_threshold=reflex_agent.lower_threshold,
@@ -2713,6 +3011,92 @@ elif nav_selection == "Reflex Thermostat":
         use_container_width=True,
         key="chart_sec_r_history",
     )
+
+    with r_controls_container:
+        st.subheader("Simulation Controls")
+        r_prog_placeholder = st.empty()
+        rc1, rc2, rc3 = st.columns(3)
+        with rc1:
+            if st.button("Run Simulation", key="btn_sec_r_run", use_container_width=True, type="primary"):
+                remaining = st.session_state.max_steps - reflex_env.current_step
+                if remaining > 0:
+                    prog_bar = r_prog_placeholder.progress(
+                        0.0,
+                        text=f"Starting simulation — Step {reflex_env.current_step}/{st.session_state.max_steps} ({selected_speed})",
+                    )
+                    for step_idx in range(remaining):
+                        perform_reflex_step()
+
+                        step_state = reflex_env.get_state()
+                        step_action = reflex_agent.last_action or ACTION_OFF
+                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
+
+                        progress_ratio = (step_idx + 1) / remaining
+                        prog_bar.progress(
+                            progress_ratio,
+                            text=f"Step {reflex_env.current_step}/{st.session_state.max_steps} — Temp: {step_state['room_temp']:.2f}°C ({step_state['classification'].upper()}) | Action: {step_action} | Target: {step_state['desired_temp']:.1f}°C",
+                        )
+
+                        r_room_placeholder.markdown(
+                            get_live_room_simulation_html(
+                                current_temp=step_state["room_temp"],
+                                desired_temp=step_state["desired_temp"],
+                                outside_temp=step_state["outside_temp"],
+                                classification=step_state["classification"],
+                                action=step_action,
+                                agent_name="Simple Reflex Thermostat",
+                                fan_enabled=step_fan,
+                                window_open=step_win,
+                                comfort_tolerance=st.session_state.comfort_tolerance,
+                                dark_mode=dark_mode,
+                                people_present=st.session_state.people_present,
+                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
+                                room_size=st.session_state.room_size,
+                                heat_gain_per_person=st.session_state.heat_gain_per_person,
+                                predicted_temp=None,
+                                delta_occupancy=reflex_env.delta_occupancy,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        r_dev_placeholder.markdown(
+                            get_device_status_panel_html(
+                                action=step_action,
+                                fan_enabled=step_fan,
+                                window_open=step_win,
+                                dark_mode=dark_mode,
+                            ),
+                            unsafe_allow_html=True,
+                        )
+                        r_step_df = pd.DataFrame(st.session_state.reflex_simulation_records)
+                        r_chart_placeholder.plotly_chart(
+                            create_reflex_temperature_history_chart(
+                                df=r_step_df,
+                                lower_threshold=reflex_agent.lower_threshold,
+                                upper_threshold=reflex_agent.upper_threshold,
+                                desired_temp=st.session_state.desired_temp,
+                                dark_mode=dark_mode,
+                            ),
+                            use_container_width=True,
+                            key=f"live_chart_sec_r_{reflex_env.current_step}",
+                        )
+                        time.sleep(sim_delay)
+
+                    prog_bar.progress(1.0, text=f"Simulation Complete ({st.session_state.max_steps} steps) — Final Temp: {step_state['room_temp']:.2f}°C")
+                    st.rerun()
+                else:
+                    st.warning("Simulation complete. Reset to start again.")
+        with rc2:
+            if st.button("Step 1 Step", key="btn_sec_r_step", use_container_width=True):
+                if reflex_env.current_step < st.session_state.max_steps:
+                    perform_reflex_step()
+                    st.rerun()
+                else:
+                    st.warning("Simulation complete. Reset to start again.")
+        with rc3:
+            if st.button("Reset Simulation", key="btn_sec_r_reset", use_container_width=True):
+                reset_reflex_simulation()
+                st.rerun()
 
     # Telemetry Log
     if not r_df.empty:
@@ -2745,21 +3129,8 @@ elif nav_selection == "Agent Comparison":
         f"Outside Temp: {cfg.outside_temp:.1f}°C · Room Size: {cfg.room_size:.0f} m² · Occupancy: {occ_str} · Insulation: {cfg.insulation_level} · Seed: {cfg.random_seed}"
     )
 
-    # Controls
-    cc1, cc2 = st.columns(2)
-    with cc1:
-        if st.button("Run Comparison", key="btn_sec_c_run", use_container_width=True, type="primary"):
-            comparison_runner.reset(_build_comparison_config())
-            comparison_runner.run_all()
-            st.session_state.comparison_results = comparison_runner.evaluate()
-            st.session_state.comparison_has_run = True
-            st.rerun()
-    with cc2:
-        if st.button("Reset Comparison", key="btn_sec_c_reset", use_container_width=True):
-            reset_all_simulations()
-            st.session_state.comparison_has_run = False
-            st.session_state.comparison_results = None
-            st.rerun()
+    # Synchronized Controls Container & Visual Progression
+    comp_controls_container = st.container()
 
     # Quick Scenario Presets for Occupancy and Room Area Benchmarks
     with st.expander("⚡ Quick Benchmark Scenarios (Occupancy Levels & Room Sizes)", expanded=False):
@@ -2769,56 +3140,74 @@ elif nav_selection == "Agent Comparison":
             if st.button("🚫 Empty Room (0 Occupants)", key="btn_pre_empty", use_container_width=True):
                 st.session_state.people_present = False
                 st.session_state.num_people = 0
-                comparison_runner.reset(_build_comparison_config())
-                comparison_runner.run_all()
-                st.session_state.comparison_results = comparison_runner.evaluate()
-                st.session_state.comparison_has_run = True
-                st.rerun()
+                if "run_animated_comp_fn" in locals():
+                    run_animated_comp_fn()
+                else:
+                    comparison_runner.reset(_build_comparison_config())
+                    comparison_runner.run_all()
+                    st.session_state.comparison_results = comparison_runner.evaluate()
+                    st.session_state.comparison_has_run = True
+                    st.rerun()
         with pcol2:
             if st.button("👥 1–2 Occupants (2 People)", key="btn_pre_two", use_container_width=True):
                 st.session_state.people_present = True
                 st.session_state.num_people = 2
-                comparison_runner.reset(_build_comparison_config())
-                comparison_runner.run_all()
-                st.session_state.comparison_results = comparison_runner.evaluate()
-                st.session_state.comparison_has_run = True
-                st.rerun()
+                if "run_animated_comp_fn" in locals():
+                    run_animated_comp_fn()
+                else:
+                    comparison_runner.reset(_build_comparison_config())
+                    comparison_runner.run_all()
+                    st.session_state.comparison_results = comparison_runner.evaluate()
+                    st.session_state.comparison_has_run = True
+                    st.rerun()
         with pcol3:
             if st.button("👨‍👩‍👧‍👦 Multiple Occupants (6 People)", key="btn_pre_multi", use_container_width=True):
                 st.session_state.people_present = True
                 st.session_state.num_people = 6
-                comparison_runner.reset(_build_comparison_config())
-                comparison_runner.run_all()
-                st.session_state.comparison_results = comparison_runner.evaluate()
-                st.session_state.comparison_has_run = True
-                st.rerun()
+                if "run_animated_comp_fn" in locals():
+                    run_animated_comp_fn()
+                else:
+                    comparison_runner.reset(_build_comparison_config())
+                    comparison_runner.run_all()
+                    st.session_state.comparison_results = comparison_runner.evaluate()
+                    st.session_state.comparison_has_run = True
+                    st.rerun()
 
         st.markdown("**2. Room Size Scenarios:**")
         scol1, scol2, scol3 = st.columns(3)
         with scol1:
             if st.button("📦 Small Room (12 m²)", key="btn_pre_small", use_container_width=True):
                 st.session_state.room_size = 12.0
-                comparison_runner.reset(_build_comparison_config())
-                comparison_runner.run_all()
-                st.session_state.comparison_results = comparison_runner.evaluate()
-                st.session_state.comparison_has_run = True
-                st.rerun()
+                if "run_animated_comp_fn" in locals():
+                    run_animated_comp_fn()
+                else:
+                    comparison_runner.reset(_build_comparison_config())
+                    comparison_runner.run_all()
+                    st.session_state.comparison_results = comparison_runner.evaluate()
+                    st.session_state.comparison_has_run = True
+                    st.rerun()
         with scol2:
             if st.button("🏠 Medium Room (25 m²)", key="btn_pre_med", use_container_width=True):
                 st.session_state.room_size = 25.0
-                comparison_runner.reset(_build_comparison_config())
-                comparison_runner.run_all()
-                st.session_state.comparison_results = comparison_runner.evaluate()
-                st.session_state.comparison_has_run = True
-                st.rerun()
+                if "run_animated_comp_fn" in locals():
+                    run_animated_comp_fn()
+                else:
+                    comparison_runner.reset(_build_comparison_config())
+                    comparison_runner.run_all()
+                    st.session_state.comparison_results = comparison_runner.evaluate()
+                    st.session_state.comparison_has_run = True
+                    st.rerun()
         with scol3:
             if st.button("🏢 Large Room (60 m²)", key="btn_pre_large", use_container_width=True):
                 st.session_state.room_size = 60.0
-                comparison_runner.reset(_build_comparison_config())
-                comparison_runner.run_all()
-                st.session_state.comparison_results = comparison_runner.evaluate()
-                st.session_state.comparison_has_run = True
-                st.rerun()
+                if "run_animated_comp_fn" in locals():
+                    run_animated_comp_fn()
+                else:
+                    comparison_runner.reset(_build_comparison_config())
+                    comparison_runner.run_all()
+                    st.session_state.comparison_results = comparison_runner.evaluate()
+                    st.session_state.comparison_has_run = True
+                    st.rerun()
 
     # Authoritative evaluation results (reads from st.session_state.comparison_results if completed)
     if st.session_state.comparison_has_run and st.session_state.comparison_results is not None:
@@ -2871,9 +3260,66 @@ elif nav_selection == "Agent Comparison":
             help="Average step-to-step temperature swing.",
         )
 
+    def run_animated_comp_fn() -> None:
+        fresh_cfg = _build_comparison_config()
+        comparison_runner.reset(fresh_cfg)
+        total_steps = comparison_runner.max_steps
+        prog_bar = comp_prog_placeholder.progress(
+            0.0,
+            text=f"Starting synchronized comparison — 0/{total_steps} steps ({selected_speed})",
+        )
+        while not comparison_runner.is_finished:
+            step_idx = comparison_runner.current_step
+            if not comparison_runner.step_once():
+                break
+            u_df_live = comparison_runner.util_env.get_history_df()
+            r_df_live = comparison_runner.refl_env.get_history_df()
+            u_temp = u_df_live["actual_temp"].iloc[-1] if not u_df_live.empty else 0.0
+            r_temp = r_df_live["actual_temp"].iloc[-1] if not r_df_live.empty else 0.0
+            u_act = comparison_runner.util_agent.last_decision.selected_action if comparison_runner.util_agent.last_decision else ACTION_OFF
+            r_act = comparison_runner.refl_agent.last_action or ACTION_OFF
+
+            step_num = step_idx + 1
+            prog_bar.progress(
+                min(1.0, step_num / total_steps),
+                text=f"Synchronized Step {step_num}/{total_steps} — Utility: {u_temp:.2f}°C [{u_act}] | Reflex: {r_temp:.2f}°C [{r_act}] | Target: {fresh_cfg.desired_temp:.1f}°C",
+            )
+            comp_chart_placeholder.plotly_chart(
+                create_comparison_temperature_chart(
+                    utility_df=u_df_live,
+                    reflex_df=r_df_live,
+                    desired_temp=fresh_cfg.desired_temp,
+                    comfort_tolerance=fresh_cfg.comfort_tolerance,
+                    dark_mode=dark_mode,
+                ),
+                use_container_width=True,
+                key=f"comp_live_chart_{step_num}",
+            )
+            time.sleep(sim_delay)
+
+        prog_bar.progress(1.0, text=f"Synchronized Comparison Complete ({total_steps} steps) — Computing benchmarks...")
+        st.session_state.comparison_results = comparison_runner.evaluate()
+        st.session_state.comparison_has_run = True
+        st.rerun()
+
+    with comp_controls_container:
+        comp_prog_placeholder = st.empty()
+        cc1, cc2 = st.columns(2)
+        with cc1:
+            if st.button("Run Comparison", key="btn_sec_c_run", use_container_width=True, type="primary"):
+                run_animated_comp_fn()
+        with cc2:
+            if st.button("Reset Comparison", key="btn_sec_c_reset", use_container_width=True):
+                reset_all_simulations()
+                st.session_state.comparison_has_run = False
+                st.session_state.comparison_results = None
+                st.rerun()
+
+    # Comparison Trajectory Chart Placeholder
+    comp_chart_placeholder = st.empty()
     if has_run:
         # Comparison Charts (clean visual presentation without redundant stacked headers)
-        st.plotly_chart(
+        comp_chart_placeholder.plotly_chart(
             create_comparison_temperature_chart(
                 utility_df=u_df,
                 reflex_df=r_df,
