@@ -266,19 +266,10 @@ class UtilityBasedAgent:
             occupancy_comfort_factor=round(occupancy_comfort_factor, 2),
         )
 
-    def decide_action(self, observation: Dict[str, Any]) -> AgentDecision:
+    def preview_decision(self, observation: Dict[str, Any]) -> AgentDecision:
         """
-        Execute the 9-step decision-making process:
-        1. Observe current room temperature.
-        2. Read desired temperature.
-        3. Observe outside temperature and insulation.
-        4. Observe occupancy status and room size.
-        5. Generate possible actions (HEAT, COOL, OFF).
-        6. Predict resulting temperature for each action.
-        7. Calculate utility of each predicted outcome.
-        8. Select action with maximum utility.
-        9. Prepare applied action and energy tracking.
-        10. Record and return decision summary.
+        Inspect which candidate action maximizes net utility for the given observation
+        without mutating energy counters or simulation history.
         """
         current_temp = float(observation["room_temp"])
         desired_temp = float(observation["desired_temp"])
@@ -330,10 +321,8 @@ class UtilityBasedAgent:
         )
 
         step_energy = self.energy_costs[selected_action]
-        self.total_energy_consumed += step_energy
-        self.action_history.append(selected_action)
 
-        decision = AgentDecision(
+        return AgentDecision(
             step=step,
             current_temp=current_temp,
             desired_temp=desired_temp,
@@ -349,27 +338,46 @@ class UtilityBasedAgent:
             room_size=room_size,
             delta_occupancy=selected_eval.delta_occupancy,
         )
+
+    def decide_action(self, observation: Dict[str, Any]) -> AgentDecision:
+        """
+        Execute the 9-step decision-making process:
+        1. Observe current room temperature.
+        2. Read desired temperature.
+        3. Observe outside temperature and insulation.
+        4. Observe occupancy status and room size.
+        5. Generate possible actions (HEAT, COOL, OFF).
+        6. Predict resulting temperature for each action.
+        7. Calculate utility of each predicted outcome.
+        8. Select action with maximum utility.
+        9. Prepare applied action and energy tracking.
+        10. Record and return decision summary.
+        """
+        decision = self.preview_decision(observation)
+
+        self.total_energy_consumed += decision.energy_consumed
+        self.action_history.append(decision.selected_action)
         self.last_decision = decision
 
         # Log decision row
         self.decision_history.append({
-            "step": step,
-            "room_temp": current_temp,
-            "outside_temp": outside_temp,
-            "desired_temp": desired_temp,
-            "action": selected_action,
-            "predicted_temp": selected_eval.predicted_temp,
-            "utility_score": selected_eval.utility,
-            "energy_consumed": step_energy,
+            "step": decision.step,
+            "room_temp": decision.current_temp,
+            "outside_temp": decision.outside_temp,
+            "desired_temp": decision.desired_temp,
+            "action": decision.selected_action,
+            "predicted_temp": decision.predicted_temp,
+            "utility_score": decision.utility_score,
+            "energy_consumed": decision.energy_consumed,
             "cumulative_energy": round(self.total_energy_consumed, 2),
-            "reason": reason,
-            "people_present": people_present,
-            "num_people": num_people,
-            "room_size": room_size,
-            "delta_occupancy": selected_eval.delta_occupancy,
-            "u_heat": evaluations[ACTION_HEAT].utility,
-            "u_cool": evaluations[ACTION_COOL].utility,
-            "u_off": evaluations[ACTION_OFF].utility,
+            "reason": decision.reason,
+            "people_present": decision.people_present,
+            "num_people": decision.num_people,
+            "room_size": decision.room_size,
+            "delta_occupancy": decision.delta_occupancy,
+            "u_heat": decision.action_evaluations[ACTION_HEAT].utility,
+            "u_cool": decision.action_evaluations[ACTION_COOL].utility,
+            "u_off": decision.action_evaluations[ACTION_OFF].utility,
         })
 
         return decision

@@ -646,6 +646,9 @@ class ComparisonRunner:
         init_err = round(abs(float(u_init["room_temp"]) - float(u_init["desired_temp"])), 3)
         eff_people = cfg.num_people if cfg.people_present else 0
 
+        u_init_dec = self.util_agent.preview_decision(u_init)
+        r_init_dec = self.refl_agent.preview_decision(r_init)
+
         self.utility_records: List[Dict[str, Any]] = [{
             "step": 0,
             "room_temp": float(u_init["room_temp"]),
@@ -653,11 +656,11 @@ class ComparisonRunner:
             "desired_temp": float(u_init["desired_temp"]),
             "lower_comfort": lower_c,
             "upper_comfort": upper_c,
-            "action": ACTION_OFF,
-            "predicted_temp": float(u_init["room_temp"]),
+            "action": u_init_dec.selected_action,
+            "predicted_temp": float(u_init_dec.predicted_temp),
             "actual_temp": float(u_init["room_temp"]),
             "abs_error": init_err,
-            "utility_score": 0.0,
+            "utility_score": float(u_init_dec.utility_score),
             "energy_consumed": 0.0,
             "cumulative_energy": 0.0,
             "disturbance": 0.0,
@@ -675,7 +678,7 @@ class ComparisonRunner:
             "desired_temp": float(r_init["desired_temp"]),
             "lower_comfort": lower_c,
             "upper_comfort": upper_c,
-            "action": ACTION_OFF,
+            "action": r_init_dec.selected_action,
             "actual_temp": float(r_init["room_temp"]),
             "abs_error": init_err,
             "energy_consumed": 0.0,

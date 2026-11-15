@@ -1,6 +1,6 @@
 """
-Unit and regression tests for dropdown visibility styling, real-time gradual simulation playback,
-and auto-stop at target temperature.
+Unit and regression tests for dropdown visibility styling, removal of unnecessary sidebar controls,
+fixed progressive simulation delay, reflex initial action evaluation, and integer chart ticks.
 """
 
 import unittest
@@ -10,10 +10,11 @@ from environment import RoomEnvironment
 from utility_agent import UtilityBasedAgent
 from reflex_agent import SimpleReflexAgent
 from comparison import ComparisonConfig, ComparisonRunner
+from utils import create_comparison_temperature_chart, create_agent_temperature_history_chart, create_reflex_temperature_history_chart
 
 
 class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
-    """Test suite for dropdown styling verification, stepwise animated simulation, and stop-at-target behavior."""
+    """Test suite for updated UI, removed playback/auto-stop controls, reflex initial action, and chart ticks."""
 
     def test_dropdown_dark_and_light_css_colors(self):
         """Verify app.py contains the exact required Dark Mode and Light Mode colors and CSS rules."""
@@ -21,42 +22,102 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
             code = f.read()
 
         # Dark Mode colors
-        self.assertIn('"#172B24"', code, "Dark Mode dropdown background #172B24 missing")
-        self.assertIn('"#28543F"', code, "Dark Mode selected option background #28543F missing")
-        self.assertIn('"#456B55"', code, "Dark Mode dropdown border #456B55 missing")
-        self.assertIn('"#72B58A"', code, "Dark Mode focus outline #72B58A missing")
-        self.assertIn('"#E8F1E9"', code, "Dark Mode primary text #E8F1E9 missing")
+        self.assertIn('"#172B24"', code, "Dark Mode dropdown background missing")
+        self.assertIn('"#E8F1E9"', code, "Dark Mode primary text missing")
+        self.assertIn('"#B5C9BA"', code, "Dark Mode secondary text missing")
+        self.assertIn('"#28543F"', code, "Dark Mode selected option background missing")
+        self.assertIn('"#FFFFFF"', code, "Dark Mode selected option text missing")
+        self.assertIn('"#244A38"', code, "Dark Mode hover background missing")
+        self.assertIn('"#456B55"', code, "Dark Mode border missing")
+        self.assertIn('"#72B58A"', code, "Dark Mode focus outline missing")
 
         # Light Mode colors
-        self.assertIn('"#FFFFFF"', code, "Light Mode dropdown background #FFFFFF missing")
-        self.assertIn('"#E4F0E5"', code, "Light Mode selected option background #E4F0E5 missing")
-        self.assertIn('"#D6E4D6"', code, "Light Mode border #D6E4D6 missing")
-        self.assertIn('"#245C43"', code, "Light Mode focus outline #245C43 missing")
-        self.assertIn('"#243B30"', code, "Light Mode option text #243B30 missing")
+        self.assertIn('"#FFFFFF"', code, "Light Mode dropdown background missing")
+        self.assertIn('"#243B30"', code, "Light Mode option text missing")
+        self.assertIn('"#E4F0E5"', code, "Light Mode selected background missing")
+        self.assertIn('"#EDF5ED"', code, "Light Mode hover background missing")
+        self.assertIn('"#D6E4D6"', code, "Light Mode border missing")
 
-        # Popover visibility & z-index
-        self.assertIn('z-index: 9999999 !important;', code, "Dropdown popover z-index missing")
-        self.assertIn('word-break: break-word !important;', code, "Option word-break missing")
-        self.assertIn('white-space: normal !important;', code, "Option white-space missing")
-
-    def test_playback_speed_delays(self):
-        """Verify playback speeds are properly defined in session state and mapping."""
+    def test_removal_of_unnecessary_sidebar_controls(self):
+        """Verify Playback Speed and Auto-Stop at Target controls are completely removed from app.py."""
         with open("app.py", "r", encoding="utf-8") as f:
             code = f.read()
 
-        self.assertIn('"Slow (500 ms/step)": 0.50', code)
-        self.assertIn('"Normal (250 ms/step)": 0.25', code)
-        self.assertIn('"Fast (100 ms/step)": 0.10', code)
-        self.assertIn('"sim_playback_speed": "Normal (250 ms/step)"', code)
+        # Removed controls must NOT exist in app.py
+        self.assertNotIn("sim_playback_speed", code, "sim_playback_speed still exists in app.py")
+        self.assertNotIn("stop_at_target", code, "stop_at_target still exists in app.py")
+        self.assertNotIn("Simulation Playback Speed", code, "Playback speed selector label still exists in app.py")
+        self.assertNotIn("Stop When Target Reached", code, "Stop at target toggle label still exists in app.py")
+        self.assertNotIn("PLAYBACK SPEED", code, "Playback speed section caption still exists in app.py")
+        self.assertNotIn("AUTO-STOP AT TARGET", code, "Auto-stop section caption still exists in app.py")
 
-    def test_stop_at_target_configuration_and_toggle(self):
-        """Verify stop_at_target default in session state and sidebar toggle in app.py."""
-        with open("app.py", "r", encoding="utf-8") as f:
-            code = f.read()
+        # Fixed visualization delay must be defined
+        self.assertTrue("VISUALIZATION_DELAY_SEC" in code and "0.25" in code, "VISUALIZATION_DELAY_SEC missing in app.py")
 
-        self.assertIn('"stop_at_target": True', code, "stop_at_target default True missing from init_session_state")
-        self.assertIn('"Stop When Target Reached"', code, "Stop When Target Reached toggle missing from sidebar")
-        self.assertIn('step_class == CLASS_COMFORTABLE', code, "Target reached check missing in step loop")
+    def test_reflex_agent_initial_action_evaluation(self):
+        """Verify reflex agent evaluates condition-action rules at step 0 (e.g., 18°C < 20°C -> HEAT)."""
+        # Lower threshold 20°C, initial temp 18°C
+        cfg = ComparisonConfig(initial_temp=18.0, lower_threshold=20.0, upper_threshold=26.0)
+        runner = ComparisonRunner(cfg)
+
+        r_df = runner.get_reflex_df()
+        self.assertFalse(r_df.empty)
+        # Step 0 action should be HEAT, not OFF
+        step_0_action = r_df["action"].iloc[0]
+        self.assertEqual(step_0_action, ACTION_HEAT, f"Expected step 0 action HEAT for 18°C < 20°C, got {step_0_action}")
+
+        # Test reflex agent preview_decision directly
+        agent = SimpleReflexAgent(lower_threshold=20.0, upper_threshold=26.0)
+        dec = agent.preview_decision({"room_temp": 18.0, "outside_temp": 10.0, "desired_temp": 22.0})
+        self.assertEqual(dec.selected_action, ACTION_HEAT)
+
+        dec_hot = agent.preview_decision({"room_temp": 28.0, "outside_temp": 32.0, "desired_temp": 22.0})
+        self.assertEqual(dec_hot.selected_action, ACTION_COOL)
+
+        dec_comf = agent.preview_decision({"room_temp": 22.0, "outside_temp": 22.0, "desired_temp": 22.0})
+        self.assertEqual(dec_comf.selected_action, ACTION_OFF)
+
+    def test_comparison_telemetry_columns_actual_temp(self):
+        """Verify get_utility_df() and get_reflex_df() both contain actual_temp and room_temp."""
+        cfg = ComparisonConfig(initial_temp=18.0, max_steps=5)
+        runner = ComparisonRunner(cfg)
+        runner.step_once()
+
+        u_df = runner.get_utility_df()
+        r_df = runner.get_reflex_df()
+
+        self.assertIn("actual_temp", u_df.columns, "actual_temp missing in utility_df")
+        self.assertIn("room_temp", u_df.columns, "room_temp missing in utility_df")
+        self.assertIn("actual_temp", r_df.columns, "actual_temp missing in reflex_df")
+        self.assertIn("room_temp", r_df.columns, "room_temp missing in reflex_df")
+
+        # Also test RoomEnvironment.get_history_df()
+        env = RoomEnvironment(initial_temp=18.0)
+        env.step(ACTION_HEAT)
+        env_df = env.get_history_df()
+        self.assertIn("actual_temp", env_df.columns, "actual_temp missing in RoomEnvironment.get_history_df()")
+        self.assertIn("room_temp", env_df.columns, "room_temp missing in RoomEnvironment.get_history_df()")
+
+    def test_temperature_chart_integer_ticks(self):
+        """Verify temperature charts enforce integer step tick formatting."""
+        cfg = ComparisonConfig(initial_temp=18.0, max_steps=10)
+        runner = ComparisonRunner(cfg)
+        for _ in range(5):
+            runner.step_once()
+
+        u_df = runner.get_utility_df()
+        r_df = runner.get_reflex_df()
+
+        fig_comp = create_comparison_temperature_chart(utility_df=u_df, reflex_df=r_df)
+        xaxis = fig_comp.layout.xaxis
+        self.assertEqual(xaxis.tickformat, "d", "Chart x-axis tickformat should be 'd' (integer)")
+        self.assertEqual(xaxis.tickmode, "linear", "Chart x-axis tickmode should be 'linear'")
+
+        fig_agent = create_agent_temperature_history_chart(df=u_df)
+        self.assertEqual(fig_agent.layout.xaxis.tickformat, "d")
+
+        fig_refl = create_reflex_temperature_history_chart(df=r_df)
+        self.assertEqual(fig_refl.layout.xaxis.tickformat, "d")
 
     def test_stepwise_synchronized_comparison_progression(self):
         """Verify that step_once executes synchronized steps identically to run_all."""
@@ -97,61 +158,6 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
         self.assertAlmostEqual(stepwise_eval["reflex_metrics"].avg_abs_error, all_eval["reflex_metrics"].avg_abs_error, places=3)
         self.assertAlmostEqual(stepwise_eval["utility_metrics"].total_energy, all_eval["utility_metrics"].total_energy, places=2)
         self.assertAlmostEqual(stepwise_eval["reflex_metrics"].total_energy, all_eval["reflex_metrics"].total_energy, places=2)
-
-    def test_target_reached_halting_logic(self):
-        """Verify that simulation halts early when target comfortable classification is achieved."""
-        # 1. Utility Agent cold room scenario
-        env = RoomEnvironment(initial_temp=14.0, desired_temp=22.0, outside_temp=10.0)
-        agent = UtilityBasedAgent()
-
-        steps_run = 0
-        target_reached = False
-        max_steps = 50
-        for _ in range(max_steps):
-            obs = env.get_state()
-            dec = agent.decide_action(obs)
-            next_st = env.step(dec.selected_action)
-            steps_run += 1
-            if next_st["classification"] == CLASS_COMFORTABLE:
-                target_reached = True
-                break
-
-        self.assertTrue(target_reached, "Target comfort class should be reached")
-        self.assertLess(steps_run, max_steps, "Simulation should stop early when target is reached (around 7 steps, not 50)")
-        self.assertGreaterEqual(steps_run, 5, "Requires realistic thermodynamic steps to heat from 14°C to 20.5°C+")
-
-        # 2. Reflex Agent cold room scenario
-        refl_env = RoomEnvironment(initial_temp=14.0, desired_temp=22.0, outside_temp=10.0)
-        refl_agent = SimpleReflexAgent(lower_threshold=20.5, upper_threshold=23.5)
-
-        refl_steps_run = 0
-        refl_target_reached = False
-        for _ in range(max_steps):
-            rec = refl_agent.step_environment(refl_env)
-            refl_steps_run += 1
-            if rec["classification"] == CLASS_COMFORTABLE:
-                refl_target_reached = True
-                break
-
-        self.assertTrue(refl_target_reached, "Reflex target comfort class should be reached")
-        self.assertLess(refl_steps_run, max_steps, "Reflex simulation should stop early when target is reached")
-
-        # 3. Synchronized comparison stopping when both reach target
-        cfg = ComparisonConfig(initial_temp=14.0, desired_temp=22.0, outside_temp=10.0, max_steps=50)
-        runner = ComparisonRunner(cfg)
-        comp_steps = 0
-        both_reached = False
-        while not runner.is_finished:
-            runner.step_once()
-            comp_steps += 1
-            u_class = runner.util_env.current_classification
-            r_class = runner.refl_env.current_classification
-            if u_class == CLASS_COMFORTABLE and r_class == CLASS_COMFORTABLE:
-                both_reached = True
-                break
-
-        self.assertTrue(both_reached, "Both agents should reach comfort target in comparison")
-        self.assertLess(comp_steps, 50, "Comparison should stop early when both agents reach target")
 
     def test_cooling_and_heating_stepwise_actions(self):
         """Verify that stepwise simulation actions transition correctly under heating and cooling scenarios."""

@@ -183,12 +183,17 @@ def _apply_standard_chart_layout(
 
     fig.update_layout(**layout_args)
 
-    fig.update_xaxes(
+    x_axis_kwargs: Dict[str, Any] = dict(
         showgrid=True,
         gridcolor=p["grid_color"],
         title_font=dict(size=13, color=p["text_primary"], family=font_family),
         tickfont=dict(size=12, color=p["text_secondary"], family=font_family),
     )
+    if xaxis_title and "Step" in xaxis_title:
+        x_axis_kwargs["tickformat"] = "d"
+        x_axis_kwargs["rangemode"] = "tozero"
+
+    fig.update_xaxes(**x_axis_kwargs)
     fig.update_yaxes(
         showgrid=True,
         gridcolor=p["grid_color"],
@@ -871,6 +876,9 @@ def create_agent_temperature_history_chart(
         margin_left=75,
         margin_right=35,
     )
+    max_s = int(steps.max()) if not steps.empty else 10
+    dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
+    fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
     return fig
 
 
@@ -995,6 +1003,9 @@ def create_reflex_temperature_history_chart(
         margin_left=75,
         margin_right=35,
     )
+    max_s = int(steps.max()) if not steps.empty else 10
+    dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
+    fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
     return fig
 
 
@@ -1166,6 +1177,9 @@ def create_comparison_temperature_chart(
         margin_left=75,
         margin_right=35,
     )
+    max_s = int(steps.max()) if not steps.empty else 10
+    dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
+    fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
     return fig
 
 
@@ -1240,6 +1254,9 @@ def create_comparison_energy_chart(
         margin_left=75,
         margin_right=35,
     )
+    max_s = int(steps.max()) if not steps.empty else 10
+    dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
+    fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
     fig.update_yaxes(rangemode="tozero")
     return fig
 
@@ -1323,6 +1340,9 @@ def create_comparison_error_chart(
         margin_left=75,
         margin_right=35,
     )
+    max_s = int(steps.max()) if not steps.empty else 10
+    dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
+    fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
     fig.update_yaxes(rangemode="tozero")
     return fig
 

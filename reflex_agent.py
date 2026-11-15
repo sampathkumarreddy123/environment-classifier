@@ -273,6 +273,15 @@ class SimpleReflexAgent:
         self.simulation_history.append(record)
         return record
 
+    @property
+    def last_action(self) -> Optional[str]:
+        """Return the most recently selected action, or None if no decision has been made."""
+        if self.last_decision is not None:
+            return self.last_decision.selected_action
+        if self.action_history:
+            return self.action_history[-1]
+        return None
+
     def step_environment(
         self,
         env: RoomEnvironment,

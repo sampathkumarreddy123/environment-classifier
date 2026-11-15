@@ -309,6 +309,7 @@ class RoomEnvironment:
         self.history.append({
             "step": step,
             "room_temp": round(temp, 2),
+            "actual_temp": round(temp, 2),
             "outside_temp": round(self.outside_temp, 2),
             "desired_temp": round(self.desired_temp, 2),
             "lower_comfort": round(self.desired_temp - self.comfort_tolerance, 2),
