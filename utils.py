@@ -1545,8 +1545,6 @@ def get_live_room_simulation_html(
     
     heater_on = (action == ACTION_HEAT)
     ac_on = (action == ACTION_COOL)
-    fan_on = fan_enabled
-    win_open = window_open
 
     # Occupancy calculation
     is_occ = bool(people_present) and (int(num_people) > 0)
@@ -1556,6 +1554,10 @@ def get_live_room_simulation_html(
         eff_occ_heat = float(delta_occupancy)
     else:
         eff_occ_heat = (actual_people * float(heat_gain_per_person) * (25.0 / safe_room_size)) if is_occ else 0.0
+
+    # Ceiling fan and window only operate when people are present (energy conservation in empty rooms)
+    fan_on = bool(fan_enabled and is_occ)
+    win_open = bool(window_open and is_occ)
 
     # Room interior colors
     wall_bg = "#16241D" if dark_mode else "#F6F9F5"
@@ -1617,6 +1619,12 @@ def get_live_room_simulation_html(
         banner_title = "COOLING ACTIVE"
         banner_msg = "Air conditioner: ON · Refrigerant compressor delivering cold air currents"
         ambient_tint = '<rect x="0" y="45" width="920" height="345" fill="url(#coolAmbientGrad)" pointer-events="none"/>'
+    elif not is_occ:
+        banner_class = "idle"
+        banner_icon = "⚡"
+        banner_title = "SYSTEM IDLE — ALL MACHINES OFF"
+        banner_msg = "Room Unoccupied (0 People) · Heating: OFF · Cooling: OFF · Fan: OFF · Maximum Energy Conservation"
+        ambient_tint = ''
     else:
         banner_class = "idle"
         banner_icon = "⚡"
@@ -1624,15 +1632,15 @@ def get_live_room_simulation_html(
         banner_msg = "Heating: OFF · Cooling: OFF · Room in natural thermal equilibrium"
         ambient_tint = ''
 
-    # Fan visuals: continuous living air circulation
-    # Rapid active spin during heating/cooling, smooth ambient spin during idle/standby
-    if fan_on:
+    # Fan visuals: active circulation when occupied, completely OFF when unoccupied
+    if not is_occ or not fan_on:
+        fan_spin_class = ""
+        fan_led_color = "#64748B"
+        fan_blade_color = "#64748B" if dark_mode else "#94A3B8"
+    else:
         fan_spin_class = "fan-spin" if (action in [ACTION_HEAT, ACTION_COOL]) else "fan-spin-ambient"
         fan_led_color = "#10B981"
-    else:
-        fan_spin_class = "fan-spin-ambient"
-        fan_led_color = "#10B981"
-    fan_blade_color = "#94A3B8" if dark_mode else "#64748B"
+        fan_blade_color = "#94A3B8" if dark_mode else "#64748B"
 
     # Window visuals
     curtain_class = "curtain-flutter" if win_open else ""
@@ -1949,11 +1957,13 @@ def get_live_room_simulation_html(
 <path d="M 460,85 C 442,100 438,170 452,190 C 466,170 472,100 460,85 Z" fill="{fan_blade_color}"/>
 </g>
 
-<!-- Circulating Airflow Curves below Fan (Continuous Living Air Circulation) -->
+<!-- Circulating Airflow Curves below Fan (Active when room is occupied) -->
+{'''
 <g class="ambient-airflow" opacity="0.8">
-<path d="M 410,125 Q 460,155 510,125" fill="none" stroke="{p['sage_green']}" stroke-width="2.5" stroke-dasharray="6,4"/>
-<path d="M 385,150 Q 460,190 535,150" fill="none" stroke="{p['sage_green']}" stroke-width="2" stroke-dasharray="6,4"/>
+<path d="M 410,125 Q 460,155 510,125" fill="none" stroke="''' + p["sage_green"] + '''" stroke-width="2.5" stroke-dasharray="6,4"/>
+<path d="M 385,150 Q 460,190 535,150" fill="none" stroke="''' + p["sage_green"] + '''" stroke-width="2" stroke-dasharray="6,4"/>
 </g>
+''' if (is_occ and fan_on) else ''}
 </g>
 
 <!-- 7. Electric Room Heater (Floor Lower Right) -->
@@ -2042,6 +2052,8 @@ def get_device_status_panel_html(
     fan_enabled: bool,
     window_open: bool,
     dark_mode: bool = False,
+    people_present: bool = True,
+    num_people: int = 2,
 ) -> str:
     """
     Renders a compact, high-contrast device monitoring panel displaying
@@ -2053,10 +2065,11 @@ def get_device_status_panel_html(
     """
     p = _get_theme_palette(dark_mode)
 
+    is_occ = bool(people_present) and (int(num_people) > 0)
     heater_on = (action == ACTION_HEAT)
     ac_on = (action == ACTION_COOL)
-    fan_on = fan_enabled
-    win_open = window_open
+    fan_on = fan_enabled and is_occ
+    win_open = window_open and is_occ
 
     # Helper for status pill styling
     def _dev_card(name: str, status_text: str, is_active: bool, active_color: str, active_bg: str, active_border: str, icon_svg: str, subtext: str) -> str:
@@ -2107,7 +2120,10 @@ def get_device_status_panel_html(
 
     # Device 3: Ceiling Fan
     fan_icon = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.5-5.5-2.5-7.5-.5S2.5 17 4.5 19s5.5 2.5 7.5.5"/><path d="M12 12c2.5-2 2.5-5.5.5-7.5S7 2.5 5 4.5s-2.5 5.5-.5 7.5"/><path d="M12 12c2 2.5 5.5 2.5 7.5.5s2-5.5 0-7.5-5.5-2.5-7.5-.5"/><circle cx="12" cy="12" r="2"/></svg>"""
-    fan_subtext = "Active HVAC Air Distribution" if (action in [ACTION_HEAT, ACTION_COOL]) else "Continuous Air Circulation"
+    if is_occ and fan_on:
+        fan_subtext = "Active HVAC Air Distribution" if (action in [ACTION_HEAT, ACTION_COOL]) else "Continuous Air Circulation"
+    else:
+        fan_subtext = "Standby (Unoccupied Energy Saver)" if not is_occ else "Standby (Off)"
     fan_html = _dev_card(
         name="Ceiling Fan",
         status_text="ON" if fan_on else "OFF",
@@ -2116,7 +2132,7 @@ def get_device_status_panel_html(
         active_bg="#132B1E" if dark_mode else "#EAF6EE",
         active_border="#235237" if dark_mode else "#B6E2C5",
         icon_svg=fan_icon,
-        subtext=fan_subtext if fan_on else "Standby (Off)",
+        subtext=fan_subtext,
     )
 
     # Device 4: Window

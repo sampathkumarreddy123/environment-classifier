@@ -272,17 +272,17 @@ class UtilityBasedAgent:
 
             occupancy_comfort_factor = 1.0
         else:
-            # Unoccupied room: zero human comfort penalty within setback range
-            # Setback range: [self.unoccupied_min_temp, self.unoccupied_max_temp] (16°C–28°C)
-            if predicted_temp < self.unoccupied_min_temp:
-                excess = self.unoccupied_min_temp - predicted_temp
+            # Unoccupied room: zero human comfort penalty. All machines remain OFF to eliminate energy consumption!
+            # Only critical structural/freeze safety limits (< 12°C or > 35°C) require emergency HVAC action
+            if predicted_temp < self.safety_min_temp:
+                excess = self.safety_min_temp - predicted_temp
                 comfort_penalty = 0.5 * excess + (excess ** 2)
-                overshoot_penalty = excess * 1.5
+                overshoot_penalty = excess * 5.0 + 10.0
                 occupancy_comfort_factor = 1.0
-            elif predicted_temp > self.unoccupied_max_temp:
-                excess = predicted_temp - self.unoccupied_max_temp
+            elif predicted_temp > self.safety_max_temp:
+                excess = predicted_temp - self.safety_max_temp
                 comfort_penalty = 0.5 * excess + (excess ** 2)
-                overshoot_penalty = excess * 1.5
+                overshoot_penalty = excess * 5.0 + 10.0
                 occupancy_comfort_factor = 1.0
             else:
                 comfort_penalty = 0.0
@@ -299,9 +299,8 @@ class UtilityBasedAgent:
         base_energy = self.energy_costs.get(action, 0.0)
         energy_cost = base_energy
         if action in [ACTION_HEAT, ACTION_COOL]:
-            # If currently maintaining minimum run duration for this active action, it is not deemed unnecessary
-            is_maintaining_min_run = (last_action == action and steps_in_action < self.min_on_duration)
-            if not is_maintaining_min_run:
+            if not is_occupied:
+                # Active machines in an empty room are strictly penalized to enforce all machines OFF
                 pred_off = self.predict_temperature(
                     current_temp=current_temp,
                     outside_temp=outside_temp,
@@ -314,12 +313,24 @@ class UtilityBasedAgent:
                     room_size=room_size,
                     heat_gain_per_person=heat_gain_per_person,
                 )
-                if not is_occupied:
-                    # If room is unoccupied and passive drift stays within setback range, active HVAC is heavily penalized
-                    if self.unoccupied_min_temp <= pred_off <= self.unoccupied_max_temp:
-                        energy_cost += 3.5
-                else:
-                    # If room is occupied and passive drift stays well inside comfort band, active HVAC is penalized
+                if self.safety_min_temp <= pred_off <= self.safety_max_temp:
+                    energy_cost += 10.0
+            else:
+                # If currently maintaining minimum run duration for this active action, it is not deemed unnecessary
+                is_maintaining_min_run = (last_action == action and steps_in_action < self.min_on_duration)
+                if not is_maintaining_min_run:
+                    pred_off = self.predict_temperature(
+                        current_temp=current_temp,
+                        outside_temp=outside_temp,
+                        insulation_level=insulation_level,
+                        action=ACTION_OFF,
+                        heater_power=heater_power,
+                        cooling_power=cooling_power,
+                        people_present=people_present,
+                        num_people=num_people,
+                        room_size=room_size,
+                        heat_gain_per_person=heat_gain_per_person,
+                    )
                     if (lower_comfort + 0.3) <= pred_off <= (upper_comfort - 0.3):
                         energy_cost += 1.5
 
@@ -331,8 +342,10 @@ class UtilityBasedAgent:
             if (last_action == ACTION_HEAT and action == ACTION_COOL) or (last_action == ACTION_COOL and action == ACTION_HEAT):
                 switch_penalty += 4.0
             elif last_action in [ACTION_HEAT, ACTION_COOL] and action == ACTION_OFF:
-                # Short-cycling: shutting down active equipment before minimum ON duration
-                if steps_in_action < self.min_on_duration:
+                # When room is unoccupied, shutting down all machines to eliminate energy consumption is prioritized
+                if not is_occupied:
+                    switch_penalty += 0.0
+                elif steps_in_action < self.min_on_duration:
                     switch_penalty += 8.0
                 elif is_occupied:
                     # If still significantly outside desired target, switching OFF prematurely is discouraged
@@ -342,12 +355,12 @@ class UtilityBasedAgent:
                         switch_penalty += 1.0
             elif last_action == ACTION_OFF and action in [ACTION_HEAT, ACTION_COOL]:
                 # Short-cycling: restarting equipment before minimum OFF duration
-                if steps_in_action < self.min_off_duration:
+                if not is_occupied:
+                    switch_penalty += 8.0
+                elif steps_in_action < self.min_off_duration:
                     switch_penalty += 8.0
                 elif is_occupied and lower_comfort <= current_temp <= upper_comfort:
                     switch_penalty += 1.5
-                elif not is_occupied and self.unoccupied_min_temp <= current_temp <= self.unoccupied_max_temp:
-                    switch_penalty += 2.5
 
         instability_penalty = temp_shift + switch_penalty
 
@@ -584,22 +597,22 @@ class UtilityBasedAgent:
                         f"would incur energy and stability penalties exceeding minor comfort improvements."
                     )
         else:
-            # Unoccupied room
+            # Unoccupied room: all machines remain OFF to maximize energy conservation
             if selected_action == ACTION_OFF:
                 reason = (
-                    f"HVAC remains OFF because the room is unoccupied (0 occupants) and temperature ({current_temp:.1f}°C → {pred:.1f}°C) "
-                    f"is within the acceptable unoccupied setback range [{self.unoccupied_min_temp:.1f}°C–{self.unoccupied_max_temp:.1f}°C]. "
-                    f"HVAC remains OFF to avoid unnecessary energy consumption (energy cost: 0, utility: {util:.2f})."
+                    f"All machines remain OFF because the room is unoccupied (0 occupants). "
+                    f"Temperature ({current_temp:.1f}°C → {pred:.1f}°C) is safe within [{self.safety_min_temp:.1f}°C–{self.safety_max_temp:.1f}°C]. "
+                    f"HVAC equipment and ceiling fans are powered OFF for total energy conservation (energy cost: 0, utility: {util:.2f})."
                 )
             elif selected_action == ACTION_COOL:
                 reason = (
-                    f"Room is unoccupied (0 occupants), but cooling is activated (utility: {util:.2f}) because temperature "
-                    f"({current_temp:.1f}°C) exceeds the unoccupied setback limit ({self.unoccupied_max_temp:.1f}°C), protecting building and equipment."
+                    f"Room is unoccupied (0 occupants), but emergency cooling is activated (utility: {util:.2f}) because temperature "
+                    f"({current_temp:.1f}°C) exceeded the critical safety ceiling ({self.safety_max_temp:.1f}°C), protecting building and electronics."
                 )
             else:  # ACTION_HEAT
                 reason = (
-                    f"Room is unoccupied (0 occupants), but heating is activated (utility: {util:.2f}) because temperature "
-                    f"({current_temp:.1f}°C) fell below the unoccupied setback limit ({self.unoccupied_min_temp:.1f}°C), preventing freeze damage."
+                    f"Room is unoccupied (0 occupants), but emergency heating is activated (utility: {util:.2f}) because temperature "
+                    f"({current_temp:.1f}°C) fell below the critical freeze safety floor ({self.safety_min_temp:.1f}°C), preventing freeze damage."
                 )
 
         return reason

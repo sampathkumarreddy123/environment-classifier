@@ -2149,8 +2149,9 @@ if nav_selection == "Overview":
     else:
         ov_action = u_preview.selected_action
     
-    ov_fan = True  # Continuous living room air circulation
-    ov_win = (ov_action == ACTION_OFF and 19.0 <= env.outside_temp <= 25.0)
+    ov_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+    ov_fan = ov_is_occ  # Machine OFF when no people are present
+    ov_win = (ov_action == ACTION_OFF and 19.0 <= env.outside_temp <= 25.0 and ov_is_occ)
 
     st.markdown(
         get_live_room_simulation_html(
@@ -2179,6 +2180,8 @@ if nav_selection == "Overview":
             fan_enabled=ov_fan,
             window_open=ov_win,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
         ),
         unsafe_allow_html=True,
     )
@@ -2308,9 +2311,10 @@ elif nav_selection == "Live Room Simulation":
         hist_df = reflex_env.get_history_df()
         agent_expl = f"Simple Reflex Thermostat operates purely on condition-action rules: HEAT when temp < {reflex_agent.lower_threshold:.1f}°C, COOL when temp > {reflex_agent.upper_threshold:.1f}°C, and OFF within the deadband."
 
-    # Fan & Window automatic physical operation
-    fan_active = True  # Continuous living room air circulation
-    window_active = (curr_action == ACTION_OFF and 19.0 <= curr_outside <= 25.0)
+    # Fan & Window automatic physical operation (All machines OFF when unoccupied)
+    sim_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+    fan_active = sim_is_occ
+    window_active = (curr_action == ACTION_OFF and 19.0 <= curr_outside <= 25.0 and sim_is_occ)
 
     # 1. Main Visual Room Simulator
     pred_temp = agent.decide_action(curr_obs).predicted_temp if active_sim_agent == "Utility-Based Agent" else None
@@ -2345,6 +2349,8 @@ elif nav_selection == "Live Room Simulation":
             fan_enabled=fan_active,
             window_open=window_active,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
         ),
         unsafe_allow_html=True,
     )
@@ -2419,8 +2425,9 @@ elif nav_selection == "Live Room Simulation":
                             step_action = reflex_agent.last_action or ACTION_OFF
                             step_pred = None
 
-                        step_fan = True  # Continuous living room air circulation
-                        step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
+                        step_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+                        step_fan = step_is_occ  # All machines OFF when unoccupied
+                        step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0 and step_is_occ)
 
                         progress_ratio = (step_idx + 1) / remaining
                         prog_bar.progress(
@@ -2455,6 +2462,8 @@ elif nav_selection == "Live Room Simulation":
                                 fan_enabled=step_fan,
                                 window_open=step_win,
                                 dark_mode=dark_mode,
+                                people_present=st.session_state.people_present,
+                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
                             ),
                             unsafe_allow_html=True,
                         )
@@ -2834,8 +2843,9 @@ elif nav_selection == "Utility-Based Agent":
     st.subheader("Live Room Environment Simulation")
     u_preview = agent.decide_action(current_state)
     u_init_action = last_dec.selected_action if last_dec else u_preview.selected_action
-    u_init_fan = True  # Continuous living room air circulation
-    u_init_win = (u_init_action == ACTION_OFF and 19.0 <= current_state["outside_temp"] <= 25.0)
+    u_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+    u_init_fan = u_is_occ  # All machines OFF when room is unoccupied
+    u_init_win = (u_init_action == ACTION_OFF and 19.0 <= current_state["outside_temp"] <= 25.0 and u_is_occ)
     u_room_placeholder = st.empty()
     u_room_placeholder.markdown(
         get_live_room_simulation_html(
@@ -2865,6 +2875,8 @@ elif nav_selection == "Utility-Based Agent":
             fan_enabled=u_init_fan,
             window_open=u_init_win,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
         ),
         unsafe_allow_html=True,
     )
@@ -2930,8 +2942,9 @@ elif nav_selection == "Utility-Based Agent":
                         step_state = env.get_state()
                         step_dec = agent.last_decision
                         step_action = step_dec.selected_action if step_dec else ACTION_OFF
-                        step_fan = True  # Continuous living room air circulation
-                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
+                        step_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+                        step_fan = step_is_occ  # All machines OFF when room is unoccupied
+                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0 and step_is_occ)
 
                         progress_ratio = (step_idx + 1) / remaining
                         prog_bar.progress(
@@ -2966,6 +2979,8 @@ elif nav_selection == "Utility-Based Agent":
                                 fan_enabled=step_fan,
                                 window_open=step_win,
                                 dark_mode=dark_mode,
+                                people_present=st.session_state.people_present,
+                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
                             ),
                             unsafe_allow_html=True,
                         )
@@ -3063,8 +3078,9 @@ elif nav_selection == "Reflex Thermostat":
     # Visual Room Environment Simulator (Simple Reflex Thermostat)
     st.subheader("Live Room Environment Simulation")
     r_action = r_preview.selected_action
-    r_fan = True  # Continuous living room air circulation
-    r_win = (r_action == ACTION_OFF and 19.0 <= r_state["outside_temp"] <= 25.0)
+    r_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+    r_fan = r_is_occ
+    r_win = (r_action == ACTION_OFF and 19.0 <= r_state["outside_temp"] <= 25.0 and r_is_occ)
     r_room_placeholder = st.empty()
     r_room_placeholder.markdown(
         get_live_room_simulation_html(
@@ -3094,6 +3110,8 @@ elif nav_selection == "Reflex Thermostat":
             fan_enabled=r_fan,
             window_open=r_win,
             dark_mode=dark_mode,
+            people_present=st.session_state.people_present,
+            num_people=st.session_state.num_people if st.session_state.people_present else 0,
         ),
         unsafe_allow_html=True,
     )
@@ -3148,8 +3166,9 @@ elif nav_selection == "Reflex Thermostat":
 
                         step_state = reflex_env.get_state()
                         step_action = reflex_agent.last_action or ACTION_OFF
-                        step_fan = True  # Continuous living room air circulation
-                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
+                        step_is_occ = bool(st.session_state.people_present and st.session_state.num_people > 0)
+                        step_fan = step_is_occ
+                        step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0 and step_is_occ)
 
                         progress_ratio = (step_idx + 1) / remaining
                         prog_bar.progress(
@@ -3184,6 +3203,8 @@ elif nav_selection == "Reflex Thermostat":
                                 fan_enabled=step_fan,
                                 window_open=step_win,
                                 dark_mode=dark_mode,
+                                people_present=st.session_state.people_present,
+                                num_people=st.session_state.num_people if st.session_state.people_present else 0,
                             ),
                             unsafe_allow_html=True,
                         )

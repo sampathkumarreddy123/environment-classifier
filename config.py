@@ -105,9 +105,10 @@ class HVACControlDefaults:
     MIN_OFF_DURATION_STEPS: int = 2
 
     # Unoccupied setback temperature boundaries (°C)
-    # Zero human comfort penalty within this range when room has 0 occupants
-    DEFAULT_UNOCCUPIED_MIN_TEMP: float = 16.0
-    DEFAULT_UNOCCUPIED_MAX_TEMP: float = 28.0
+    # Zero human comfort penalty within this range when room has 0 occupants.
+    # All machines (heating, cooling, and ceiling fan) remain OFF to maximize energy conservation.
+    DEFAULT_UNOCCUPIED_MIN_TEMP: float = 12.0
+    DEFAULT_UNOCCUPIED_MAX_TEMP: float = 35.0
 
     # Critical environmental safety limits (°C)
     # Always overrides minimum-duration restrictions to protect building & equipment

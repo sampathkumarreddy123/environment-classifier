@@ -161,8 +161,8 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
 
     def test_cooling_and_heating_stepwise_actions(self):
         """Verify that stepwise simulation actions transition correctly under heating and cooling scenarios."""
-        # Cold scenario
-        env_cold = RoomEnvironment(initial_temp=14.0, desired_temp=22.0, outside_temp=8.0)
+        # Cold scenario with occupants
+        env_cold = RoomEnvironment(initial_temp=14.0, desired_temp=22.0, outside_temp=8.0, people_present=True, num_people=2)
         agent = UtilityBasedAgent()
         obs = env_cold.get_state()
         dec = agent.decide_action(obs)
@@ -171,8 +171,8 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
         next_st = env_cold.step(dec.selected_action)
         self.assertGreater(next_st["room_temp"], 14.0)
 
-        # Hot scenario
-        env_hot = RoomEnvironment(initial_temp=30.0, desired_temp=22.0, outside_temp=32.0)
+        # Hot scenario with occupants
+        env_hot = RoomEnvironment(initial_temp=30.0, desired_temp=22.0, outside_temp=32.0, people_present=True, num_people=2)
         obs_h = env_hot.get_state()
         dec_h = agent.decide_action(obs_h)
         self.assertEqual(dec_h.selected_action, ACTION_COOL)
@@ -180,11 +180,17 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
         next_st_h = env_hot.step(dec_h.selected_action)
         self.assertLess(next_st_h["room_temp"], 30.0)
 
-        # Comfortable scenario
-        env_comf = RoomEnvironment(initial_temp=22.0, desired_temp=22.0, outside_temp=22.0)
+        # Comfortable scenario with occupants
+        env_comf = RoomEnvironment(initial_temp=22.0, desired_temp=22.0, outside_temp=22.0, people_present=True, num_people=2)
         obs_c = env_comf.get_state()
         dec_c = agent.decide_action(obs_c)
         self.assertEqual(dec_c.selected_action, ACTION_OFF)
+
+        # Unoccupied scenario: all machines must be OFF when there are no people
+        env_unocc = RoomEnvironment(initial_temp=14.0, desired_temp=22.0, outside_temp=8.0, people_present=False, num_people=0)
+        obs_u = env_unocc.get_state()
+        dec_u = agent.decide_action(obs_u)
+        self.assertEqual(dec_u.selected_action, ACTION_OFF)
 
     def test_live_sim_agent_buttons_and_fan_window_removed(self):
         """Verify Ceiling Fan Mode and Natural Ventilation controls are removed and agent buttons are side by side."""
