@@ -118,6 +118,15 @@ class UtilityBasedAgent:
         self.action_history = []
         self.decision_history = []
 
+    @property
+    def last_action(self) -> Optional[str]:
+        """Return the most recently selected action, or None if no decision has been made."""
+        if self.last_decision is not None:
+            return self.last_decision.selected_action
+        if self.action_history:
+            return self.action_history[-1]
+        return None
+
     def update_weights(
         self,
         weight_comfort: Optional[float] = None,
@@ -190,6 +199,7 @@ class UtilityBasedAgent:
         num_people: int = 2,
         room_size: float = 25.0,
         heat_gain_per_person: float = 0.08,
+        last_action: Optional[str] = None,
     ) -> ActionEvaluation:
         """
         Compute the individual penalty factors and total utility for a single candidate action.
@@ -214,22 +224,64 @@ class UtilityBasedAgent:
         room_scale = 25.0 / max(float(room_size), 1.0)
         delta_occupancy = effective_occupants * float(heat_gain_per_person) * room_scale
 
-        # 2. Factor 1: Temperature Comfort Penalty (|predicted - desired|)
-        comfort_penalty = abs(predicted_temp - desired_temp)
-
-        # 3. Factor 2: Energy Consumption Cost
-        energy_cost = self.energy_costs.get(action, 0.0)
-
-        # 4. Factor 3: Temperature Instability Penalty (|predicted - current|)
-        instability_penalty = abs(predicted_temp - current_temp)
-
-        # 5. Factor 4: Overshooting Penalty (distance beyond comfort zone boundaries)
         lower_comfort = desired_temp - comfort_tolerance
         upper_comfort = desired_temp + comfort_tolerance
+
+        # 2. Factor 1: Temperature Comfort Penalty (|predicted - desired| with smooth comfort band)
+        diff = abs(predicted_temp - desired_temp)
+        if diff <= comfort_tolerance:
+            # Inside comfort band: smooth quadratic curve, avoiding unnecessary micro-heating/cooling
+            comfort_penalty = 0.5 * (diff ** 2) / max(comfort_tolerance, 0.1)
+        else:
+            excess = diff - comfort_tolerance
+            comfort_penalty = 0.5 * comfort_tolerance + excess + (excess ** 2) / max(comfort_tolerance, 0.1)
+
+        # 3. Factor 2: Energy Consumption Cost & Penalizing Unnecessary Energy
+        base_energy = self.energy_costs.get(action, 0.0)
+        energy_cost = base_energy
+        if action in [ACTION_HEAT, ACTION_COOL]:
+            pred_off = self.predict_temperature(
+                current_temp=current_temp,
+                outside_temp=outside_temp,
+                insulation_level=insulation_level,
+                action=ACTION_OFF,
+                heater_power=heater_power,
+                cooling_power=cooling_power,
+                people_present=people_present,
+                num_people=num_people,
+                room_size=room_size,
+                heat_gain_per_person=heat_gain_per_person,
+            )
+            # If passive drift with OFF already maintains comfortable room, active HVAC is unnecessary energy
+            if (lower_comfort + 0.3) <= pred_off <= (upper_comfort - 0.3):
+                energy_cost += 1.0
+
+        # 4. Factor 3: Temperature Instability & Actuator Switching / Anti-Oscillation Penalty
+        temp_shift = abs(predicted_temp - current_temp)
+        switch_penalty = 0.0
+        if last_action is not None and action != last_action:
+            # Rapid reversal between HEAT and COOL is severely penalized
+            if (last_action == ACTION_HEAT and action == ACTION_COOL) or (last_action == ACTION_COOL and action == ACTION_HEAT):
+                switch_penalty = 3.0
+            elif last_action == ACTION_OFF and action in [ACTION_HEAT, ACTION_COOL]:
+                # If room is already comfortable and staying OFF remains comfortable, switching ON is penalized
+                if lower_comfort <= current_temp <= upper_comfort:
+                    switch_penalty = 1.0
+            elif last_action == ACTION_HEAT and action == ACTION_OFF:
+                # If still significantly below desired target, turning OFF prematurely is penalized
+                if current_temp < desired_temp - 0.3:
+                    switch_penalty = 1.0
+            elif last_action == ACTION_COOL and action == ACTION_OFF:
+                # If still significantly above desired target, turning OFF prematurely is penalized
+                if current_temp > desired_temp + 0.3:
+                    switch_penalty = 1.0
+        instability_penalty = temp_shift + switch_penalty
+
+        # 5. Factor 4: Overshooting Penalty (distance beyond comfort zone boundaries)
         if predicted_temp < lower_comfort:
-            overshoot_penalty = lower_comfort - predicted_temp
+            overshoot_penalty = (lower_comfort - predicted_temp) * 1.5
         elif predicted_temp > upper_comfort:
-            overshoot_penalty = predicted_temp - upper_comfort
+            overshoot_penalty = (predicted_temp - upper_comfort) * 1.5
         else:
             overshoot_penalty = 0.0
 
@@ -283,6 +335,14 @@ class UtilityBasedAgent:
         room_size = float(observation.get("room_size", 25.0))
         heat_gain_per_person = float(observation.get("heat_gain_per_person", 0.08))
         step = int(observation.get("step", len(self.action_history)))
+        prior_action = None
+        if self.last_decision is not None:
+            prev_step = self.last_decision.step
+            prev_temp = self.last_decision.current_temp
+            if step > prev_step and abs(current_temp - prev_temp) <= 3.5:
+                prior_action = self.last_decision.selected_action
+        if "prev_action" in observation:
+            prior_action = observation["prev_action"]
 
         # Evaluate all candidate actions
         evaluations: Dict[str, ActionEvaluation] = {}
@@ -300,6 +360,7 @@ class UtilityBasedAgent:
                 num_people=num_people,
                 room_size=room_size,
                 heat_gain_per_person=heat_gain_per_person,
+                last_action=prior_action,
             )
 
         # Select action that maximizes net utility

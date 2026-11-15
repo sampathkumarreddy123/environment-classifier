@@ -53,6 +53,8 @@ class ComparisonConfig:
     weight_overshoot: float = UtilityWeightsDefaults.DEFAULT_WEIGHT_OVERSHOOT
     lower_threshold: float = ReflexThermostatDefaults.DEFAULT_LOWER_THRESHOLD
     upper_threshold: float = ReflexThermostatDefaults.DEFAULT_UPPER_THRESHOLD
+    upper_heating_threshold: Optional[float] = None
+    lower_cooling_threshold: Optional[float] = None
     people_present: bool = SimulationDefaults.DEFAULT_PEOPLE_PRESENT
     num_people: int = SimulationDefaults.DEFAULT_NUM_PEOPLE
     room_size: float = SimulationDefaults.DEFAULT_ROOM_SIZE
@@ -634,9 +636,18 @@ class ComparisonRunner:
             weight_stability=cfg.weight_stability,
             weight_overshoot=cfg.weight_overshoot,
         )
+        u_heat_cut = getattr(cfg, "upper_heating_threshold", None)
+        if u_heat_cut is None:
+            u_heat_cut = cfg.desired_temp
+        l_cool_cut = getattr(cfg, "lower_cooling_threshold", None)
+        if l_cool_cut is None:
+            l_cool_cut = cfg.desired_temp
+
         self.refl_agent = SimpleReflexAgent(
             lower_threshold=cfg.lower_threshold,
             upper_threshold=cfg.upper_threshold,
+            upper_heating_threshold=u_heat_cut,
+            lower_cooling_threshold=l_cool_cut,
         )
 
         u_init = self.util_env.get_state()

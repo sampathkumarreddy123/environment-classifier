@@ -125,6 +125,8 @@ def init_session_state() -> None:
         st.session_state.reflex_agent = SimpleReflexAgent(
             lower_threshold=st.session_state.reflex_lower_slider,
             upper_threshold=st.session_state.reflex_upper_slider,
+            upper_heating_threshold=st.session_state.desired_temp,
+            lower_cooling_threshold=st.session_state.desired_temp,
         )
     if "reflex_simulation_records" not in st.session_state:
         reset_reflex_simulation()
@@ -173,6 +175,8 @@ def _build_comparison_config() -> ComparisonConfig:
         weight_overshoot=float(st.session_state.weight_overshoot),
         lower_threshold=float(st.session_state.reflex_lower_slider),
         upper_threshold=float(st.session_state.reflex_upper_slider),
+        upper_heating_threshold=float(st.session_state.desired_temp),
+        lower_cooling_threshold=float(st.session_state.desired_temp),
         people_present=bool(st.session_state.people_present),
         num_people=int(st.session_state.num_people) if st.session_state.people_present else 0,
         room_size=float(st.session_state.room_size),
@@ -212,6 +216,8 @@ def reset_reflex_simulation() -> None:
     st.session_state.reflex_agent = SimpleReflexAgent(
         lower_threshold=st.session_state.reflex_lower_slider,
         upper_threshold=st.session_state.reflex_upper_slider,
+        upper_heating_threshold=st.session_state.desired_temp,
+        lower_cooling_threshold=st.session_state.desired_temp,
     )
     init_obs = st.session_state.reflex_env.get_state()
     init_action = st.session_state.reflex_agent.preview_decision(init_obs).selected_action
@@ -665,17 +671,15 @@ section[data-testid="stSidebar"] * {{
 }}
 
 /* 6. Biophilic Modern Sidebar Navigation - Filled Full-Width Buttons & No Circles */
-/* Force outer Streamlit element containers to expand to 100% full width */
+/* Force outer Streamlit sidebar element containers to expand to 100% full width */
 .st-key-nav_selection,
-div[data-testid="stElementContainer"]:has(div[data-testid="stRadio"]),
 div[data-testid="stElementContainer"]:has(.st-key-nav_selection),
 section[data-testid="stSidebar"] div.stRadio,
 section[data-testid="stSidebar"] div[data-testid="stRadio"],
-div[data-testid="stRadio"],
-div[data-testid="stRadio"] > div,
-div[data-testid="stRadio"] div[data-testid="stRadioGroup"],
-div[data-testid="stRadio"] [role="radiogroup"],
-div[data-testid="stRadio"] [class*="ex50key0"] {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] > div,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] div[data-testid="stRadioGroup"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key0"] {{
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
@@ -688,11 +692,11 @@ div[data-testid="stRadio"] [class*="ex50key0"] {{
     box-sizing: border-box !important;
 }}
 
-/* Entire radio option wrapper spanning 100% */
-div[data-testid="stRadio"] [class*="ex50key1"],
-div[data-testid="stRadio"] .react-aria-RadioField,
-div[data-testid="stRadio"] [role="radiogroup"] > div,
-div[data-testid="stRadioGroup"] > div {{
+/* Entire radio option wrapper in sidebar spanning 100% */
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] .react-aria-RadioField,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] > div,
+section[data-testid="stSidebar"] div[data-testid="stRadioGroup"] > div {{
     display: flex !important;
     flex-direction: column !important;
     width: 100% !important;
@@ -749,11 +753,11 @@ div[data-testid="stRadio"] [data-testid="stRadioOption"] > div {{
 }}
 
 /* Filled navigation buttons spanning 100% full width (Default Inactive State) */
-div[data-testid="stRadio"] [data-testid="stRadioOption"],
-div[data-testid="stRadio"] [class*="ex50key2"],
-div[data-testid="stRadio"] [role="radiogroup"] label,
-div[data-testid="stRadio"] .react-aria-RadioField label,
-[data-testid="stRadioOption"] {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stRadioOption"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key2"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] .react-aria-RadioField label,
+.st-key-nav_selection [data-testid="stRadioOption"] {{
     height: 40px !important;
     min-height: 40px !important;
     max-height: 40px !important;
@@ -775,10 +779,10 @@ div[data-testid="stRadio"] .react-aria-RadioField label,
 }}
 
 /* Inactive navigation hover */
-div[data-testid="stRadio"] [data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover,
-div[data-testid="stRadio"] [class*="ex50key2"]:not([data-selected]):not(:has(input:checked)):hover,
-div[data-testid="stRadio"] [role="radiogroup"] label:not([data-selected]):not(:has(input:checked)):hover,
-[data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key2"]:not([data-selected]):not(:has(input:checked)):hover,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:not([data-selected]):not(:has(input:checked)):hover,
+.st-key-nav_selection [data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover {{
     background-color: {"#24382D" if dark_mode else "#EAF2EB"} !important;
     border-color: {"#456E52" if dark_mode else "#B4D5BE"} !important;
     border-left-color: {"#5A9E6F" if dark_mode else "#829B78"} !important;
@@ -786,24 +790,24 @@ div[data-testid="stRadio"] [role="radiogroup"] label:not([data-selected]):not(:h
 }}
 
 /* Active navigation state: prominent filled sage/forest pill spanning 100% width */
-div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stRadioOption"],
-div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stRadioOption"],
-div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [class*="ex50key2"],
-div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [class*="ex50key2"],
-div[data-testid="stRadio"] .react-aria-RadioField[data-selected] [data-testid="stRadioOption"],
-div[data-testid="stRadio"] .react-aria-RadioField[data-selected="true"] [data-testid="stRadioOption"],
-div[data-testid="stRadio"] [data-testid="stRadioOption"][data-selected],
-div[data-testid="stRadio"] [data-testid="stRadioOption"][data-selected="true"],
-div[data-testid="stRadio"] [data-testid="stRadioOption"]:has(input:checked),
-div[data-testid="stRadio"] [class*="ex50key2"][data-selected],
-div[data-testid="stRadio"] [class*="ex50key2"][data-selected="true"],
-div[data-testid="stRadio"] [class*="ex50key2"]:has(input:checked),
-div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected],
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
-[data-testid="stRadioOption"][data-selected],
-[data-testid="stRadioOption"][data-selected="true"],
-[data-testid="stRadioOption"]:has(input:checked) {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stRadioOption"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stRadioOption"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [class*="ex50key2"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [class*="ex50key2"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] .react-aria-RadioField[data-selected] [data-testid="stRadioOption"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] .react-aria-RadioField[data-selected="true"] [data-testid="stRadioOption"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stRadioOption"][data-selected],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stRadioOption"][data-selected="true"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stRadioOption"]:has(input:checked),
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key2"][data-selected],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key2"][data-selected="true"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key2"]:has(input:checked),
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked),
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label[data-selected],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
+.st-key-nav_selection [data-testid="stRadioOption"][data-selected],
+.st-key-nav_selection [data-testid="stRadioOption"][data-selected="true"],
+.st-key-nav_selection [data-testid="stRadioOption"]:has(input:checked) {{
     background-color: {"#244030" if dark_mode else "#E2ECE3"} !important;
     border: 1px solid {"#3A6348" if dark_mode else "#B0CFB6"} !important;
     border-left: 3.5px solid {primary_green} !important;
@@ -811,10 +815,10 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"],
 }}
 
 /* Navigation label typography */
-div[data-testid="stRadio"] [data-testid="stMarkdownContainer"],
-div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p,
-[data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
-[data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p,
+.st-key-nav_selection [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
+.st-key-nav_selection [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p {{
     display: flex !important;
     align-items: center !important;
     visibility: visible !important;
@@ -830,10 +834,10 @@ div[data-testid="stRadio"] [data-testid="stMarkdownContainer"] p,
 }}
 
 /* Icons inside navigation items: 19px outline icons */
-div[data-testid="stRadio"] [data-testid="stIconMaterial"],
-div[data-testid="stRadio"] .material-symbols-rounded,
-[data-testid="stRadioOption"] [data-testid="stIconMaterial"],
-[data-testid="stRadioOption"] .material-symbols-rounded {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [data-testid="stIconMaterial"],
+section[data-testid="stSidebar"] div[data-testid="stRadio"] .material-symbols-rounded,
+.st-key-nav_selection [data-testid="stRadioOption"] [data-testid="stIconMaterial"],
+.st-key-nav_selection [data-testid="stRadioOption"] .material-symbols-rounded {{
     color: {"#8A9E8E" if dark_mode else "#5F7162"} !important;
     font-size: 19px !important;
     margin-right: 10px !important;
@@ -847,16 +851,107 @@ div[data-testid="stRadio"] .material-symbols-rounded,
 }}
 
 /* Active navigation text and icon */
-div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p,
-div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stMarkdownContainer"] p,
-[data-testid="stRadioOption"][data-selected] [data-testid="stMarkdownContainer"] p,
-[data-testid="stRadioOption"][data-selected="true"] [data-testid="stMarkdownContainer"] p,
-[data-testid="stRadioOption"]:has(input:checked) [data-testid="stMarkdownContainer"] p {{
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [class*="ex50key1"][data-selected="true"] [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label[data-selected="true"] [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] [data-testid="stMarkdownContainer"] p,
+.st-key-nav_selection [data-testid="stRadioOption"][data-selected] [data-testid="stMarkdownContainer"] p,
+.st-key-nav_selection [data-testid="stRadioOption"][data-selected="true"] [data-testid="stMarkdownContainer"] p,
+.st-key-nav_selection [data-testid="stRadioOption"]:has(input:checked) [data-testid="stMarkdownContainer"] p {{
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     font-weight: 600 !important;
+}}
+
+/* 7. Controlling Agent Selector (Horizontal Side-by-Side Modern Biophilic Buttons) */
+.st-key-sim_active_agent_radio {{
+    margin-top: 0.25rem !important;
+    margin-bottom: 1.25rem !important;
+    width: 100% !important;
+}}
+
+.st-key-sim_active_agent_radio [data-testid="stWidgetLabel"] p,
+.st-key-sim_active_agent_radio label p {{
+    font-size: 14.5px !important;
+    font-weight: 700 !important;
+    color: {text_primary} !important;
+    margin-bottom: 8px !important;
+    letter-spacing: 0.01em !important;
+}}
+
+/* Horizontal flex layout side by side */
+.st-key-sim_active_agent_radio div[role="radiogroup"],
+.st-key-sim_active_agent_radio [data-testid="stRadioGroup"],
+.st-key-sim_active_agent_radio div[data-testid="stRadioGroup"],
+div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [role="radiogroup"],
+div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-testid="stRadioGroup"] {{
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 16px !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+}}
+
+/* Each agent option as a horizontal button */
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"],
+.st-key-sim_active_agent_radio [role="radio"],
+.st-key-sim_active_agent_radio [role="radiogroup"] > div,
+.st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > div,
+.st-key-sim_active_agent_radio label {{
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    width: auto !important;
+    min-width: 220px !important;
+    max-width: none !important;
+    padding: 0 24px !important;
+    margin: 0 !important;
+    background-color: {"#1A2821" if dark_mode else "#FFFFFF"} !important;
+    border: 1.5px solid {border_color} !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.15" if dark_mode else "0.04"}) !important;
+    transition: all 0.15s ease !important;
+}}
+
+/* Inactive button hover */
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover,
+.st-key-sim_active_agent_radio label:not([data-selected]):not(:has(input:checked)):hover {{
+    background-color: {"#24382D" if dark_mode else "#EAF2EB"} !important;
+    border-color: {"#5A9E6F" if dark_mode else "#829B78"} !important;
+    transform: translateY(-1px) !important;
+}}
+
+/* Active agent button (selected) */
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"]:has(input:checked),
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"][data-selected="true"],
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"][data-selected],
+.st-key-sim_active_agent_radio label:has(input:checked),
+.st-key-sim_active_agent_radio label[data-selected="true"] {{
+    background-color: {"#244030" if dark_mode else "#E2ECE3"} !important;
+    border: 2px solid {primary_green} !important;
+    border-left: 4px solid {primary_green} !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.25" if dark_mode else "0.08"}) !important;
+}}
+
+/* Text inside agent buttons */
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p,
+.st-key-sim_active_agent_radio label [data-testid="stMarkdownContainer"] p {{
+    font-size: 14.5px !important;
+    font-weight: 600 !important;
+    color: {"#E7F0E8" if dark_mode else "#245C43"} !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+    width: auto !important;
 }}
 
 div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stIconMaterial"],
@@ -2106,32 +2201,14 @@ elif nav_selection == "Live Room Simulation":
         unsafe_allow_html=True,
     )
 
-    # Agent Controller Switcher & Airflow Controls
-    agent_sel_col, fan_col, win_col = st.columns([2, 1, 1])
-    with agent_sel_col:
-        active_sim_agent = st.radio(
-            "Controlling Agent",
-            options=["Utility-Based Agent", "Simple Reflex Thermostat"],
-            horizontal=True,
-            key="sim_active_agent_radio",
-            help="Select which agent controls the room environment and thermal devices.",
-        )
-    with fan_col:
-        fan_mode = st.selectbox(
-            "Ceiling Fan Mode",
-            options=["Auto (Circulate during HVAC)", "Always ON", "Always OFF"],
-            index=0,
-            key="sim_fan_mode_select",
-            help="Controls convective ceiling fan circulation.",
-        )
-    with win_col:
-        window_mode = st.selectbox(
-            "Natural Ventilation",
-            options=["Auto (Eco-ventilation)", "Always OPEN", "Always CLOSED"],
-            index=0,
-            key="sim_window_mode_select",
-            help="Controls window opening for passive outdoor ventilation.",
-        )
+    # Agent Controller Switcher (Horizontal Side-by-Side Modern Biophilic Buttons)
+    active_sim_agent = st.radio(
+        "Controlling Agent",
+        options=["Utility-Based Agent", "Simple Reflex Thermostat"],
+        horizontal=True,
+        key="sim_active_agent_radio",
+        help="Select which agent controls the room environment and thermal devices.",
+    )
 
     # Derive state according to selected agent
     if active_sim_agent == "Utility-Based Agent":
@@ -2165,20 +2242,9 @@ elif nav_selection == "Live Room Simulation":
         hist_df = reflex_env.get_history_df()
         agent_expl = f"Simple Reflex Thermostat operates purely on condition-action rules: HEAT when temp < {reflex_agent.lower_threshold:.1f}°C, COOL when temp > {reflex_agent.upper_threshold:.1f}°C, and OFF within the deadband."
 
-    # Fan & Window states
-    if fan_mode == "Auto (Circulate during HVAC)":
-        fan_active = (curr_action in [ACTION_HEAT, ACTION_COOL])
-    elif fan_mode == "Always ON":
-        fan_active = True
-    else:
-        fan_active = False
-
-    if window_mode == "Auto (Eco-ventilation)":
-        window_active = (curr_action == ACTION_OFF and 19.0 <= curr_outside <= 25.0)
-    elif window_mode == "Always OPEN":
-        window_active = True
-    else:
-        window_active = False
+    # Fan & Window automatic physical operation
+    fan_active = (curr_action in [ACTION_HEAT, ACTION_COOL])
+    window_active = (curr_action == ACTION_OFF and 19.0 <= curr_outside <= 25.0)
 
     # 1. Main Visual Room Simulator
     pred_temp = agent.decide_action(curr_obs).predicted_temp if active_sim_agent == "Utility-Based Agent" else None
@@ -2255,6 +2321,13 @@ elif nav_selection == "Live Room Simulation":
         ctl1, ctl2, ctl3 = st.columns(3)
         with ctl1:
             if st.button("▶ Run Full Simulation", key="btn_sim_run_full", type="primary", use_container_width=True):
+                if current_sim_env.current_step >= st.session_state.max_steps:
+                    if active_sim_agent == "Utility-Based Agent":
+                        reset_utility_simulation()
+                        current_sim_env = st.session_state.env
+                    else:
+                        reset_reflex_simulation()
+                        current_sim_env = st.session_state.reflex_env
                 remaining = st.session_state.max_steps - current_sim_env.current_step
                 if remaining > 0:
                     prog_bar = sim_progress_placeholder.progress(
@@ -2280,19 +2353,8 @@ elif nav_selection == "Live Room Simulation":
                             step_action = reflex_agent.last_action or ACTION_OFF
                             step_pred = None
 
-                        if fan_mode == "Auto (Circulate during HVAC)":
-                            step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
-                        elif fan_mode == "Always ON":
-                            step_fan = True
-                        else:
-                            step_fan = False
-
-                        if window_mode == "Auto (Eco-ventilation)":
-                            step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
-                        elif window_mode == "Always OPEN":
-                            step_win = True
-                        else:
-                            step_win = False
+                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
 
                         progress_ratio = (step_idx + 1) / remaining
                         prog_bar.progress(
@@ -2786,6 +2848,8 @@ elif nav_selection == "Utility-Based Agent":
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button("Run Simulation", key="btn_u_run", use_container_width=True, type="primary"):
+                if env.current_step >= st.session_state.max_steps:
+                    reset_utility_simulation()
                 remaining = st.session_state.max_steps - env.current_step
                 if remaining > 0:
                     prog_bar = u_prog_placeholder.progress(
@@ -2975,6 +3039,8 @@ elif nav_selection == "Reflex Thermostat":
             upper_threshold=reflex_agent.upper_threshold,
             selected_action=r_preview.selected_action,
             dark_mode=dark_mode,
+            upper_heating_threshold=reflex_agent.upper_heating_threshold,
+            lower_cooling_threshold=reflex_agent.lower_cooling_threshold,
         ),
         unsafe_allow_html=True,
     )
@@ -3001,6 +3067,8 @@ elif nav_selection == "Reflex Thermostat":
         rc1, rc2, rc3 = st.columns(3)
         with rc1:
             if st.button("Run Simulation", key="btn_sec_r_run", use_container_width=True, type="primary"):
+                if reflex_env.current_step >= st.session_state.max_steps:
+                    reset_reflex_simulation()
                 remaining = st.session_state.max_steps - reflex_env.current_step
                 if remaining > 0:
                     prog_bar = r_prog_placeholder.progress(

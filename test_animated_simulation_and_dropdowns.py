@@ -186,6 +186,21 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
         dec_c = agent.decide_action(obs_c)
         self.assertEqual(dec_c.selected_action, ACTION_OFF)
 
+    def test_live_sim_agent_buttons_and_fan_window_removed(self):
+        """Verify Ceiling Fan Mode and Natural Ventilation controls are removed and agent buttons are side by side."""
+        with open("app.py", "r", encoding="utf-8") as f:
+            code = f.read()
+
+        # Ceiling Fan Mode and Natural Ventilation controls must NOT exist
+        self.assertNotIn("sim_fan_mode_select", code)
+        self.assertNotIn("sim_window_mode_select", code)
+        self.assertNotIn('"Ceiling Fan Mode"', code)
+        self.assertNotIn('"Natural Ventilation"', code)
+
+        # Controlling agent radio must be horizontal
+        self.assertIn('key="sim_active_agent_radio"', code)
+        self.assertIn('horizontal=True', code)
+
 
 if __name__ == "__main__":
     unittest.main()

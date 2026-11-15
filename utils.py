@@ -342,19 +342,33 @@ def get_reflex_rules_html(
     upper_threshold: float,
     selected_action: str,
     dark_mode: bool = False,
+    upper_heating_threshold: Optional[float] = None,
+    lower_cooling_threshold: Optional[float] = None,
 ) -> str:
     """
     Generate visual HTML condition-action rule cards using the actual configured
-    lower and upper thresholds in Biophilic Eco-Tech palette.
+    lower and upper thresholds and hysteresis cutoffs in Biophilic Eco-Tech palette.
     """
     p = _get_theme_palette(dark_mode)
+
+    heat_cond = f"&lt; {lower_threshold:.1f}°C"
+    heat_desc = f"Room is below {lower_threshold:.1f}°C — turn on heating."
+    if upper_heating_threshold is not None:
+        heat_cond += f" (heats to {upper_heating_threshold:.1f}°C)"
+        heat_desc = f"Below {lower_threshold:.1f}°C — heating active until {upper_heating_threshold:.1f}°C cutoff."
+
+    cool_cond = f"&gt; {upper_threshold:.1f}°C"
+    cool_desc = f"Room is above {upper_threshold:.1f}°C — turn on cooling."
+    if lower_cooling_threshold is not None:
+        cool_cond += f" (cools to {lower_cooling_threshold:.1f}°C)"
+        cool_desc = f"Above {upper_threshold:.1f}°C — cooling active until {lower_cooling_threshold:.1f}°C cutoff."
 
     rules = [
         {
             "action": ACTION_HEAT,
-            "condition": f"&lt; {lower_threshold:.1f}°C",
+            "condition": heat_cond,
             "arrow_label": "🔥 HEAT",
-            "desc": "Room is below lower threshold — turn on heating.",
+            "desc": heat_desc,
             "accent": p["danger"],
             "bg_active": p["sub_bg"],
             "border_active": p["danger"],
@@ -363,16 +377,16 @@ def get_reflex_rules_html(
             "action": ACTION_OFF,
             "condition": f"{lower_threshold:.1f}°C – {upper_threshold:.1f}°C",
             "arrow_label": "⏸️ OFF",
-            "desc": "Room is between thresholds — turn off both systems.",
+            "desc": "Room is within deadband — keep HVAC systems off.",
             "accent": p["success"],
             "bg_active": p["sub_bg"],
             "border_active": p["success"],
         },
         {
             "action": ACTION_COOL,
-            "condition": f"&gt; {upper_threshold:.1f}°C",
+            "condition": cool_cond,
             "arrow_label": "❄️ COOL",
-            "desc": "Room is above upper threshold — turn on cooling.",
+            "desc": cool_desc,
             "accent": p["reflex_agent"],
             "bg_active": p["sub_bg"],
             "border_active": p["reflex_agent"],
