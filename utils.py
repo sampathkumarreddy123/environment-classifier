@@ -1624,9 +1624,14 @@ def get_live_room_simulation_html(
         banner_msg = "Heating: OFF · Cooling: OFF · Room in natural thermal equilibrium"
         ambient_tint = ''
 
-    # Fan visuals
-    fan_spin_class = "fan-spin" if fan_on else ""
-    fan_led_color = "#10B981" if fan_on else "#64748B"
+    # Fan visuals: continuous living air circulation
+    # Rapid active spin during heating/cooling, smooth ambient spin during idle/standby
+    if fan_on:
+        fan_spin_class = "fan-spin" if (action in [ACTION_HEAT, ACTION_COOL]) else "fan-spin-ambient"
+        fan_led_color = "#10B981"
+    else:
+        fan_spin_class = "fan-spin-ambient"
+        fan_led_color = "#10B981"
     fan_blade_color = "#94A3B8" if dark_mode else "#64748B"
 
     # Window visuals
@@ -1652,7 +1657,7 @@ def get_live_room_simulation_html(
             f'''
             <!-- Person 1 (Seated Left) -->
             <g id="person-1">
-              <circle cx="345" cy="320" r="32" fill="#FF7043" opacity="0.14"/>
+              <circle cx="345" cy="320" r="32" fill="#FF7043" opacity="0.14" class="occupant-aura"/>
               <circle cx="345" cy="295" r="12" fill="{person_head}"/>
               <path d="M 326,340 C 326,315 364,315 364,340 Z" fill="{person_fill}"/>
               <rect x="330" y="340" width="30" height="22" rx="4" fill="{person_fill}" opacity="0.9"/>
@@ -1663,7 +1668,7 @@ def get_live_room_simulation_html(
             people_svg_parts.append(f'''
             <!-- Person 2 (Seated Right) -->
             <g id="person-2">
-              <circle cx="435" cy="320" r="32" fill="#FF7043" opacity="0.14"/>
+              <circle cx="435" cy="320" r="32" fill="#FF7043" opacity="0.14" class="occupant-aura"/>
               <circle cx="435" cy="295" r="12" fill="{person_head}"/>
               <path d="M 416,340 C 416,315 454,315 454,340 Z" fill="{person_fill}"/>
               <rect x="420" y="340" width="30" height="22" rx="4" fill="{person_fill}" opacity="0.9"/>
@@ -1673,7 +1678,7 @@ def get_live_room_simulation_html(
             people_svg_parts.append(f'''
             <!-- Person 3 (Standing Right) -->
             <g id="person-3">
-              <circle cx="508" cy="315" r="28" fill="#FF7043" opacity="0.14"/>
+              <circle cx="508" cy="315" r="28" fill="#FF7043" opacity="0.14" class="occupant-aura"/>
               <circle cx="508" cy="282" r="11" fill="{person_head}"/>
               <path d="M 494,332 C 494,302 522,302 522,332 Z" fill="{person_fill}"/>
               <rect x="498" y="332" width="20" height="58" rx="3" fill="{person_fill}" opacity="0.9"/>
@@ -1852,7 +1857,9 @@ def get_live_room_simulation_html(
 <!-- Outdoor Landscape (Clipped inside window) -->
 <g clip-path="url(#windowClip)">
 <rect x="540" y="80" width="195" height="215" fill="url(#skyGrad)"/>
+<g id="outdoor-atmosphere" class="outdoor-drift">
 {sun_cloud_svg}
+</g>
 <!-- Tree Foliage & Ground Silhouette -->
 <path d="M 535,275 Q 590,260 640,268 Q 690,275 745,265 L 745,300 L 535,300 Z" fill="{'#0F2418' if dark_mode else '#4B7354'}"/>
 <path d="M 550,265 C 550,225 580,215 595,230 C 610,210 635,215 640,240 C 660,230 685,245 680,270 Z" fill="{tree_leaf_color}" opacity="0.95"/>
@@ -1942,13 +1949,11 @@ def get_live_room_simulation_html(
 <path d="M 460,85 C 442,100 438,170 452,190 C 466,170 472,100 460,85 Z" fill="{fan_blade_color}"/>
 </g>
 
-<!-- Circulating Airflow Curves below Fan -->
-{'''
-<g opacity="0.8">
-<path d="M 410,125 Q 460,155 510,125" fill="none" stroke="' + p["sage_green"] + '" stroke-width="2.5" stroke-dasharray="6,4"/>
-<path d="M 385,150 Q 460,190 535,150" fill="none" stroke="' + p["sage_green"] + '" stroke-width="2" stroke-dasharray="6,4"/>
+<!-- Circulating Airflow Curves below Fan (Continuous Living Air Circulation) -->
+<g class="ambient-airflow" opacity="0.8">
+<path d="M 410,125 Q 460,155 510,125" fill="none" stroke="{p['sage_green']}" stroke-width="2.5" stroke-dasharray="6,4"/>
+<path d="M 385,150 Q 460,190 535,150" fill="none" stroke="{p['sage_green']}" stroke-width="2" stroke-dasharray="6,4"/>
 </g>
-''' if fan_on else ''}
 </g>
 
 <!-- 7. Electric Room Heater (Floor Lower Right) -->
@@ -1999,7 +2004,8 @@ def get_live_room_simulation_html(
 <rect x="96" y="254" width="70" height="18" rx="4" fill="{thermo_badge_bg}" stroke="{thermo_badge_color}" stroke-width="1"/>
 <text x="103" y="267" font-size="10.5" font-weight="700" fill="{thermo_badge_color}">{classification.upper()}</text>
 
-<!-- Mode Icon & Label -->
+<!-- Mode Icon & Label & Live Telemetry Indicator -->
+<circle cx="163" cy="263" r="3.5" fill="{thermo_temp_color}" class="thermo-live-dot"/>
 <text x="175" y="267" font-size="11" font-weight="700" fill="{p['text_secondary']}">{action}</text>
 
 <!-- Small Target & Outdoor Details -->
@@ -2007,8 +2013,8 @@ def get_live_room_simulation_html(
 <text x="96" y="307" font-size="10.5" font-weight="500" fill="{p['text_muted']}">Outdoor: {outside_temp:.1f}°C</text>
 </g>
 
-<!-- 9. Biophilic Living Plant (Floor Left) -->
-<g id="biophilic-plant">
+<!-- 9. Biophilic Living Plant (Floor Left - Natural Airflow Sway) -->
+<g id="biophilic-plant" class="plant-sway">
 <!-- Ceramic Planter Pot -->
 <path d="M 42,390 L 52,350 L 82,350 L 92,390 Z" fill="{'#2A3F33' if dark_mode else '#D0DCCF'}" stroke="{wall_border}" stroke-width="1.5"/>
 <ellipse cx="67" cy="350" rx="15" ry="3.5" fill="{'#192820' if dark_mode else '#9FB3A0'}"/>
@@ -2101,6 +2107,7 @@ def get_device_status_panel_html(
 
     # Device 3: Ceiling Fan
     fan_icon = """<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.5-5.5-2.5-7.5-.5S2.5 17 4.5 19s5.5 2.5 7.5.5"/><path d="M12 12c2.5-2 2.5-5.5.5-7.5S7 2.5 5 4.5s-2.5 5.5-.5 7.5"/><path d="M12 12c2 2.5 5.5 2.5 7.5.5s2-5.5 0-7.5-5.5-2.5-7.5-.5"/><circle cx="12" cy="12" r="2"/></svg>"""
+    fan_subtext = "Active HVAC Air Distribution" if (action in [ACTION_HEAT, ACTION_COOL]) else "Continuous Air Circulation"
     fan_html = _dev_card(
         name="Ceiling Fan",
         status_text="ON" if fan_on else "OFF",
@@ -2109,7 +2116,7 @@ def get_device_status_panel_html(
         active_bg="#132B1E" if dark_mode else "#EAF6EE",
         active_border="#235237" if dark_mode else "#B6E2C5",
         icon_svg=fan_icon,
-        subtext="Air Circulation Active" if fan_on else "Stationary (Off)",
+        subtext=fan_subtext if fan_on else "Standby (Off)",
     )
 
     # Device 4: Window

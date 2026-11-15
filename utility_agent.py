@@ -23,6 +23,7 @@ from config import (
     ACTION_HEAT,
     ACTION_OFF,
     ALL_ACTIONS,
+    HVACControlDefaults,
     INSULATION_FACTORS,
     UtilityWeightsDefaults,
 )
@@ -45,6 +46,7 @@ class ActionEvaluation:
     delta_occupancy: float = 0.0
     room_scale: float = 1.0
     occupancy_comfort_factor: float = 1.0
+    is_occupied: bool = True
 
 
 @dataclass
@@ -81,9 +83,16 @@ class UtilityBasedAgent:
         energy_cost_heat: float = UtilityWeightsDefaults.ENERGY_COST_HEAT,
         energy_cost_cool: float = UtilityWeightsDefaults.ENERGY_COST_COOL,
         energy_cost_off: float = UtilityWeightsDefaults.ENERGY_COST_OFF,
+        unoccupied_min_temp: float = HVACControlDefaults.DEFAULT_UNOCCUPIED_MIN_TEMP,
+        unoccupied_max_temp: float = HVACControlDefaults.DEFAULT_UNOCCUPIED_MAX_TEMP,
+        safety_min_temp: float = HVACControlDefaults.CRITICAL_SAFETY_MIN_TEMP,
+        safety_max_temp: float = HVACControlDefaults.CRITICAL_SAFETY_MAX_TEMP,
+        min_on_duration: int = HVACControlDefaults.MIN_ON_DURATION_STEPS,
+        min_off_duration: int = HVACControlDefaults.MIN_OFF_DURATION_STEPS,
     ) -> None:
         """
-        Initialize the utility-based agent with configurable weights and costs.
+        Initialize the utility-based agent with configurable weights, costs,
+        occupancy setback boundaries, dwell durations, and safety limits.
 
         Args:
             weight_comfort: Importance weight for proximity to target temperature.
@@ -93,11 +102,24 @@ class UtilityBasedAgent:
             energy_cost_heat: Energy cost unit for operating the heater.
             energy_cost_cool: Energy cost unit for operating the cooler.
             energy_cost_off: Energy cost unit when HVAC is disabled.
+            unoccupied_min_temp: Lower boundary for unoccupied setback mode (°C).
+            unoccupied_max_temp: Upper boundary for unoccupied setback mode (°C).
+            safety_min_temp: Critical freeze protection safety floor (°C).
+            safety_max_temp: Critical overheat protection safety ceiling (°C).
+            min_on_duration: Minimum consecutive timesteps heating/cooling must run.
+            min_off_duration: Minimum consecutive timesteps HVAC must stay OFF.
         """
         self.weight_comfort = float(weight_comfort)
         self.weight_energy = float(weight_energy)
         self.weight_stability = float(weight_stability)
         self.weight_overshoot = float(weight_overshoot)
+
+        self.unoccupied_min_temp = float(unoccupied_min_temp)
+        self.unoccupied_max_temp = float(unoccupied_max_temp)
+        self.safety_min_temp = float(safety_min_temp)
+        self.safety_max_temp = float(safety_max_temp)
+        self.min_on_duration = int(min_on_duration)
+        self.min_off_duration = int(min_off_duration)
 
         self.energy_costs = {
             ACTION_HEAT: float(energy_cost_heat),
@@ -110,6 +132,7 @@ class UtilityBasedAgent:
         self.total_energy_consumed: float = 0.0
         self.action_history: List[str] = []
         self.decision_history: List[Dict[str, Any]] = []
+        self.steps_in_current_action: int = 0
 
     def reset(self) -> None:
         """Reset agent memory and cumulative metrics."""
@@ -117,6 +140,7 @@ class UtilityBasedAgent:
         self.total_energy_consumed = 0.0
         self.action_history = []
         self.decision_history = []
+        self.steps_in_current_action = 0
 
     @property
     def last_action(self) -> Optional[str]:
@@ -200,11 +224,12 @@ class UtilityBasedAgent:
         room_size: float = 25.0,
         heat_gain_per_person: float = 0.08,
         last_action: Optional[str] = None,
+        steps_in_action: int = 0,
     ) -> ActionEvaluation:
         """
         Compute the individual penalty factors and total utility for a single candidate action.
-        Balances temperature comfort, energy consumption, occupancy-related comfort requirements,
-        and stability across room dimensions.
+        Evaluates predicted temperature, occupancy-aware comfort penalties, energy consumption,
+        overshooting risk, actuator short-cycling dwell times, and critical safety constraints.
         """
         # 1. Predict future temperature
         predicted_temp = self.predict_temperature(
@@ -223,78 +248,117 @@ class UtilityBasedAgent:
         effective_occupants = int(num_people) if people_present else 0
         room_scale = 25.0 / max(float(room_size), 1.0)
         delta_occupancy = effective_occupants * float(heat_gain_per_person) * room_scale
+        is_occupied = bool(people_present and effective_occupants > 0)
 
         lower_comfort = desired_temp - comfort_tolerance
         upper_comfort = desired_temp + comfort_tolerance
 
-        # 2. Factor 1: Temperature Comfort Penalty (|predicted - desired| with smooth comfort band)
-        diff = abs(predicted_temp - desired_temp)
-        if diff <= comfort_tolerance:
-            # Inside comfort band: smooth quadratic curve, avoiding unnecessary micro-heating/cooling
-            comfort_penalty = 0.5 * (diff ** 2) / max(comfort_tolerance, 0.1)
+        # 2. Factor 1 & Factor 4: Comfort and Overshoot Penalties
+        if is_occupied:
+            # Human occupants present: prioritize comfort zone around desired_temp
+            diff = abs(predicted_temp - desired_temp)
+            if diff <= comfort_tolerance:
+                comfort_penalty = 0.5 * (diff ** 2) / max(comfort_tolerance, 0.1)
+            else:
+                excess = diff - comfort_tolerance
+                comfort_penalty = 0.5 * comfort_tolerance + excess + (excess ** 2) / max(comfort_tolerance, 0.1)
+
+            if predicted_temp < lower_comfort:
+                overshoot_penalty = (lower_comfort - predicted_temp) * 1.5
+            elif predicted_temp > upper_comfort:
+                overshoot_penalty = (predicted_temp - upper_comfort) * 1.5
+            else:
+                overshoot_penalty = 0.0
+
+            occupancy_comfort_factor = 1.0
         else:
-            excess = diff - comfort_tolerance
-            comfort_penalty = 0.5 * comfort_tolerance + excess + (excess ** 2) / max(comfort_tolerance, 0.1)
+            # Unoccupied room: zero human comfort penalty within setback range
+            # Setback range: [self.unoccupied_min_temp, self.unoccupied_max_temp] (16°C–28°C)
+            if predicted_temp < self.unoccupied_min_temp:
+                excess = self.unoccupied_min_temp - predicted_temp
+                comfort_penalty = 0.5 * excess + (excess ** 2)
+                overshoot_penalty = excess * 1.5
+                occupancy_comfort_factor = 1.0
+            elif predicted_temp > self.unoccupied_max_temp:
+                excess = predicted_temp - self.unoccupied_max_temp
+                comfort_penalty = 0.5 * excess + (excess ** 2)
+                overshoot_penalty = excess * 1.5
+                occupancy_comfort_factor = 1.0
+            else:
+                comfort_penalty = 0.0
+                overshoot_penalty = 0.0
+                occupancy_comfort_factor = 0.0
+
+        # Critical Environmental Safety Constraints (overrides occupancy)
+        if predicted_temp < self.safety_min_temp:
+            overshoot_penalty += (self.safety_min_temp - predicted_temp) * 5.0 + 10.0
+        elif predicted_temp > self.safety_max_temp:
+            overshoot_penalty += (predicted_temp - self.safety_max_temp) * 5.0 + 10.0
 
         # 3. Factor 2: Energy Consumption Cost & Penalizing Unnecessary Energy
         base_energy = self.energy_costs.get(action, 0.0)
         energy_cost = base_energy
         if action in [ACTION_HEAT, ACTION_COOL]:
-            pred_off = self.predict_temperature(
-                current_temp=current_temp,
-                outside_temp=outside_temp,
-                insulation_level=insulation_level,
-                action=ACTION_OFF,
-                heater_power=heater_power,
-                cooling_power=cooling_power,
-                people_present=people_present,
-                num_people=num_people,
-                room_size=room_size,
-                heat_gain_per_person=heat_gain_per_person,
-            )
-            # If passive drift with OFF already maintains comfortable room, active HVAC is unnecessary energy
-            if (lower_comfort + 0.3) <= pred_off <= (upper_comfort - 0.3):
-                energy_cost += 1.0
+            # If currently maintaining minimum run duration for this active action, it is not deemed unnecessary
+            is_maintaining_min_run = (last_action == action and steps_in_action < self.min_on_duration)
+            if not is_maintaining_min_run:
+                pred_off = self.predict_temperature(
+                    current_temp=current_temp,
+                    outside_temp=outside_temp,
+                    insulation_level=insulation_level,
+                    action=ACTION_OFF,
+                    heater_power=heater_power,
+                    cooling_power=cooling_power,
+                    people_present=people_present,
+                    num_people=num_people,
+                    room_size=room_size,
+                    heat_gain_per_person=heat_gain_per_person,
+                )
+                if not is_occupied:
+                    # If room is unoccupied and passive drift stays within setback range, active HVAC is heavily penalized
+                    if self.unoccupied_min_temp <= pred_off <= self.unoccupied_max_temp:
+                        energy_cost += 3.5
+                else:
+                    # If room is occupied and passive drift stays well inside comfort band, active HVAC is penalized
+                    if (lower_comfort + 0.3) <= pred_off <= (upper_comfort - 0.3):
+                        energy_cost += 1.5
 
-        # 4. Factor 3: Temperature Instability & Actuator Switching / Anti-Oscillation Penalty
+        # 4. Factor 3: Temperature Instability, Dwell Duration & Anti-Chattering Penalty
         temp_shift = abs(predicted_temp - current_temp)
         switch_penalty = 0.0
         if last_action is not None and action != last_action:
             # Rapid reversal between HEAT and COOL is severely penalized
             if (last_action == ACTION_HEAT and action == ACTION_COOL) or (last_action == ACTION_COOL and action == ACTION_HEAT):
-                switch_penalty = 3.0
+                switch_penalty += 4.0
+            elif last_action in [ACTION_HEAT, ACTION_COOL] and action == ACTION_OFF:
+                # Short-cycling: shutting down active equipment before minimum ON duration
+                if steps_in_action < self.min_on_duration:
+                    switch_penalty += 8.0
+                elif is_occupied:
+                    # If still significantly outside desired target, switching OFF prematurely is discouraged
+                    if last_action == ACTION_HEAT and current_temp < desired_temp - 0.3:
+                        switch_penalty += 1.0
+                    elif last_action == ACTION_COOL and current_temp > desired_temp + 0.3:
+                        switch_penalty += 1.0
             elif last_action == ACTION_OFF and action in [ACTION_HEAT, ACTION_COOL]:
-                # If room is already comfortable and staying OFF remains comfortable, switching ON is penalized
-                if lower_comfort <= current_temp <= upper_comfort:
-                    switch_penalty = 1.0
-            elif last_action == ACTION_HEAT and action == ACTION_OFF:
-                # If still significantly below desired target, turning OFF prematurely is penalized
-                if current_temp < desired_temp - 0.3:
-                    switch_penalty = 1.0
-            elif last_action == ACTION_COOL and action == ACTION_OFF:
-                # If still significantly above desired target, turning OFF prematurely is penalized
-                if current_temp > desired_temp + 0.3:
-                    switch_penalty = 1.0
+                # Short-cycling: restarting equipment before minimum OFF duration
+                if steps_in_action < self.min_off_duration:
+                    switch_penalty += 8.0
+                elif is_occupied and lower_comfort <= current_temp <= upper_comfort:
+                    switch_penalty += 1.5
+                elif not is_occupied and self.unoccupied_min_temp <= current_temp <= self.unoccupied_max_temp:
+                    switch_penalty += 2.5
+
         instability_penalty = temp_shift + switch_penalty
 
-        # 5. Factor 4: Overshooting Penalty (distance beyond comfort zone boundaries)
-        if predicted_temp < lower_comfort:
-            overshoot_penalty = (lower_comfort - predicted_temp) * 1.5
-        elif predicted_temp > upper_comfort:
-            overshoot_penalty = (predicted_temp - upper_comfort) * 1.5
-        else:
-            overshoot_penalty = 0.0
-
-        # Occupancy comfort factor:
-        # If people are present, comfort is prioritized (1.0).
-        # If unoccupied, setback mode allows energy conservation (comfort factor 0.3).
-        occupancy_comfort_factor = 1.0 if (people_present and effective_occupants > 0) else 0.3
-
         # Weighted components
-        weighted_comfort = self.weight_comfort * occupancy_comfort_factor * comfort_penalty
+        comfort_weight_mult = occupancy_comfort_factor if is_occupied else (1.0 if comfort_penalty > 0.0 else 0.0)
+        overshoot_weight_mult = 1.0
+
+        weighted_comfort = self.weight_comfort * comfort_weight_mult * comfort_penalty
         weighted_energy = self.weight_energy * energy_cost
         weighted_stability = self.weight_stability * instability_penalty
-        weighted_overshoot = self.weight_overshoot * occupancy_comfort_factor * overshoot_penalty
+        weighted_overshoot = self.weight_overshoot * overshoot_weight_mult * overshoot_penalty
 
         # Net utility: Utility(action) = - Comfort - Energy - Instability - Overshoot
         total_utility = -(
@@ -316,6 +380,7 @@ class UtilityBasedAgent:
             delta_occupancy=round(delta_occupancy, 3),
             room_scale=round(room_scale, 3),
             occupancy_comfort_factor=round(occupancy_comfort_factor, 2),
+            is_occupied=is_occupied,
         )
 
     def preview_decision(self, observation: Dict[str, Any]) -> AgentDecision:
@@ -336,13 +401,22 @@ class UtilityBasedAgent:
         heat_gain_per_person = float(observation.get("heat_gain_per_person", 0.08))
         step = int(observation.get("step", len(self.action_history)))
         prior_action = None
+        steps_in_action = observation.get("steps_in_action", self.steps_in_current_action)
+
         if self.last_decision is not None:
             prev_step = self.last_decision.step
             prev_temp = self.last_decision.current_temp
             if step > prev_step and abs(current_temp - prev_temp) <= 3.5:
                 prior_action = self.last_decision.selected_action
+                if "steps_in_action" not in observation:
+                    steps_in_action = self.steps_in_current_action
+            else:
+                steps_in_action = 0
+
         if "prev_action" in observation:
             prior_action = observation["prev_action"]
+            if self.last_decision is not None and prior_action != self.last_decision.selected_action:
+                steps_in_action = 0
 
         # Evaluate all candidate actions
         evaluations: Dict[str, ActionEvaluation] = {}
@@ -361,6 +435,7 @@ class UtilityBasedAgent:
                 room_size=room_size,
                 heat_gain_per_person=heat_gain_per_person,
                 last_action=prior_action,
+                steps_in_action=steps_in_action,
             )
 
         # Select action that maximizes net utility
@@ -416,6 +491,11 @@ class UtilityBasedAgent:
         """
         decision = self.preview_decision(observation)
 
+        if self.last_decision is not None and self.last_decision.selected_action == decision.selected_action:
+            self.steps_in_current_action += 1
+        else:
+            self.steps_in_current_action = 1
+
         self.total_energy_consumed += decision.energy_consumed
         self.action_history.append(decision.selected_action)
         self.last_decision = decision
@@ -456,52 +536,70 @@ class UtilityBasedAgent:
         num_people: int = 2,
         room_size: float = 25.0,
     ) -> str:
-        """Construct natural language justification for the selected action."""
+        """Construct natural language justification for the selected action reflecting all factors."""
         pred = selected_eval.predicted_temp
         util = selected_eval.utility
         delta_to_target = abs(pred - desired_temp)
         delta_occ = selected_eval.delta_occupancy
+        lower_comfort = desired_temp - tolerance
+        upper_comfort = desired_temp + tolerance
+        is_occupied = bool(people_present and num_people > 0)
 
-        if selected_action == ACTION_HEAT:
-            if people_present and num_people > 0:
+        # 1. Critical safety emergency explanations
+        if current_temp <= self.safety_min_temp or pred < self.safety_min_temp:
+            return (
+                f"Heating selected ({util:.2f}) under critical freeze safety protection: room temperature "
+                f"({current_temp:.1f}°C) is at or below {self.safety_min_temp:.1f}°C, overriding standard deadband."
+            )
+        if current_temp >= self.safety_max_temp or pred > self.safety_max_temp:
+            return (
+                f"Cooling selected ({util:.2f}) under critical overheat safety protection: room temperature "
+                f"({current_temp:.1f}°C) is at or above {self.safety_max_temp:.1f}°C, overriding standard deadband."
+            )
+
+        # 2. Occupancy-aware normal explanations
+        if is_occupied:
+            if selected_action == ACTION_HEAT:
                 reason = (
-                    f"Heating yields highest utility ({util:.2f}) in the {room_size:.0f}m² room "
-                    f"with {num_people} occupant(s) (+{delta_occ:.2f}°C body heat), warming room to {pred:.1f}°C "
-                    f"(within {delta_to_target:.1f}°C of target {desired_temp:.1f}°C), outweighing "
-                    f"the energy cost ({selected_eval.weighted_energy:.2f})."
+                    f"Room is occupied by {num_people} person(s). Heating yields highest utility ({util:.2f}) "
+                    f"in the {room_size:.0f}m² room (+{delta_occ:.2f}°C body heat), warming temperature to {pred:.1f}°C "
+                    f"within the [{lower_comfort:.1f}°C–{upper_comfort:.1f}°C] comfort deadband toward setpoint {desired_temp:.1f}°C."
                 )
-            else:
+            elif selected_action == ACTION_COOL:
                 reason = (
-                    f"Heating yields highest utility ({util:.2f}) in the unoccupied {room_size:.0f}m² room, "
-                    f"maintaining thermal boundaries near target {desired_temp:.1f}°C."
+                    f"Room is occupied by {num_people} person(s). Cooling yields highest utility ({util:.2f}) "
+                    f"by counteracting internal metabolic heat (+{delta_occ:.2f}°C) and outside warmth ({outside_temp:.1f}°C) "
+                    f"to maintain temperature ({pred:.1f}°C) within the [{lower_comfort:.1f}°C–{upper_comfort:.1f}°C] comfort deadband."
                 )
-        elif selected_action == ACTION_COOL:
-            if people_present and num_people > 0:
+            else:  # ACTION_OFF
+                if delta_to_target <= tolerance:
+                    reason = (
+                        f"Room is occupied by {num_people} person(s). HVAC remains OFF ({util:.2f}) because the {room_size:.0f}m² "
+                        f"room naturally stays within the [{lower_comfort:.1f}°C–{upper_comfort:.1f}°C] comfort deadband (predicted {pred:.1f}°C), "
+                        f"eliminating active energy consumption."
+                    )
+                else:
+                    reason = (
+                        f"Room is occupied by {num_people} person(s). HVAC remains OFF ({util:.2f}) as running active heating/cooling "
+                        f"would incur energy and stability penalties exceeding minor comfort improvements."
+                    )
+        else:
+            # Unoccupied room
+            if selected_action == ACTION_OFF:
                 reason = (
-                    f"Cooling yields highest utility ({util:.2f}) by counteracting heat from {num_people} occupant(s) "
-                    f"(+{delta_occ:.2f}°C) and outside warmth ({outside_temp:.1f}°C) in the {room_size:.0f}m² room "
-                    f"to lower temperature to {pred:.1f}°C near target {desired_temp:.1f}°C."
+                    f"HVAC remains OFF because the room is unoccupied (0 occupants) and temperature ({current_temp:.1f}°C → {pred:.1f}°C) "
+                    f"is within the acceptable unoccupied setback range [{self.unoccupied_min_temp:.1f}°C–{self.unoccupied_max_temp:.1f}°C]. "
+                    f"HVAC remains OFF to avoid unnecessary energy consumption (energy cost: 0, utility: {util:.2f})."
                 )
-            else:
+            elif selected_action == ACTION_COOL:
                 reason = (
-                    f"Cooling yields highest utility ({util:.2f}) in the {room_size:.0f}m² room, preventing excessive "
-                    f"heat buildup ({pred:.1f}°C) above safe setback boundaries."
+                    f"Room is unoccupied (0 occupants), but cooling is activated (utility: {util:.2f}) because temperature "
+                    f"({current_temp:.1f}°C) exceeds the unoccupied setback limit ({self.unoccupied_max_temp:.1f}°C), protecting building and equipment."
                 )
-        else:  # ACTION_OFF
-            if not people_present or num_people == 0:
+            else:  # ACTION_HEAT
                 reason = (
-                    f"Room is unoccupied (0 occupants). HVAC OFF yields highest utility ({util:.2f}) by conserving "
-                    f"energy (cost: 0) while allowing temperature ({pred:.1f}°C) to drift within acceptable setback boundaries."
-                )
-            elif delta_to_target <= tolerance:
-                reason = (
-                    f"HVAC OFF yields highest utility ({util:.2f}) because the {room_size:.0f}m² room with {num_people} "
-                    f"occupant(s) naturally remains comfortable ({pred:.1f}°C), eliminating active energy consumption (cost: 0)."
-                )
-            else:
-                reason = (
-                    f"HVAC OFF selected ({util:.2f}) as running active heating/cooling would incur high "
-                    f"energy and stability penalties that outweigh minor comfort adjustments."
+                    f"Room is unoccupied (0 occupants), but heating is activated (utility: {util:.2f}) because temperature "
+                    f"({current_temp:.1f}°C) fell below the unoccupied setback limit ({self.unoccupied_min_temp:.1f}°C), preventing freeze damage."
                 )
 
         return reason

@@ -125,8 +125,8 @@ def init_session_state() -> None:
         st.session_state.reflex_agent = SimpleReflexAgent(
             lower_threshold=st.session_state.reflex_lower_slider,
             upper_threshold=st.session_state.reflex_upper_slider,
-            upper_heating_threshold=st.session_state.desired_temp,
-            lower_cooling_threshold=st.session_state.desired_temp,
+            upper_heating_threshold=st.session_state.reflex_upper_slider,
+            lower_cooling_threshold=st.session_state.reflex_lower_slider,
         )
     if "reflex_simulation_records" not in st.session_state:
         reset_reflex_simulation()
@@ -175,8 +175,8 @@ def _build_comparison_config() -> ComparisonConfig:
         weight_overshoot=float(st.session_state.weight_overshoot),
         lower_threshold=float(st.session_state.reflex_lower_slider),
         upper_threshold=float(st.session_state.reflex_upper_slider),
-        upper_heating_threshold=float(st.session_state.desired_temp),
-        lower_cooling_threshold=float(st.session_state.desired_temp),
+        upper_heating_threshold=float(st.session_state.reflex_upper_slider),
+        lower_cooling_threshold=float(st.session_state.reflex_lower_slider),
         people_present=bool(st.session_state.people_present),
         num_people=int(st.session_state.num_people) if st.session_state.people_present else 0,
         room_size=float(st.session_state.room_size),
@@ -216,8 +216,8 @@ def reset_reflex_simulation() -> None:
     st.session_state.reflex_agent = SimpleReflexAgent(
         lower_threshold=st.session_state.reflex_lower_slider,
         upper_threshold=st.session_state.reflex_upper_slider,
-        upper_heating_threshold=st.session_state.desired_temp,
-        lower_cooling_threshold=st.session_state.desired_temp,
+        upper_heating_threshold=st.session_state.reflex_upper_slider,
+        lower_cooling_threshold=st.session_state.reflex_lower_slider,
     )
     init_obs = st.session_state.reflex_env.get_state()
     init_action = st.session_state.reflex_agent.preview_decision(init_obs).selected_action
@@ -863,54 +863,65 @@ section[data-testid="stSidebar"] div[data-testid="stRadio"] [role="radiogroup"] 
     font-weight: 600 !important;
 }}
 
-/* 7. Controlling Agent Selector (Horizontal Side-by-Side Modern Biophilic Buttons) */
+/* 7. Controlling Agent Selector (Horizontal Side-by-Side Modern Biophilic Buttons - Fully Expanded) */
 .st-key-sim_active_agent_radio {{
     margin-top: 0.25rem !important;
     margin-bottom: 1.25rem !important;
     width: 100% !important;
 }}
 
-.st-key-sim_active_agent_radio [data-testid="stWidgetLabel"] p,
-.st-key-sim_active_agent_radio label p {{
-    font-size: 14.5px !important;
-    font-weight: 700 !important;
-    color: {text_primary} !important;
-    margin-bottom: 8px !important;
-    letter-spacing: 0.01em !important;
+/* Completely hide the controlling agent heading and help tooltip */
+.st-key-sim_active_agent_radio [data-testid="stWidgetLabel"],
+.st-key-sim_active_agent_radio > label,
+div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-testid="stWidgetLabel"] {{
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }}
 
-/* Horizontal flex layout side by side */
+/* Horizontal flex layout side by side expanded to full container width */
+.st-key-sim_active_agent_radio,
+.st-key-sim_active_agent_radio > div,
 .st-key-sim_active_agent_radio div[role="radiogroup"],
 .st-key-sim_active_agent_radio [data-testid="stRadioGroup"],
 .st-key-sim_active_agent_radio div[data-testid="stRadioGroup"],
+div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio),
+div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) > div,
 div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [role="radiogroup"],
 div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-testid="stRadioGroup"] {{
     display: flex !important;
     flex-direction: row !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
+    align-items: stretch !important;
+    justify-content: space-between !important;
     gap: 16px !important;
     width: 100% !important;
-    flex-wrap: wrap !important;
+    max-width: 100% !important;
+    flex-wrap: nowrap !important;
+    box-sizing: border-box !important;
 }}
 
-/* Each agent option as a horizontal button */
+/* Each agent button expanded fully (50% each with gap) */
 .st-key-sim_active_agent_radio [data-testid="stRadioOption"],
 .st-key-sim_active_agent_radio [role="radio"],
-.st-key-sim_active_agent_radio [role="radiogroup"] > div,
+.st-key-sim_active_agent_radio div[role="radiogroup"] > label,
+.st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > label,
+.st-key-sim_active_agent_radio div[role="radiogroup"] > div,
 .st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > div,
 .st-key-sim_active_agent_radio label {{
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     display: inline-flex !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
-    height: 44px !important;
-    min-height: 44px !important;
-    max-height: 44px !important;
-    width: auto !important;
-    min-width: 220px !important;
-    max-width: none !important;
-    padding: 0 24px !important;
+    text-align: center !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    padding: 0 20px !important;
     margin: 0 !important;
     background-color: {"#1A2821" if dark_mode else "#FFFFFF"} !important;
     border: 1.5px solid {border_color} !important;
@@ -941,17 +952,28 @@ div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-
     box-shadow: 0 2px 6px rgba(0, 0, 0, {"0.25" if dark_mode else "0.08"}) !important;
 }}
 
+/* Centered text container inside expanded agent buttons */
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"],
+.st-key-sim_active_agent_radio label [data-testid="stMarkdownContainer"] {{
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
+}}
+
 /* Text inside agent buttons */
 .st-key-sim_active_agent_radio [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p,
 .st-key-sim_active_agent_radio label [data-testid="stMarkdownContainer"] p {{
-    font-size: 14.5px !important;
+    font-size: 15px !important;
     font-weight: 600 !important;
     color: {"#E7F0E8" if dark_mode else "#245C43"} !important;
     margin: 0 !important;
     padding: 0 !important;
     white-space: nowrap !important;
     line-height: 1 !important;
-    width: auto !important;
+    text-align: center !important;
+    width: 100% !important;
 }}
 
 div[data-testid="stRadio"] [class*="ex50key1"][data-selected] [data-testid="stIconMaterial"],
@@ -1535,7 +1557,25 @@ div[data-testid="stTable"] {{
 }}
 @keyframes pulseDotAnim {{
     0%, 100% {{ opacity: 1; transform: scale(1); }}
-    50% {{ opacity: 0.5; transform: scale(1.2); }}
+    50% {{ opacity: 0.45; transform: scale(1.25); }}
+}}
+@keyframes plantSwayAnim {{
+    0% {{ transform: rotate(0deg); }}
+    50% {{ transform: rotate(1.8deg) skewX(0.5deg); }}
+    100% {{ transform: rotate(-1.2deg) skewX(-0.4deg); }}
+}}
+@keyframes outdoorDriftAnim {{
+    0% {{ transform: translateX(0px); }}
+    100% {{ transform: translateX(8px); }}
+}}
+@keyframes ambientAirAnim {{
+    0% {{ opacity: 0.3; stroke-dashoffset: 20; }}
+    50% {{ opacity: 0.85; stroke-dashoffset: 10; }}
+    100% {{ opacity: 0.3; stroke-dashoffset: 0; }}
+}}
+@keyframes auraBreatheAnim {{
+    0% {{ opacity: 0.10; transform: scale(0.96); }}
+    100% {{ opacity: 0.22; transform: scale(1.04); }}
 }}
 
 .room-sim-container {{
@@ -1649,12 +1689,16 @@ div[data-testid="stTable"] {{
 
 .status-dot.orange {{ background: #FF6B35; box-shadow: 0 0 8px #FF6B35; }}
 .status-dot.blue {{ background: #00B4D8; box-shadow: 0 0 8px #00B4D8; }}
-.status-dot.grey {{ background: #94A3B8; animation: none; }}
+.status-dot.grey {{ background: #10B981; box-shadow: 0 0 7px rgba(16, 185, 129, 0.7); animation: pulseDotAnim 2.2s ease-in-out infinite; }}
 
 /* SVG Animation Classes */
 .fan-spin {{
     transform-origin: 460px 85px;
     animation: fanSpinAnim 0.75s linear infinite;
+}}
+.fan-spin-ambient {{
+    transform-origin: 460px 85px;
+    animation: fanSpinAnim 1.8s linear infinite;
 }}
 
 .cool-stream {{
@@ -1682,8 +1726,30 @@ div[data-testid="stTable"] {{
     animation: curtainFlutterAnim 2.8s ease-in-out infinite;
 }}
 
+.plant-sway {{
+    transform-origin: 67px 390px;
+    animation: plantSwayAnim 4.2s ease-in-out infinite alternate;
+}}
+
+.outdoor-drift {{
+    animation: outdoorDriftAnim 7s ease-in-out infinite alternate;
+}}
+
+.ambient-airflow {{
+    animation: ambientAirAnim 3s ease-in-out infinite;
+}}
+
+.thermo-live-dot {{
+    animation: pulseDotAnim 1.8s ease-in-out infinite;
+}}
+
+.occupant-aura {{
+    transform-origin: center;
+    animation: auraBreatheAnim 3.5s ease-in-out infinite alternate;
+}}
+
 @media (prefers-reduced-motion: reduce) {{
-    .fan-spin, .cool-stream, .snowflake, .heat-wave, .curtain-flutter, .status-dot {{
+    .fan-spin, .fan-spin-ambient, .cool-stream, .snowflake, .heat-wave, .curtain-flutter, .status-dot, .plant-sway, .outdoor-drift, .ambient-airflow, .thermo-live-dot, .occupant-aura {{
         animation: none !important;
     }}
 }}
@@ -2083,7 +2149,7 @@ if nav_selection == "Overview":
     else:
         ov_action = u_preview.selected_action
     
-    ov_fan = (ov_action in [ACTION_HEAT, ACTION_COOL])
+    ov_fan = True  # Continuous living room air circulation
     ov_win = (ov_action == ACTION_OFF and 19.0 <= env.outside_temp <= 25.0)
 
     st.markdown(
@@ -2201,13 +2267,13 @@ elif nav_selection == "Live Room Simulation":
         unsafe_allow_html=True,
     )
 
-    # Agent Controller Switcher (Horizontal Side-by-Side Modern Biophilic Buttons)
+    # Agent Controller Switcher (Horizontal Side-by-Side Modern Biophilic Buttons - Fully Expanded)
     active_sim_agent = st.radio(
         "Controlling Agent",
         options=["Utility-Based Agent", "Simple Reflex Thermostat"],
         horizontal=True,
         key="sim_active_agent_radio",
-        help="Select which agent controls the room environment and thermal devices.",
+        label_visibility="collapsed",
     )
 
     # Derive state according to selected agent
@@ -2243,7 +2309,7 @@ elif nav_selection == "Live Room Simulation":
         agent_expl = f"Simple Reflex Thermostat operates purely on condition-action rules: HEAT when temp < {reflex_agent.lower_threshold:.1f}°C, COOL when temp > {reflex_agent.upper_threshold:.1f}°C, and OFF within the deadband."
 
     # Fan & Window automatic physical operation
-    fan_active = (curr_action in [ACTION_HEAT, ACTION_COOL])
+    fan_active = True  # Continuous living room air circulation
     window_active = (curr_action == ACTION_OFF and 19.0 <= curr_outside <= 25.0)
 
     # 1. Main Visual Room Simulator
@@ -2353,7 +2419,7 @@ elif nav_selection == "Live Room Simulation":
                             step_action = reflex_agent.last_action or ACTION_OFF
                             step_pred = None
 
-                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        step_fan = True  # Continuous living room air circulation
                         step_win = (step_action == ACTION_OFF and 19.0 <= step_outside <= 25.0)
 
                         progress_ratio = (step_idx + 1) / remaining
@@ -2687,6 +2753,8 @@ elif nav_selection == "Environment Setup":
         reflex_agent.update_thresholds(
             lower_threshold=st.session_state.reflex_lower_slider,
             upper_threshold=st.session_state.reflex_upper_slider,
+            upper_heating_threshold=st.session_state.reflex_upper_slider,
+            lower_cooling_threshold=st.session_state.reflex_lower_slider,
         )
 
     if st.button("Apply Settings & Reset All Simulations", type="primary", use_container_width=True, key="btn_apply_reset"):
@@ -2766,7 +2834,7 @@ elif nav_selection == "Utility-Based Agent":
     st.subheader("Live Room Environment Simulation")
     u_preview = agent.decide_action(current_state)
     u_init_action = last_dec.selected_action if last_dec else u_preview.selected_action
-    u_init_fan = (u_init_action in [ACTION_HEAT, ACTION_COOL])
+    u_init_fan = True  # Continuous living room air circulation
     u_init_win = (u_init_action == ACTION_OFF and 19.0 <= current_state["outside_temp"] <= 25.0)
     u_room_placeholder = st.empty()
     u_room_placeholder.markdown(
@@ -2862,7 +2930,7 @@ elif nav_selection == "Utility-Based Agent":
                         step_state = env.get_state()
                         step_dec = agent.last_decision
                         step_action = step_dec.selected_action if step_dec else ACTION_OFF
-                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        step_fan = True  # Continuous living room air circulation
                         step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
 
                         progress_ratio = (step_idx + 1) / remaining
@@ -2995,7 +3063,7 @@ elif nav_selection == "Reflex Thermostat":
     # Visual Room Environment Simulator (Simple Reflex Thermostat)
     st.subheader("Live Room Environment Simulation")
     r_action = r_preview.selected_action
-    r_fan = (r_action in [ACTION_HEAT, ACTION_COOL])
+    r_fan = True  # Continuous living room air circulation
     r_win = (r_action == ACTION_OFF and 19.0 <= r_state["outside_temp"] <= 25.0)
     r_room_placeholder = st.empty()
     r_room_placeholder.markdown(
@@ -3080,7 +3148,7 @@ elif nav_selection == "Reflex Thermostat":
 
                         step_state = reflex_env.get_state()
                         step_action = reflex_agent.last_action or ACTION_OFF
-                        step_fan = (step_action in [ACTION_HEAT, ACTION_COOL])
+                        step_fan = True  # Continuous living room air circulation
                         step_win = (step_action == ACTION_OFF and 19.0 <= step_state["outside_temp"] <= 25.0)
 
                         progress_ratio = (step_idx + 1) / remaining

@@ -25,6 +25,7 @@ from config import (
     ACTION_COOL,
     ACTION_HEAT,
     ACTION_OFF,
+    HVACControlDefaults,
     ReflexThermostatDefaults,
 )
 from environment import RoomEnvironment
@@ -76,10 +77,14 @@ class SimpleReflexAgent:
         energy_cost_off: float = ReflexThermostatDefaults.ENERGY_COST_OFF,
         upper_heating_threshold: Optional[float] = None,
         lower_cooling_threshold: Optional[float] = None,
+        min_on_duration: Optional[int] = None,
+        min_off_duration: Optional[int] = None,
+        safety_min_temp: float = HVACControlDefaults.CRITICAL_SAFETY_MIN_TEMP,
+        safety_max_temp: float = HVACControlDefaults.CRITICAL_SAFETY_MAX_TEMP,
     ) -> None:
         """
         Initialize the simple reflex thermostat with lower and upper thresholds,
-        and optional hysteresis cut-off thresholds.
+        hysteresis cut-off thresholds, minimum operating durations, and safety limits.
 
         Args:
             lower_threshold: Room temperature below which HEAT is activated (°C).
@@ -89,6 +94,10 @@ class SimpleReflexAgent:
             energy_cost_off: Energy consumption unit when HVAC is off.
             upper_heating_threshold: Upper temperature threshold at which active heating shuts OFF (°C).
             lower_cooling_threshold: Lower temperature threshold at which active cooling shuts OFF (°C).
+            min_on_duration: Minimum consecutive timesteps heating/cooling must run before deactivation.
+            min_off_duration: Minimum consecutive timesteps HVAC must remain OFF before re-activation.
+            safety_min_temp: Critical freeze protection safety floor (°C, overrides dwell time).
+            safety_max_temp: Critical overheat protection safety ceiling (°C, overrides dwell time).
 
         Raises:
             ValueError: If lower_threshold >= upper_threshold.
@@ -102,6 +111,21 @@ class SimpleReflexAgent:
         self.lower_cooling_threshold: Optional[float] = (
             float(lower_cooling_threshold) if lower_cooling_threshold is not None else None
         )
+
+        has_hysteresis = (upper_heating_threshold is not None or lower_cooling_threshold is not None)
+        if min_on_duration is not None:
+            self.min_on_duration = int(min_on_duration)
+        else:
+            self.min_on_duration = HVACControlDefaults.MIN_ON_DURATION_STEPS if has_hysteresis else 1
+
+        if min_off_duration is not None:
+            self.min_off_duration = int(min_off_duration)
+        else:
+            self.min_off_duration = HVACControlDefaults.MIN_OFF_DURATION_STEPS if has_hysteresis else 1
+
+        self.safety_min_temp = float(safety_min_temp)
+        self.safety_max_temp = float(safety_max_temp)
+        self.steps_in_current_action: int = 0
 
         self.energy_costs: Dict[str, float] = {
             ACTION_HEAT: float(energy_cost_heat),
@@ -136,6 +160,7 @@ class SimpleReflexAgent:
         self.total_energy_consumed = 0.0
         self.action_history = []
         self.simulation_history = []
+        self.steps_in_current_action = 0
 
     def update_thresholds(
         self,
@@ -198,43 +223,72 @@ class SimpleReflexAgent:
             },
         ]
 
-    def select_action(self, room_temp: float, prev_action: Optional[str] = None) -> str:
+    def select_action(
+        self,
+        room_temp: float,
+        prev_action: Optional[str] = None,
+        steps_in_action: Optional[int] = None,
+    ) -> str:
         """
         Apply condition-action rules using the current observed room temperature and prior state.
 
-        Hysteresis Control:
-            IF prior action was HEAT:
-                IF room_temp < upper_heating_threshold: HEAT (continue heating toward target)
-                ELSE: OFF (upper heating threshold reached)
-            ELSE IF prior action was COOL:
-                IF room_temp > lower_cooling_threshold: COOL (continue cooling toward target)
-                ELSE: OFF (lower cooling threshold reached)
-            ELSE (prior was OFF or None):
-                IF room_temp < lower_threshold: HEAT
-                ELSE IF room_temp > upper_threshold: COOL
-                ELSE: OFF
+        Hysteresis & Dwell Control:
+            1. Critical Safety Limits:
+               IF room_temp <= safety_min_temp (12°C): HEAT immediately (freeze protection)
+               IF room_temp >= safety_max_temp (35°C): COOL immediately (overheat protection)
+            2. Minimum Operating Duration:
+               Hold current state if steps_in_action < min_duration (unless safety breached)
+            3. Hysteresis Deactivation:
+               IF prior is HEAT: continue heating until upper_heating_threshold reached
+               IF prior is COOL: continue cooling until lower_cooling_threshold reached
+            4. Deadband:
+               IF prior is OFF: remain OFF within [lower_threshold, upper_threshold]
         """
         temp = float(room_temp)
         prior = prev_action if prev_action is not None else self.last_action
+        steps = steps_in_action if steps_in_action is not None else self.steps_in_current_action
+
+        # 1. Critical safety override (independent of minimum duration or deadband)
+        if temp <= self.safety_min_temp:
+            return ACTION_HEAT
+        if temp >= self.safety_max_temp:
+            return ACTION_COOL
 
         heat_cutoff = self.upper_heating_threshold if self.upper_heating_threshold is not None else self.lower_threshold
         cool_cutoff = self.lower_cooling_threshold if self.lower_cooling_threshold is not None else self.upper_threshold
 
         if prior == ACTION_HEAT:
-            if temp > self.upper_threshold:
-                return ACTION_COOL
-            elif temp < heat_cutoff:
+            # Minimum run duration requirement
+            if steps < self.min_on_duration:
+                if temp < self.upper_threshold:
+                    return ACTION_HEAT
+                else:
+                    return ACTION_OFF
+            # Minimum run duration satisfied: evaluate hysteresis deactivation
+            if temp < heat_cutoff:
                 return ACTION_HEAT
             else:
                 return ACTION_OFF
+
         elif prior == ACTION_COOL:
-            if temp < self.lower_threshold:
-                return ACTION_HEAT
-            elif temp > cool_cutoff:
+            # Minimum run duration requirement
+            if steps < self.min_on_duration:
+                if temp > self.lower_threshold:
+                    return ACTION_COOL
+                else:
+                    return ACTION_OFF
+            # Minimum run duration satisfied: evaluate hysteresis deactivation
+            if temp > cool_cutoff:
                 return ACTION_COOL
             else:
                 return ACTION_OFF
-        else:
+
+        else:  # prior == ACTION_OFF or None
+            # Minimum OFF duration requirement (prevent rapid restart)
+            if prior == ACTION_OFF and steps < self.min_off_duration:
+                if self.lower_threshold <= temp <= self.upper_threshold:
+                    return ACTION_OFF
+
             if temp < self.lower_threshold:
                 return ACTION_HEAT
             elif temp > self.upper_threshold:
@@ -242,68 +296,111 @@ class SimpleReflexAgent:
             else:
                 return ACTION_OFF
 
-    def _build_decision(self, current_temp: float, step: int, prev_action: Optional[str] = None) -> ReflexDecision:
+    def _build_decision(
+        self,
+        current_temp: float,
+        step: int,
+        prev_action: Optional[str] = None,
+        steps_in_action: Optional[int] = None,
+    ) -> ReflexDecision:
         """Evaluate current room temperature against thresholds and construct ReflexDecision."""
         prior = prev_action
+        steps = steps_in_action if steps_in_action is not None else self.steps_in_current_action
         if prior is None and self.last_decision is not None:
             prev_step = self.last_decision.step
             prev_temp = self.last_decision.room_temp
             if step > prev_step and abs(current_temp - prev_temp) <= 3.5:
                 prior = self.last_decision.selected_action
+                if steps_in_action is None:
+                    steps = self.steps_in_current_action
+            else:
+                steps = 0
+        elif prior is not None and prior != self.last_action:
+            steps = 0
 
-        selected_action = self.select_action(current_temp, prev_action=prior)
+        selected_action = self.select_action(current_temp, prev_action=prior, steps_in_action=steps)
         step_energy = self.energy_costs[selected_action]
 
         heat_cutoff = self.upper_heating_threshold if self.upper_heating_threshold is not None else self.lower_threshold
         cool_cutoff = self.lower_cooling_threshold if self.lower_cooling_threshold is not None else self.upper_threshold
 
-        if selected_action == ACTION_HEAT:
-            if prior == ACTION_HEAT and self.upper_heating_threshold is not None:
+        # Determine triggering rule & explanatory reason
+        if current_temp <= self.safety_min_temp:
+            rule_triggered = f"≤ {self.safety_min_temp:.1f}°C (Safety Limit) → {ACTION_HEAT}"
+            reason = (
+                f"Critical safety limit breached: Room temperature ({current_temp:.2f}°C) is below "
+                f"freeze protection limit ({self.safety_min_temp:.1f}°C). Emergency HEAT activated."
+            )
+        elif current_temp >= self.safety_max_temp:
+            rule_triggered = f"≥ {self.safety_max_temp:.1f}°C (Safety Limit) → {ACTION_COOL}"
+            reason = (
+                f"Critical safety limit breached: Room temperature ({current_temp:.2f}°C) is above "
+                f"overheat protection limit ({self.safety_max_temp:.1f}°C). Emergency COOL activated."
+            )
+        elif selected_action == ACTION_HEAT:
+            if prior == ACTION_HEAT and steps < self.min_on_duration:
+                rule_triggered = f"Min Run Duration ({steps}/{self.min_on_duration}) → {ACTION_HEAT}"
+                reason = (
+                    f"Room temperature ({current_temp:.2f}°C): maintaining HEAT to satisfy minimum "
+                    f"operating duration ({steps}/{self.min_on_duration} steps), preventing short-cycling."
+                )
+            elif prior == ACTION_HEAT and self.upper_heating_threshold is not None:
                 rule_triggered = f"< {heat_cutoff:.1f}°C (Heating to cutoff) → {ACTION_HEAT}"
                 reason = (
-                    f"Room temperature ({current_temp:.2f}°C) is heating toward "
-                    f"upper heating threshold ({heat_cutoff:.1f}°C), maintaining HEAT."
+                    f"Room temperature ({current_temp:.2f}°C) is heating toward upper deactivation "
+                    f"threshold ({heat_cutoff:.1f}°C), maintaining HEAT."
                 )
             else:
                 rule_triggered = f"< {self.lower_threshold:.1f}°C → {ACTION_HEAT}"
                 reason = (
-                    f"Current room temperature ({current_temp:.2f}°C) is below lower "
-                    f"threshold ({self.lower_threshold:.1f}°C), triggering HEAT."
+                    f"Current room temperature ({current_temp:.2f}°C) is below lower activation "
+                    f"boundary ({self.lower_threshold:.1f}°C), triggering HEAT."
                 )
         elif selected_action == ACTION_COOL:
-            if prior == ACTION_COOL and self.lower_cooling_threshold is not None:
+            if prior == ACTION_COOL and steps < self.min_on_duration:
+                rule_triggered = f"Min Run Duration ({steps}/{self.min_on_duration}) → {ACTION_COOL}"
+                reason = (
+                    f"Room temperature ({current_temp:.2f}°C): maintaining COOL to satisfy minimum "
+                    f"operating duration ({steps}/{self.min_on_duration} steps), preventing short-cycling."
+                )
+            elif prior == ACTION_COOL and self.lower_cooling_threshold is not None:
                 rule_triggered = f"> {cool_cutoff:.1f}°C (Cooling to cutoff) → {ACTION_COOL}"
                 reason = (
-                    f"Room temperature ({current_temp:.2f}°C) is cooling toward "
-                    f"lower cooling threshold ({cool_cutoff:.1f}°C), maintaining COOL."
+                    f"Room temperature ({current_temp:.2f}°C) is cooling toward lower deactivation "
+                    f"threshold ({cool_cutoff:.1f}°C), maintaining COOL."
                 )
             else:
                 rule_triggered = f"> {self.upper_threshold:.1f}°C → {ACTION_COOL}"
                 reason = (
-                    f"Current room temperature ({current_temp:.2f}°C) is above upper "
-                    f"threshold ({self.upper_threshold:.1f}°C), triggering COOL."
+                    f"Current room temperature ({current_temp:.2f}°C) is above upper activation "
+                    f"boundary ({self.upper_threshold:.1f}°C), triggering COOL."
                 )
-        else:
-            if prior == ACTION_HEAT and self.upper_heating_threshold is not None:
+        else:  # selected_action == ACTION_OFF
+            if prior == ACTION_OFF and steps < self.min_off_duration:
+                rule_triggered = f"Min Dwell Duration ({steps}/{self.min_off_duration}) → {ACTION_OFF}"
+                reason = (
+                    f"Room temperature ({current_temp:.2f}°C): maintaining OFF to satisfy minimum "
+                    f"compressor dwell duration ({steps}/{self.min_off_duration} steps), avoiding hunting."
+                )
+            elif prior == ACTION_HEAT and self.upper_heating_threshold is not None:
                 rule_triggered = f"≥ {heat_cutoff:.1f}°C (Heating cutoff reached) → {ACTION_OFF}"
                 reason = (
-                    f"Room temperature ({current_temp:.2f}°C) reached upper heating "
-                    f"threshold ({heat_cutoff:.1f}°C), turning heating OFF."
+                    f"Room temperature ({current_temp:.2f}°C) reached upper heating threshold "
+                    f"({heat_cutoff:.1f}°C), turning heating OFF."
                 )
             elif prior == ACTION_COOL and self.lower_cooling_threshold is not None:
                 rule_triggered = f"≤ {cool_cutoff:.1f}°C (Cooling cutoff reached) → {ACTION_OFF}"
                 reason = (
-                    f"Room temperature ({current_temp:.2f}°C) reached lower cooling "
-                    f"threshold ({cool_cutoff:.1f}°C), turning cooling OFF."
+                    f"Room temperature ({current_temp:.2f}°C) reached lower cooling threshold "
+                    f"({cool_cutoff:.1f}°C), turning cooling OFF."
                 )
             else:
                 rule_triggered = (
-                    f"{self.lower_threshold:.1f}°C–{self.upper_threshold:.1f}°C → {ACTION_OFF}"
+                    f"{self.lower_threshold:.1f}°C–{self.upper_threshold:.1f}°C (Deadband) → {ACTION_OFF}"
                 )
                 reason = (
-                    f"Current room temperature ({current_temp:.2f}°C) is within comfortable "
-                    f"deadband [{self.lower_threshold:.1f}°C, {self.upper_threshold:.1f}°C], "
-                    f"keeping HVAC OFF."
+                    f"Current room temperature ({current_temp:.2f}°C) is within comfortable deadband "
+                    f"[{self.lower_threshold:.1f}°C, {self.upper_threshold:.1f}°C], keeping HVAC OFF."
                 )
 
         return ReflexDecision(
@@ -325,21 +422,28 @@ class SimpleReflexAgent:
         current_temp = float(observation["room_temp"])
         step = int(observation.get("step", len(self.action_history)))
         prior = observation.get("prev_action", self.last_action)
-        return self._build_decision(current_temp=current_temp, step=step, prev_action=prior)
+        steps = observation.get("steps_in_action", self.steps_in_current_action)
+        return self._build_decision(current_temp=current_temp, step=step, prev_action=prior, steps_in_action=steps)
 
     def decide_action(self, observation: Dict[str, Any]) -> ReflexDecision:
         """
         Execute the percept-to-action reflex rule for one time step:
         1. Observe current room temperature.
-        2. Compare against lower and upper thresholds with hysteresis.
+        2. Compare against lower and upper thresholds with hysteresis and dwell times.
         3. Select HEAT, COOL, or OFF via condition-action rule.
         4. Update agent action and energy tracking.
         """
         current_temp = float(observation["room_temp"])
         step = int(observation.get("step", len(self.action_history)))
         prior = observation.get("prev_action", self.last_action)
+        steps = observation.get("steps_in_action", self.steps_in_current_action)
 
-        decision = self._build_decision(current_temp=current_temp, step=step, prev_action=prior)
+        decision = self._build_decision(current_temp=current_temp, step=step, prev_action=prior, steps_in_action=steps)
+
+        if self.last_decision is not None and self.last_decision.selected_action == decision.selected_action:
+            self.steps_in_current_action += 1
+        else:
+            self.steps_in_current_action = 1
 
         self.total_energy_consumed += decision.energy_consumed
         self.action_history.append(decision.selected_action)

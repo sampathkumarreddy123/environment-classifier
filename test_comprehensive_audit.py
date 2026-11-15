@@ -81,8 +81,9 @@ def run_audit() -> bool:
     # ---------------------------------------------------------------------
     # Test 3: Extreme Outdoor Temperatures (0.0°C and 45.0°C)
     # ---------------------------------------------------------------------
+    u_agent.reset()
     # 3a. Freezing Outdoor (0.0°C) with comfortable room (22.0°C)
-    env_freezing = RoomEnvironment(initial_temp=22.0, desired_temp=22.0, outside_temp=0.0)
+    env_freezing = RoomEnvironment(initial_temp=22.0, desired_temp=22.0, outside_temp=0.0, people_present=True, num_people=2)
     obs_freezing = env_freezing.get_state()
     u_freeze_dec = u_agent.decide_action(obs_freezing)
     # Due to severe outdoor cold (delta ambient = 0.07 * (0 - 22) = -1.54°C),
@@ -90,7 +91,7 @@ def run_audit() -> bool:
     assert u_freeze_dec.selected_action == ACTION_HEAT
 
     # 3b. Extreme Heatwave Outdoor (45.0°C) with comfortable room (22.0°C)
-    env_heatwave = RoomEnvironment(initial_temp=22.0, desired_temp=22.0, outside_temp=45.0)
+    env_heatwave = RoomEnvironment(initial_temp=22.0, desired_temp=22.0, outside_temp=45.0, people_present=True, num_people=2)
     obs_heatwave = env_heatwave.get_state()
     u_heat_dec = u_agent.decide_action(obs_heatwave)
     assert u_heat_dec.selected_action == ACTION_COOL

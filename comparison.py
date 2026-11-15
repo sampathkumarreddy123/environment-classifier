@@ -638,10 +638,10 @@ class ComparisonRunner:
         )
         u_heat_cut = getattr(cfg, "upper_heating_threshold", None)
         if u_heat_cut is None:
-            u_heat_cut = cfg.desired_temp
+            u_heat_cut = cfg.upper_threshold
         l_cool_cut = getattr(cfg, "lower_cooling_threshold", None)
         if l_cool_cut is None:
-            l_cool_cut = cfg.desired_temp
+            l_cool_cut = cfg.lower_threshold
 
         self.refl_agent = SimpleReflexAgent(
             lower_threshold=cfg.lower_threshold,

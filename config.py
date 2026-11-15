@@ -94,6 +94,29 @@ class ReflexThermostatDefaults:
 
 
 @dataclass(frozen=True)
+class HVACControlDefaults:
+    """Configurable deadbands, dwell times, unoccupied setbacks, and critical safety limits."""
+
+    # Temperature Deadband (°C around desired setpoint)
+    DEFAULT_DEADBAND_HALF_WIDTH: float = 0.5
+
+    # Minimum operating durations (consecutive timesteps) to eliminate chattering/hunting
+    MIN_ON_DURATION_STEPS: int = 2
+    MIN_OFF_DURATION_STEPS: int = 2
+
+    # Unoccupied setback temperature boundaries (°C)
+    # Zero human comfort penalty within this range when room has 0 occupants
+    DEFAULT_UNOCCUPIED_MIN_TEMP: float = 16.0
+    DEFAULT_UNOCCUPIED_MAX_TEMP: float = 28.0
+
+    # Critical environmental safety limits (°C)
+    # Always overrides minimum-duration restrictions to protect building & equipment
+    CRITICAL_SAFETY_MIN_TEMP: float = 12.0
+    CRITICAL_SAFETY_MAX_TEMP: float = 35.0
+
+
+
+@dataclass(frozen=True)
 class DemonstrationScenario:
     """Preconfigured demonstration scenario for academic evaluation."""
     id: str
