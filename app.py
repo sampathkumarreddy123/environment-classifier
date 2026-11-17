@@ -1060,8 +1060,47 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
     font-feature-settings: "tnum" 1;
 }}
 
-/* Sidebar Controls: Scenario Selectbox & Secondary Reset Button */
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+/* Sidebar Controls: Scenario Selectbox styled exactly like Image 2 */
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+    min-height: 40px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    background-color: {"#244030" if dark_mode else "#E2ECE3"} !important;
+    background: {"#244030" if dark_mode else "#E2ECE3"} !important;
+    border: 1px solid {"#3A6348" if dark_mode else "#B0CFB6"} !important;
+    border-left: 3.5px solid {primary_green} !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.05"}) !important;
+    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+    transition: all 0.2s ease !important;
+    padding: 0 10px 0 12px !important;
+    cursor: pointer !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {{
+    background-color: {"#2A4A38" if dark_mode else "#D9E8DB"} !important;
+    border-color: {primary_green} !important;
+    border-left-color: {primary_green} !important;
+    transform: translateY(-1px) !important;
+}}
+
+/* Typography inside Sidebar Selectbox matching Image 2 */
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] *,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [data-baseweb="select"] span,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [data-baseweb="select"] p,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [data-baseweb="select"] div {{
+    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+}}
+
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg {{
+    fill: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+}}
+
+/* Main content selectbox */
 div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
 div[data-baseweb="select"] > div {{
     min-height: 40px !important;
@@ -1143,8 +1182,7 @@ div[data-testid="stSelectbox"] [data-baseweb="select"] p,
 div[data-testid="stSelectbox"] [data-baseweb="select"] div,
 div[data-testid="stSelectbox"] [role="combobox"] span,
 div[data-testid="stSelectbox"] [role="combobox"] p,
-div[data-testid="stSelectbox"] [role="combobox"] div,
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] * {{
+div[data-testid="stSelectbox"] [role="combobox"] div {{
     color: {dropdown_text_primary} !important;
     font-size: 13.5px !important;
     font-weight: 500 !important;
@@ -1153,8 +1191,7 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"
 }}
 
 div[data-testid="stSelectbox"] svg,
-div[data-baseweb="select"] svg,
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg {{
+div[data-baseweb="select"] svg {{
     fill: {dropdown_text_secondary} !important;
     color: {dropdown_text_secondary} !important;
 }}
@@ -1173,7 +1210,7 @@ div[data-baseweb="popover"] > div {{
     overflow: visible !important;
 }}
 
-/* Selectbox Dropdown Menu - Inner list single clean container */
+/* Selectbox Dropdown Menu - Inner list single clean container with NO SCROLLING */
 ul[data-baseweb="menu"],
 ul[role="listbox"],
 div[role="listbox"],
@@ -1184,10 +1221,23 @@ div[data-testid="stSelectboxVirtualDropdown"] {{
     border-radius: 8px !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, {"0.55" if dark_mode else "0.15"}) !important;
     z-index: 9999999 !important;
-    max-height: 220px !important;
-    overflow-y: auto !important;
-    padding: 4px !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 6px !important;
     margin: 4px 0 !important;
+}}
+
+/* Hide all scrollbars in dropdown menu */
+ul[data-baseweb="menu"]::-webkit-scrollbar,
+ul[role="listbox"]::-webkit-scrollbar,
+div[role="listbox"]::-webkit-scrollbar,
+div[data-testid="stSelectboxVirtualDropdown"]::-webkit-scrollbar {{
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }}
 
 /* When popover is flipped to top by Popper, shift it down so it always appears below the selection button */
