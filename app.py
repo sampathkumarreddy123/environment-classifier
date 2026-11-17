@@ -2390,8 +2390,8 @@ elif nav_selection == "Live Room Simulation":
             sim_chart_placeholder.plotly_chart(
                 create_reflex_temperature_history_chart(
                     df=hist_df,
-                    lower_thresh=reflex_agent.lower_threshold,
-                    upper_thresh=reflex_agent.upper_threshold,
+                    lower_threshold=reflex_agent.lower_threshold,
+                    upper_threshold=reflex_agent.upper_threshold,
                     desired_temp=curr_desired,
                     comfort_tolerance=st.session_state.comfort_tolerance,
                     dark_mode=dark_mode,

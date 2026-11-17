@@ -7,33 +7,6 @@ Biophilic Eco-Tech Design System: Contrast, Typography & Chart Layout.
 from typing import Dict, Any, Optional
 import plotly.graph_objects as go
 import pandas as pd
-from streamlit.elements.plotly_chart import PlotlyMixin
-
-# ---------------------------------------------------------
-# Streamlit Smooth Plotly Chart Anti-Blink Patch
-# ---------------------------------------------------------
-# By default, Streamlit hashes figure data into plotly_chart_proto.id.
-# When a chart in st.empty() updates on every step, a changing element ID
-# causes React on the frontend to unmount and remount the Plotly DOM node,
-# producing a severe white flash / blink. Suppressing the dynamic proto ID
-# on non-interactive display charts keeps the React component key stable ("0"),
-# allowing Plotly.react to smoothly update traces in-place without unmounting.
-_orig_plotly_chart = PlotlyMixin.plotly_chart
-
-def _smooth_plotly_chart(self, figure_or_data, *args, **kwargs):
-    orig_enqueue = self.dg._enqueue
-    def _patched_enqueue(element_type, proto, *e_args, **e_kwargs):
-        if element_type == "plotly_chart" and kwargs.get("on_select", "ignore") == "ignore":
-            proto.id = ""  # Stable empty ID prevents React component unmount/flicker
-        return orig_enqueue(element_type, proto, *e_args, **e_kwargs)
-
-    self.dg._enqueue = _patched_enqueue
-    try:
-        return _orig_plotly_chart(self, figure_or_data, *args, **kwargs)
-    finally:
-        self.dg._enqueue = orig_enqueue
-
-PlotlyMixin.plotly_chart = _smooth_plotly_chart
 
 from config import (
     CLASS_COLD,
