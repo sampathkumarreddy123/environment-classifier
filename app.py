@@ -904,6 +904,8 @@ div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-
 /* Outer radio option column slots spanning 50% each with zero double border */
 .st-key-sim_active_agent_radio div[role="radiogroup"] > div,
 .st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > div,
+.st-key-sim_active_agent_radio div[data-testid="stRadioOption"],
+.st-key-sim_active_agent_radio [data-testid="stRadioOption"],
 .st-key-sim_active_agent_radio .react-aria-RadioField {{
     flex: 1 1 0% !important;
     width: 100% !important;
@@ -911,19 +913,19 @@ div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-
     max-width: 100% !important;
     display: flex !important;
     background: transparent !important;
+    background-color: transparent !important;
     border: none !important;
+    outline: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
 }}
 
-/* Single clean button container on the label / option */
-.st-key-sim_active_agent_radio [data-testid="stRadioOption"],
-.st-key-sim_active_agent_radio [role="radio"],
-.st-key-sim_active_agent_radio div[role="radiogroup"] > label,
-.st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > label,
-.st-key-sim_active_agent_radio label {{
+/* Single clean button container on the label */
+.st-key-sim_active_agent_radio label,
+.st-key-sim_active_agent_radio div[role="radiogroup"] label,
+.st-key-sim_active_agent_radio [data-testid="stRadioGroup"] label {{
     flex: 1 1 100% !important;
     width: 100% !important;
     min-width: 0 !important;
@@ -948,7 +950,6 @@ div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-
 }}
 
 /* Inactive button hover */
-.st-key-sim_active_agent_radio [data-testid="stRadioOption"]:not([data-selected]):not(:has(input:checked)):hover,
 .st-key-sim_active_agent_radio label:not([data-selected]):not(:has(input:checked)):hover {{
     background-color: {"#24382D" if dark_mode else "#EAF2EB"} !important;
     border-color: {"#5A9E6F" if dark_mode else "#829B78"} !important;
@@ -956,11 +957,9 @@ div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-
 }}
 
 /* Active agent button (selected) */
-.st-key-sim_active_agent_radio [data-testid="stRadioOption"]:has(input:checked),
-.st-key-sim_active_agent_radio [data-testid="stRadioOption"][data-selected="true"],
-.st-key-sim_active_agent_radio [data-testid="stRadioOption"][data-selected],
 .st-key-sim_active_agent_radio label:has(input:checked),
-.st-key-sim_active_agent_radio label[data-selected="true"] {{
+.st-key-sim_active_agent_radio label[data-selected="true"],
+.st-key-sim_active_agent_radio label[data-selected] {{
     background-color: {"#244030" if dark_mode else "#E2ECE3"} !important;
     border: 2px solid {primary_green} !important;
     border-left: 4px solid {primary_green} !important;

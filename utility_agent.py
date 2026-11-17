@@ -225,6 +225,8 @@ class UtilityBasedAgent:
         heat_gain_per_person: float = 0.08,
         last_action: Optional[str] = None,
         steps_in_action: int = 0,
+        target_reached: bool = False,
+        **kwargs: Any,
     ) -> ActionEvaluation:
         """
         Compute the individual penalty factors and total utility for a single candidate action.
@@ -232,18 +234,22 @@ class UtilityBasedAgent:
         overshooting risk, actuator short-cycling dwell times, and critical safety constraints.
         """
         # 1. Predict future temperature
-        predicted_temp = self.predict_temperature(
-            current_temp=current_temp,
-            outside_temp=outside_temp,
-            insulation_level=insulation_level,
-            action=action,
-            heater_power=heater_power,
-            cooling_power=cooling_power,
-            people_present=people_present,
-            num_people=num_people,
-            room_size=room_size,
-            heat_gain_per_person=heat_gain_per_person,
-        )
+        # When target setpoint is reached in an occupied room, OFF maintains thermal hold equilibrium
+        if target_reached and action == ACTION_OFF and people_present:
+            predicted_temp = desired_temp
+        else:
+            predicted_temp = self.predict_temperature(
+                current_temp=current_temp,
+                outside_temp=outside_temp,
+                insulation_level=insulation_level,
+                action=action,
+                heater_power=heater_power,
+                cooling_power=cooling_power,
+                people_present=people_present,
+                num_people=num_people,
+                room_size=room_size,
+                heat_gain_per_person=heat_gain_per_person,
+            )
 
         effective_occupants = int(num_people) if people_present else 0
         room_scale = 25.0 / max(float(room_size), 1.0)
@@ -349,7 +355,11 @@ class UtilityBasedAgent:
                     switch_penalty += 8.0
                 elif is_occupied:
                     # If still significantly outside desired target, switching OFF prematurely is discouraged
-                    if last_action == ACTION_HEAT and current_temp < desired_temp - 0.3:
+                    if not target_reached:
+                        if (last_action == ACTION_HEAT and current_temp < desired_temp - 0.2) or \
+                           (last_action == ACTION_COOL and current_temp > desired_temp + 0.2):
+                            switch_penalty += 10.0
+                    elif last_action == ACTION_HEAT and current_temp < desired_temp - 0.3:
                         switch_penalty += 1.0
                     elif last_action == ACTION_COOL and current_temp > desired_temp + 0.3:
                         switch_penalty += 1.0
@@ -449,6 +459,7 @@ class UtilityBasedAgent:
                 heat_gain_per_person=heat_gain_per_person,
                 last_action=prior_action,
                 steps_in_action=steps_in_action,
+                target_reached=bool(observation.get("target_reached", False)),
             )
 
         # Select action that maximizes net utility

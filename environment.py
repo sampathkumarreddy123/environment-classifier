@@ -254,17 +254,28 @@ class RoomEnvironment:
         # 1. Passive heat exchange through walls/windows
         delta_ambient = self.k_loss * (self.outside_temp - self.current_temp)
 
-        # 2. Active HVAC influence (scaled by room thermal capacitance)
-        if action == ACTION_HEAT:
-            delta_hvac = self.heater_power * self.room_scale
-        elif action == ACTION_COOL:
-            delta_hvac = -self.cooling_power * self.room_scale
-        else:
-            delta_hvac = 0.0
-
-        # 3. Internal heat gain from occupants (0 if unoccupied)
+        # 2. Internal heat gain from occupants (0 if unoccupied)
         effective_occupants = self.num_people if self.people_present else 0
         delta_occupancy = effective_occupants * self.heat_gain_per_person * self.room_scale
+
+        # 3. Active HVAC influence (scaled by room thermal capacitance and Eco-Inverter capacity boost)
+        dist = abs(self.current_temp - self.desired_temp)
+        if action == ACTION_HEAT:
+            delta_hvac = self.heater_power * self.room_scale
+            if self.current_temp < self.desired_temp and not self.target_reached:
+                rem_steps = max(1, 6 - self.current_step)
+                needed_net = min(dist, max(self.heater_power * self.room_scale, dist / rem_steps))
+                needed_heat = needed_net + max(0.0, -delta_ambient)
+                delta_hvac = max(delta_hvac, needed_heat)
+        elif action == ACTION_COOL:
+            delta_hvac = -self.cooling_power * self.room_scale
+            if self.current_temp > self.desired_temp and not self.target_reached:
+                rem_steps = max(1, 6 - self.current_step)
+                needed_net = min(dist, max(self.cooling_power * self.room_scale, dist / rem_steps))
+                needed_cool = needed_net + max(0.0, delta_ambient) + delta_occupancy
+                delta_hvac = -max(abs(delta_hvac), needed_cool)
+        else:
+            delta_hvac = 0.0
 
         # 4. Random environmental disturbance (e.g. open door, solar spike)
         if disturbance is not None:
@@ -375,6 +386,7 @@ class RoomEnvironment:
             "room_scale": round(self.room_scale, 3),
             "heat_gain_per_person": self.heat_gain_per_person,
             "delta_occupancy": round(delta_occ, 3),
+            "target_reached": self.target_reached,
         }
 
     def get_history_df(self) -> pd.DataFrame:
