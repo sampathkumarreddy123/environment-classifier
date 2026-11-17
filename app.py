@@ -60,8 +60,8 @@ from utils import (
     get_status_card_html,
 )
 
-# Fixed progressive simulation visualization delay (~250 ms per timestep)
-VISUALIZATION_DELAY_SEC: float = 0.25
+# Fixed progressive simulation visualization delay (~500 ms / half second per timestep)
+VISUALIZATION_DELAY_SEC: float = 0.5
 
 # ---------------------------------------------------------
 # Page Configuration
@@ -901,15 +901,30 @@ div[data-testid="stElementContainer"]:has(.st-key-sim_active_agent_radio) [data-
     box-sizing: border-box !important;
 }}
 
-/* Each agent button expanded fully (50% each with gap) */
+/* Outer radio option column slots spanning 50% each with zero double border */
+.st-key-sim_active_agent_radio div[role="radiogroup"] > div,
+.st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > div,
+.st-key-sim_active_agent_radio .react-aria-RadioField {{
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    display: flex !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}}
+
+/* Single clean button container on the label / option */
 .st-key-sim_active_agent_radio [data-testid="stRadioOption"],
 .st-key-sim_active_agent_radio [role="radio"],
 .st-key-sim_active_agent_radio div[role="radiogroup"] > label,
 .st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > label,
-.st-key-sim_active_agent_radio div[role="radiogroup"] > div,
-.st-key-sim_active_agent_radio [data-testid="stRadioGroup"] > div,
 .st-key-sim_active_agent_radio label {{
-    flex: 1 1 0% !important;
+    flex: 1 1 100% !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -2371,7 +2386,6 @@ elif nav_selection == "Live Room Simulation":
                     dark_mode=dark_mode,
                 ),
                 use_container_width=True,
-                key="sim_temp_chart_u",
             )
         else:
             sim_chart_placeholder.plotly_chart(
@@ -2384,7 +2398,6 @@ elif nav_selection == "Live Room Simulation":
                     dark_mode=dark_mode,
                 ),
                 use_container_width=True,
-                key="sim_temp_chart_r",
             )
 
     with controls_container:
@@ -2478,7 +2491,6 @@ elif nav_selection == "Live Room Simulation":
                                         dark_mode=dark_mode,
                                     ),
                                     use_container_width=True,
-                                    key=f"sim_live_chart_u_{current_sim_env.current_step}",
                                 )
                             else:
                                 sim_chart_placeholder.plotly_chart(
@@ -2491,7 +2503,6 @@ elif nav_selection == "Live Room Simulation":
                                         dark_mode=dark_mode,
                                     ),
                                     use_container_width=True,
-                                    key=f"sim_live_chart_r_{current_sim_env.current_step}",
                                 )
 
                         time.sleep(VISUALIZATION_DELAY_SEC)
@@ -2836,9 +2847,6 @@ elif nav_selection == "Utility-Based Agent":
                 "delta_occupancy": next_st.get("delta_occupancy", env.delta_occupancy),
             })
 
-    # Simulation Controls & Live Visuals
-    u_controls_container = st.container()
-
     # Visual Room Environment Simulator (Utility-Based Agent)
     st.subheader("Live Room Environment Simulation")
     u_preview = agent.decide_action(current_state)
@@ -2881,6 +2889,9 @@ elif nav_selection == "Utility-Based Agent":
         unsafe_allow_html=True,
     )
 
+    # Simulation Controls & Live Visuals (positioned directly below Live Room Environment Simulation)
+    u_controls_container = st.container()
+
     # Decision Reasoning & Utility Scores
     st.subheader("Decision Explanation & Action Scores")
     if last_dec:
@@ -2919,7 +2930,6 @@ elif nav_selection == "Utility-Based Agent":
             dark_mode=dark_mode,
         ),
         use_container_width=True,
-        key="chart_sec_u_history",
     )
 
     with u_controls_container:
@@ -2993,7 +3003,6 @@ elif nav_selection == "Utility-Based Agent":
                                 dark_mode=dark_mode,
                             ),
                             use_container_width=True,
-                            key=f"live_chart_sec_u_{env.current_step}",
                         )
                         time.sleep(VISUALIZATION_DELAY_SEC)
 
@@ -3072,9 +3081,6 @@ elif nav_selection == "Reflex Thermostat":
             rec = reflex_agent.step_environment(reflex_env)
             st.session_state.reflex_simulation_records.append(rec)
 
-    # Simulation Controls & Live Visuals
-    r_controls_container = st.container()
-
     # Visual Room Environment Simulator (Simple Reflex Thermostat)
     st.subheader("Live Room Environment Simulation")
     r_action = r_preview.selected_action
@@ -3116,6 +3122,9 @@ elif nav_selection == "Reflex Thermostat":
         unsafe_allow_html=True,
     )
 
+    # Simulation Controls & Live Visuals (positioned directly below Live Room Environment Simulation)
+    r_controls_container = st.container()
+
     # Threshold Rules Display
     st.subheader("Condition-Action Rules")
     st.markdown(
@@ -3144,7 +3153,6 @@ elif nav_selection == "Reflex Thermostat":
             dark_mode=dark_mode,
         ),
         use_container_width=True,
-        key="chart_sec_r_history",
     )
 
     with r_controls_container:
@@ -3218,7 +3226,6 @@ elif nav_selection == "Reflex Thermostat":
                                 dark_mode=dark_mode,
                             ),
                             use_container_width=True,
-                            key=f"live_chart_sec_r_{reflex_env.current_step}",
                         )
                         time.sleep(VISUALIZATION_DELAY_SEC)
 
@@ -3438,7 +3445,6 @@ elif nav_selection == "Agent Comparison":
                         dark_mode=dark_mode,
                     ),
                     use_container_width=True,
-                    key=f"comp_live_chart_{step_num}",
                 )
                 time.sleep(VISUALIZATION_DELAY_SEC)
 
@@ -3477,7 +3483,6 @@ elif nav_selection == "Agent Comparison":
                 dark_mode=dark_mode,
             ),
             use_container_width=True,
-            key="chart_sec_c_traj",
         )
 
         st.plotly_chart(

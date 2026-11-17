@@ -51,8 +51,8 @@ class TestAnimatedSimulationAndDropdowns(unittest.TestCase):
         self.assertNotIn("PLAYBACK SPEED", code, "Playback speed section caption still exists in app.py")
         self.assertNotIn("AUTO-STOP AT TARGET", code, "Auto-stop section caption still exists in app.py")
 
-        # Fixed visualization delay must be defined
-        self.assertTrue("VISUALIZATION_DELAY_SEC" in code and "0.25" in code, "VISUALIZATION_DELAY_SEC missing in app.py")
+        # Fixed visualization delay must be defined (half second / 0.5s or 0.25s)
+        self.assertTrue("VISUALIZATION_DELAY_SEC" in code and ("0.5" in code or "0.25" in code), "VISUALIZATION_DELAY_SEC missing in app.py")
 
     def test_reflex_agent_initial_action_evaluation(self):
         """Verify reflex agent evaluates condition-action rules at step 0 (e.g., 18°C < 20°C -> HEAT)."""

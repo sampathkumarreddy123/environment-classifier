@@ -7,6 +7,33 @@ Biophilic Eco-Tech Design System: Contrast, Typography & Chart Layout.
 from typing import Dict, Any, Optional
 import plotly.graph_objects as go
 import pandas as pd
+from streamlit.elements.plotly_chart import PlotlyMixin
+
+# ---------------------------------------------------------
+# Streamlit Smooth Plotly Chart Anti-Blink Patch
+# ---------------------------------------------------------
+# By default, Streamlit hashes figure data into plotly_chart_proto.id.
+# When a chart in st.empty() updates on every step, a changing element ID
+# causes React on the frontend to unmount and remount the Plotly DOM node,
+# producing a severe white flash / blink. Suppressing the dynamic proto ID
+# on non-interactive display charts keeps the React component key stable ("0"),
+# allowing Plotly.react to smoothly update traces in-place without unmounting.
+_orig_plotly_chart = PlotlyMixin.plotly_chart
+
+def _smooth_plotly_chart(self, figure_or_data, *args, **kwargs):
+    orig_enqueue = self.dg._enqueue
+    def _patched_enqueue(element_type, proto, *e_args, **e_kwargs):
+        if element_type == "plotly_chart" and kwargs.get("on_select", "ignore") == "ignore":
+            proto.id = ""  # Stable empty ID prevents React component unmount/flicker
+        return orig_enqueue(element_type, proto, *e_args, **e_kwargs)
+
+    self.dg._enqueue = _patched_enqueue
+    try:
+        return _orig_plotly_chart(self, figure_or_data, *args, **kwargs)
+    finally:
+        self.dg._enqueue = orig_enqueue
+
+PlotlyMixin.plotly_chart = _smooth_plotly_chart
 
 from config import (
     CLASS_COLD,
@@ -132,6 +159,7 @@ def _apply_standard_chart_layout(
 
     layout_args: Dict[str, Any] = dict(
         autosize=True,
+        uirevision="constant",  # Preserves layout, zoom, and prevents visual flash on data updates
         title=dict(
             text=title_text,
             x=0.02,
@@ -1268,6 +1296,7 @@ def create_comparison_energy_chart(
         margin_left=75,
         margin_right=35,
     )
+    steps = utility_df["step"] if utility_df is not None and "step" in utility_df.columns else pd.Series([], dtype=int)
     max_s = int(steps.max()) if not steps.empty else 10
     dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
     fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
@@ -1354,6 +1383,7 @@ def create_comparison_error_chart(
         margin_left=75,
         margin_right=35,
     )
+    steps = utility_df["step"] if utility_df is not None and "step" in utility_df.columns else pd.Series([], dtype=int)
     max_s = int(steps.max()) if not steps.empty else 10
     dtick_val = 1 if max_s <= 5 else (5 if max_s <= 50 else 10)
     fig.update_xaxes(tickmode="linear", tick0=0, dtick=dtick_val, tickformat="d", rangemode="tozero")
