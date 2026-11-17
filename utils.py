@@ -1786,7 +1786,7 @@ def get_live_room_simulation_html(
 </div>
 
 <div class="room-sim-svg-wrap">
-<svg viewBox="0 0 920 480" width="100%" height="auto" style="border-radius: 8px; border: 1px solid {p['border_color']}; background: {wall_bg}; display: block;" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 920 480" width="100%" height="100%" style="border-radius: 8px; border: 1px solid {p['border_color']}; background: {wall_bg}; display: block; width: 100%; height: auto; aspect-ratio: 920 / 480;" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <!-- Gradients -->
 <linearGradient id="wallShade" x1="0%" y1="0%" x2="0%" y2="100%">
