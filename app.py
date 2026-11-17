@@ -3400,6 +3400,9 @@ elif nav_selection == "Agent Comparison":
             help="Average step-to-step temperature swing.",
         )
 
+    # Comparison Trajectory Chart Placeholder (defined before animation callback)
+    comp_chart_placeholder = st.empty()
+
     def run_animated_comp_fn() -> None:
         fresh_cfg = _build_comparison_config()
         comparison_runner.reset(fresh_cfg)
@@ -3463,8 +3466,6 @@ elif nav_selection == "Agent Comparison":
                 st.session_state.comparison_status = "Not Started"
                 st.rerun()
 
-    # Comparison Trajectory Chart Placeholder
-    comp_chart_placeholder = st.empty()
     if has_run:
         # Comparison Charts (clean visual presentation without redundant stacked headers)
         comp_chart_placeholder.plotly_chart(

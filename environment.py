@@ -85,6 +85,7 @@ class RoomEnvironment:
         # Simulation state tracking
         self.current_step = 0
         self.current_temp = self.initial_temp
+        self.target_reached = False
         self.history: List[Dict[str, Any]] = []
 
         # Record initial baseline state at step 0
@@ -150,6 +151,7 @@ class RoomEnvironment:
 
         self.current_step = 0
         self.current_temp = self.initial_temp
+        self.target_reached = False
         self.history = []
 
         self._record_step(
@@ -275,6 +277,31 @@ class RoomEnvironment:
         # 5. Update temperature
         total_delta = delta_ambient + delta_hvac + delta_occupancy + applied_disturbance
         new_temp = self.current_temp + total_delta
+
+        # Stop temperature change once target comfort is reached in occupied rooms
+        if self.people_present:
+            if self.target_reached:
+                new_temp = self.desired_temp
+                total_delta = 0.0
+                delta_ambient = 0.0
+                delta_hvac = 0.0
+                delta_occupancy = 0.0
+                applied_disturbance = 0.0
+            else:
+                reached = False
+                if (self.current_temp <= self.desired_temp and new_temp >= self.desired_temp) or \
+                   (self.current_temp >= self.desired_temp and new_temp <= self.desired_temp) or \
+                   abs(new_temp - self.desired_temp) <= 0.2:
+                    reached = True
+
+                if reached:
+                    self.target_reached = True
+                    new_temp = self.desired_temp
+                    total_delta = 0.0
+                    delta_ambient = 0.0
+                    delta_hvac = 0.0
+                    delta_occupancy = 0.0
+                    applied_disturbance = 0.0
 
         # Update tracking
         self.current_step += 1
