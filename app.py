@@ -1060,49 +1060,113 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
     font-feature-settings: "tnum" 1;
 }}
 
-/* Sidebar Controls: Scenario Selectbox styled exactly like Image 2 */
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
+/* Sidebar Controls: Scenario Selectbox Button styled exactly like Image 2 */
+.st-key-sidebar_scenario_select,
+div[data-testid="stElementContainer"]:has(.st-key-sidebar_scenario_select),
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [class*="equpb2c0"],
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] .react-aria-Group,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="group"],
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div:has(> input),
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+.st-key-sidebar_scenario_select [class*="equpb2c0"],
+.st-key-sidebar_scenario_select .react-aria-Group,
+.st-key-sidebar_scenario_select [role="group"],
+.st-key-sidebar_scenario_select div:has(> input),
+.st-key-sidebar_scenario_select div[data-baseweb="select"] > div {
     min-height: 40px !important;
     height: 40px !important;
+    max-height: 40px !important;
     border-radius: 8px !important;
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
+    justify-content: space-between !important;
     background-color: {"#244030" if dark_mode else "#E2ECE3"} !important;
     background: {"#244030" if dark_mode else "#E2ECE3"} !important;
     border: 1px solid {"#3A6348" if dark_mode else "#B0CFB6"} !important;
     border-left: 3.5px solid {primary_green} !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, {"0.2" if dark_mode else "0.05"}) !important;
-    color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     transition: all 0.2s ease !important;
     padding: 0 10px 0 12px !important;
     cursor: pointer !important;
-}}
+    box-sizing: border-box !important;
+    width: 100% !important;
+    outline: none !important;
+}
 
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover {{
+/* Hover state matching Image 2 */
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [class*="equpb2c0"]:hover,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] .react-aria-Group:hover,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="group"]:hover,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div:has(> input):hover,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
+.st-key-sidebar_scenario_select [class*="equpb2c0"]:hover,
+.st-key-sidebar_scenario_select .react-aria-Group:hover,
+.st-key-sidebar_scenario_select [role="group"]:hover,
+.st-key-sidebar_scenario_select div:has(> input):hover,
+.st-key-sidebar_scenario_select div[data-baseweb="select"] > div:hover {
     background-color: {"#2A4A38" if dark_mode else "#D9E8DB"} !important;
+    background: {"#2A4A38" if dark_mode else "#D9E8DB"} !important;
     border-color: {primary_green} !important;
     border-left-color: {primary_green} !important;
     transform: translateY(-1px) !important;
-}}
+}
 
 /* Typography inside Sidebar Selectbox matching Image 2 */
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] *,
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [data-baseweb="select"] span,
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [data-baseweb="select"] p,
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [data-baseweb="select"] div {{
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] input,
+.st-key-sidebar_scenario_select input,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] span,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] p,
+.st-key-sidebar_scenario_select [role="combobox"] span {
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
-}}
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    width: 100% !important;
+}
 
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg {{
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] button,
+.st-key-sidebar_scenario_select button {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg,
+.st-key-sidebar_scenario_select svg,
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg path,
+.st-key-sidebar_scenario_select svg path {
     fill: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
-}}
+    stroke: {"#8FD0A8" if dark_mode else "#245C43"} !important;
+}
 
 /* Main content selectbox */
-div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-div[data-baseweb="select"] > div {{
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [class*="equpb2c0"],
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) .react-aria-Group,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [role="group"],
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) div[data-baseweb="select"] > div,
+div[data-baseweb="select"] > div {
     min-height: 40px !important;
     border-radius: 8px !important;
     display: flex !important;
@@ -1113,23 +1177,17 @@ div[data-baseweb="select"] > div {{
     color: {dropdown_text_primary} !important;
     box-shadow: none !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-}}
+}
 
-/* Inner combobox value area: borderless to prevent double containers */
-div[data-testid="stSelectbox"] [role="combobox"],
-div[data-baseweb="select"] [role="combobox"],
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"],
-div[data-testid="stSelectbox"] div[data-rac=""] {{
+/* Inner input and elements of main selectbox */
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) input {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
     background: transparent !important;
     background-color: transparent !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    min-height: unset !important;
-}}
+    color: {dropdown_text_primary} !important;
+}
 
 section[data-testid="stSidebar"] button[kind="secondary"],
 section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"],
@@ -1165,24 +1223,22 @@ div[data-testid="stSelectbox"] label * {{
     font-weight: 600 !important;
 }}
 
-div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) div[data-baseweb="select"] > div:hover,
 div[data-baseweb="select"] > div:hover {{
     border-color: {dropdown_focus} !important;
 }}
 
-div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) div[data-baseweb="select"] > div:focus-within,
 div[data-baseweb="select"] > div:focus-within {{
     border-color: {dropdown_focus} !important;
     box-shadow: 0 0 0 2px {dropdown_focus}50 !important;
     outline: none !important;
 }}
 
-div[data-testid="stSelectbox"] [data-baseweb="select"] span,
-div[data-testid="stSelectbox"] [data-baseweb="select"] p,
-div[data-testid="stSelectbox"] [data-baseweb="select"] div,
-div[data-testid="stSelectbox"] [role="combobox"] span,
-div[data-testid="stSelectbox"] [role="combobox"] p,
-div[data-testid="stSelectbox"] [role="combobox"] div {{
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [data-baseweb="select"] span,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [data-baseweb="select"] p,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [role="combobox"] span,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [role="combobox"] p {{
     color: {dropdown_text_primary} !important;
     font-size: 13.5px !important;
     font-weight: 500 !important;
@@ -1190,31 +1246,17 @@ div[data-testid="stSelectbox"] [role="combobox"] div {{
     background-color: transparent !important;
 }}
 
-div[data-testid="stSelectbox"] svg,
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) svg,
 div[data-baseweb="select"] svg {{
     fill: {dropdown_text_secondary} !important;
     color: {dropdown_text_secondary} !important;
 }}
 
-/* Selectbox Dropdown Menu Popover - Outer wrapper borderless */
+/* Selectbox Dropdown Menu Popover: SINGLE CLEAN CONTAINER, NO DOUBLE BOX */
+div[data-testid="stSelectboxVirtualDropdown"],
+div[class*="equpb2c7"],
 div[data-baseweb="popover"],
-div[data-baseweb="popover"] > div {{
-    background: transparent !important;
-    background-color: transparent !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    overflow: visible !important;
-}}
-
-/* Selectbox Dropdown Menu - Inner list single clean container with NO SCROLLING */
-ul[data-baseweb="menu"],
-ul[role="listbox"],
-div[role="listbox"],
-div[data-testid="stSelectboxVirtualDropdown"] {{
+div[data-baseweb="popover"] > div:not(ul) {{
     background-color: {dropdown_bg} !important;
     background: {dropdown_bg} !important;
     border: 1.5px solid {dropdown_border} !important;
@@ -1222,30 +1264,53 @@ div[data-testid="stSelectboxVirtualDropdown"] {{
     box-shadow: 0 8px 24px rgba(0, 0, 0, {"0.55" if dark_mode else "0.15"}) !important;
     z-index: 9999999 !important;
     max-height: none !important;
+    height: auto !important;
     overflow: hidden !important;
     overflow-y: hidden !important;
+    overflow-x: hidden !important;
+    padding: 4px !important;
+    box-sizing: border-box !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
-    padding: 6px !important;
-    margin: 4px 0 !important;
 }}
 
-/* Hide all scrollbars in dropdown menu */
+/* Inner list container: borderless, transparent, no padding, NO DOUBLE CONTAINER, NO SCROLLING */
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c8"],
+div[data-testid="stSelectboxVirtualDropdown"] [role="listbox"],
+div[data-testid="stSelectboxVirtualDropdown"] ul,
+div[data-baseweb="popover"] ul[data-baseweb="menu"],
+div[data-baseweb="popover"] ul[role="listbox"],
+ul[data-baseweb="menu"],
+ul[role="listbox"],
+div[role="listbox"] {{
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    overflow-x: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+}}
+
+/* Completely eliminate all scrollbars in all dropdown containers */
+div[data-testid="stSelectboxVirtualDropdown"]::-webkit-scrollbar,
+div[data-testid="stSelectboxVirtualDropdown"] *::-webkit-scrollbar,
+div[data-baseweb="popover"]::-webkit-scrollbar,
+div[data-baseweb="popover"] *::-webkit-scrollbar,
 ul[data-baseweb="menu"]::-webkit-scrollbar,
 ul[role="listbox"]::-webkit-scrollbar,
-div[role="listbox"]::-webkit-scrollbar,
-div[data-testid="stSelectboxVirtualDropdown"]::-webkit-scrollbar {{
+div[role="listbox"]::-webkit-scrollbar {{
     display: none !important;
     width: 0 !important;
     height: 0 !important;
-}}
-
-/* When popover is flipped to top by Popper, shift it down so it always appears below the selection button */
-div[data-baseweb="popover"][data-placement^="top"] ul[data-baseweb="menu"],
-div[data-baseweb="popover"][data-popper-placement^="top"] ul[data-baseweb="menu"],
-div[data-baseweb="popover"][data-placement^="top"] ul[role="listbox"],
-div[data-baseweb="popover"][data-popper-placement^="top"] ul[role="listbox"] {{
-    transform: translateY(calc(100% + 44px)) !important;
 }}
 
 /* Dropdown items / options */
@@ -1253,6 +1318,8 @@ li[data-baseweb="menu-item"],
 li[role="option"],
 ul[role="listbox"] > li,
 div[role="listbox"] [role="option"],
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c10"],
 div[data-testid="stSelectboxVirtualDropdown"] li {{
     background-color: {dropdown_option_bg} !important;
     background: {dropdown_option_bg} !important;
@@ -1262,7 +1329,7 @@ div[data-testid="stSelectboxVirtualDropdown"] li {{
     padding: 8px 12px !important;
     margin: 1px 0 !important;
     border-radius: 6px !important;
-    min-height: 32px !important;
+    min-height: 34px !important;
     height: auto !important;
     white-space: normal !important;
     word-break: break-word !important;
@@ -1271,6 +1338,7 @@ div[data-testid="stSelectboxVirtualDropdown"] li {{
     transition: background-color 0.15s ease, color 0.15s ease !important;
     display: flex !important;
     align-items: center !important;
+    box-sizing: border-box !important;
 }}
 
 /* Inner text of options */
@@ -1278,6 +1346,8 @@ li[data-baseweb="menu-item"] *,
 li[role="option"] *,
 ul[role="listbox"] > li *,
 div[role="listbox"] [role="option"] *,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"] *,
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c10"] *,
 div[data-testid="stSelectboxVirtualDropdown"] li * {{
     color: {dropdown_text_primary} !important;
     background: transparent !important;
@@ -1286,11 +1356,14 @@ div[data-testid="stSelectboxVirtualDropdown"] li * {{
     word-break: break-word !important;
 }}
 
-/* Hover state */
+/* Option Hover state */
 li[data-baseweb="menu-item"]:hover,
 li[role="option"]:hover,
 ul[role="listbox"] > li:hover,
 div[role="listbox"] [role="option"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c10"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-hovered],
 div[data-testid="stSelectboxVirtualDropdown"] li:hover {{
     background-color: {dropdown_hover_bg} !important;
     background: {dropdown_hover_bg} !important;
@@ -1300,17 +1373,24 @@ div[data-testid="stSelectboxVirtualDropdown"] li:hover {{
 li[data-baseweb="menu-item"]:hover *,
 li[role="option"]:hover *,
 ul[role="listbox"] > li:hover *,
-div[role="listbox"] [role="option"]:hover * {{
+div[role="listbox"] [role="option"]:hover *,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover *,
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c10"]:hover *,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-hovered] *,
+div[data-testid="stSelectboxVirtualDropdown"] li:hover * {{
     color: {dropdown_selected_text if dark_mode else dropdown_text_primary} !important;
 }}
 
-/* Selected option state */
+/* Option Selected state */
 li[data-baseweb="menu-item"][aria-selected="true"],
 li[role="option"][aria-selected="true"],
 li[data-baseweb="menu-item"][aria-checked="true"],
 li[role="option"][aria-checked="true"],
 ul[role="listbox"] > li[aria-selected="true"],
 div[role="listbox"] [role="option"][aria-selected="true"],
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"],
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-selected],
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c10"][aria-selected="true"],
 div[data-testid="stSelectboxVirtualDropdown"] li[aria-selected="true"] {{
     background-color: {dropdown_selected_bg} !important;
     background: {dropdown_selected_bg} !important;
@@ -1322,29 +1402,12 @@ li[data-baseweb="menu-item"][aria-selected="true"] *,
 li[role="option"][aria-selected="true"] *,
 ul[role="listbox"] > li[aria-selected="true"] *,
 div[role="listbox"] [role="option"][aria-selected="true"] *,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"] *,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][data-selected] *,
+div[data-testid="stSelectboxVirtualDropdown"] [class*="equpb2c10"][aria-selected="true"] *,
 div[data-testid="stSelectboxVirtualDropdown"] li[aria-selected="true"] * {{
     color: {dropdown_selected_text} !important;
     font-weight: 600 !important;
-}}
-
-/* Scrollbar for Dropdown Popover */
-div[data-baseweb="popover"] ::-webkit-scrollbar,
-ul[role="listbox"]::-webkit-scrollbar,
-ul[data-baseweb="menu"]::-webkit-scrollbar {{
-    width: 6px !important;
-    height: 6px !important;
-}}
-
-div[data-baseweb="popover"] ::-webkit-scrollbar-track,
-ul[role="listbox"]::-webkit-scrollbar-track {{
-    background: {dropdown_bg} !important;
-    border-radius: 4px !important;
-}}
-
-div[data-baseweb="popover"] ::-webkit-scrollbar-thumb,
-ul[role="listbox"]::-webkit-scrollbar-thumb {{
-    background: {dropdown_border} !important;
-    border-radius: 4px !important;
 }}
 
 /* 8. Biophilic Typography and Card styling */
