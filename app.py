@@ -1062,15 +1062,34 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
 
 /* Sidebar Controls: Scenario Selectbox & Secondary Reset Button */
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"],
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-rac=""] {{
+div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+div[data-baseweb="select"] > div {{
     min-height: 40px !important;
     border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
     background-color: {dropdown_bg} !important;
+    background: {dropdown_bg} !important;
     border: 1.5px solid {dropdown_border} !important;
     color: {dropdown_text_primary} !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}}
+
+/* Inner combobox value area: borderless to prevent double containers */
+div[data-testid="stSelectbox"] [role="combobox"],
+div[data-baseweb="select"] [role="combobox"],
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"],
+div[data-testid="stSelectbox"] div[data-rac=""] {{
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: unset !important;
 }}
 
 section[data-testid="stSidebar"] button[kind="secondary"],
@@ -1107,26 +1126,13 @@ div[data-testid="stSelectbox"] label * {{
     font-weight: 600 !important;
 }}
 
-div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-div[data-testid="stSelectbox"] [role="combobox"],
-div[data-baseweb="select"] > div {{
-    background-color: {dropdown_bg} !important;
-    background: {dropdown_bg} !important;
-    border: 1.5px solid {dropdown_border} !important;
-    border-radius: 8px !important;
-    color: {dropdown_text_primary} !important;
-    min-height: 40px !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-}}
-
 div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
-div[data-testid="stSelectbox"] [role="combobox"]:hover {{
+div[data-baseweb="select"] > div:hover {{
     border-color: {dropdown_focus} !important;
 }}
 
 div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
-div[data-testid="stSelectbox"] [role="combobox"]:focus,
-div[data-testid="stSelectbox"] [role="combobox"]:focus-within {{
+div[data-baseweb="select"] > div:focus-within {{
     border-color: {dropdown_focus} !important;
     box-shadow: 0 0 0 2px {dropdown_focus}50 !important;
     outline: none !important;
@@ -1153,22 +1159,43 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg {{
     color: {dropdown_text_secondary} !important;
 }}
 
-/* Selectbox Dropdown Menu Popover */
+/* Selectbox Dropdown Menu Popover - Outer wrapper borderless */
 div[data-baseweb="popover"],
-div[data-baseweb="popover"] > div,
-div[data-testid="stSelectboxVirtualDropdown"],
+div[data-baseweb="popover"] > div {{
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+}}
+
+/* Selectbox Dropdown Menu - Inner list single clean container */
 ul[data-baseweb="menu"],
 ul[role="listbox"],
-div[role="listbox"] {{
+div[role="listbox"],
+div[data-testid="stSelectboxVirtualDropdown"] {{
     background-color: {dropdown_bg} !important;
     background: {dropdown_bg} !important;
     border: 1.5px solid {dropdown_border} !important;
     border-radius: 8px !important;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, {"0.55" if dark_mode else "0.15"}) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, {"0.55" if dark_mode else "0.15"}) !important;
     z-index: 9999999 !important;
-    max-height: 320px !important;
+    max-height: 220px !important;
     overflow-y: auto !important;
     padding: 4px !important;
+    margin: 4px 0 !important;
+}}
+
+/* When popover is flipped to top by Popper, shift it down so it always appears below the selection button */
+div[data-baseweb="popover"][data-placement^="top"] ul[data-baseweb="menu"],
+div[data-baseweb="popover"][data-popper-placement^="top"] ul[data-baseweb="menu"],
+div[data-baseweb="popover"][data-placement^="top"] ul[role="listbox"],
+div[data-baseweb="popover"][data-popper-placement^="top"] ul[role="listbox"] {{
+    transform: translateY(calc(100% + 44px)) !important;
 }}
 
 /* Dropdown items / options */
@@ -1180,16 +1207,16 @@ div[data-testid="stSelectboxVirtualDropdown"] li {{
     background-color: {dropdown_option_bg} !important;
     background: {dropdown_option_bg} !important;
     color: {dropdown_text_primary} !important;
-    font-size: 13.5px !important;
-    font-weight: 450 !important;
-    padding: 10px 14px !important;
-    margin: 2px 0 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 8px 12px !important;
+    margin: 1px 0 !important;
     border-radius: 6px !important;
-    min-height: 38px !important;
+    min-height: 32px !important;
     height: auto !important;
     white-space: normal !important;
     word-break: break-word !important;
-    line-height: 1.4 !important;
+    line-height: 1.3 !important;
     cursor: pointer !important;
     transition: background-color 0.15s ease, color 0.15s ease !important;
     display: flex !important;
