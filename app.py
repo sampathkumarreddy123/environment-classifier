@@ -1063,11 +1063,11 @@ div[data-testid="stRadio"] [role="radiogroup"] label[data-selected] .material-sy
 /* Sidebar Controls: Scenario Selectbox Button styled exactly like Image 2 */
 .st-key-sidebar_scenario_select,
 div[data-testid="stElementContainer"]:has(.st-key-sidebar_scenario_select),
-section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
+section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {{
     width: 100% !important;
     min-width: 100% !important;
     box-sizing: border-box !important;
-}
+}}
 
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [class*="equpb2c0"],
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] .react-aria-Group,
@@ -1078,7 +1078,7 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb
 .st-key-sidebar_scenario_select .react-aria-Group,
 .st-key-sidebar_scenario_select [role="group"],
 .st-key-sidebar_scenario_select div:has(> input),
-.st-key-sidebar_scenario_select div[data-baseweb="select"] > div {
+.st-key-sidebar_scenario_select div[data-baseweb="select"] > div {{
     min-height: 40px !important;
     height: 40px !important;
     max-height: 40px !important;
@@ -1098,7 +1098,7 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb
     box-sizing: border-box !important;
     width: 100% !important;
     outline: none !important;
-}
+}}
 
 /* Hover state matching Image 2 */
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [class*="equpb2c0"]:hover,
@@ -1110,20 +1110,20 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb
 .st-key-sidebar_scenario_select .react-aria-Group:hover,
 .st-key-sidebar_scenario_select [role="group"]:hover,
 .st-key-sidebar_scenario_select div:has(> input):hover,
-.st-key-sidebar_scenario_select div[data-baseweb="select"] > div:hover {
+.st-key-sidebar_scenario_select div[data-baseweb="select"] > div:hover {{
     background-color: {"#2A4A38" if dark_mode else "#D9E8DB"} !important;
     background: {"#2A4A38" if dark_mode else "#D9E8DB"} !important;
     border-color: {primary_green} !important;
     border-left-color: {primary_green} !important;
     transform: translateY(-1px) !important;
-}
+}}
 
 /* Typography inside Sidebar Selectbox matching Image 2 */
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] input,
 .st-key-sidebar_scenario_select input,
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] span,
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"] p,
-.st-key-sidebar_scenario_select [role="combobox"] span {
+.st-key-sidebar_scenario_select [role="combobox"] span {{
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
@@ -1136,10 +1136,10 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] [role="combobox"
     margin: 0 !important;
     cursor: pointer !important;
     width: 100% !important;
-}
+}}
 
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] button,
-.st-key-sidebar_scenario_select button {
+.st-key-sidebar_scenario_select button {{
     background: transparent !important;
     background-color: transparent !important;
     border: none !important;
@@ -1150,23 +1150,23 @@ section[data-testid="stSidebar"] div[data-testid="stSelectbox"] button,
     cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
-}
+}}
 
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg,
 .st-key-sidebar_scenario_select svg,
 section[data-testid="stSidebar"] div[data-testid="stSelectbox"] svg path,
-.st-key-sidebar_scenario_select svg path {
+.st-key-sidebar_scenario_select svg path {{
     fill: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     color: {"#8FD0A8" if dark_mode else "#245C43"} !important;
     stroke: {"#8FD0A8" if dark_mode else "#245C43"} !important;
-}
+}}
 
 /* Main content selectbox */
 div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [class*="equpb2c0"],
 div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) .react-aria-Group,
 div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) [role="group"],
 div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) div[data-baseweb="select"] > div,
-div[data-baseweb="select"] > div {
+div[data-baseweb="select"] > div {{
     min-height: 40px !important;
     border-radius: 8px !important;
     display: flex !important;
@@ -1177,17 +1177,17 @@ div[data-baseweb="select"] > div {
     color: {dropdown_text_primary} !important;
     box-shadow: none !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-}
+}}
 
 /* Inner input and elements of main selectbox */
-div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) input {
+div[data-testid="stSelectbox"]:not(section[data-testid="stSidebar"] div[data-testid="stSelectbox"]) input {{
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
     background: transparent !important;
     background-color: transparent !important;
     color: {dropdown_text_primary} !important;
-}
+}}
 
 section[data-testid="stSidebar"] button[kind="secondary"],
 section[data-testid="stSidebar"] button[data-testid="baseButton-secondary"],
